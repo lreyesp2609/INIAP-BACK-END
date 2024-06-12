@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from .models import Usuarios, Personas, Rol
+from .models import *
 from django.contrib.auth.hashers import check_password
 from django.contrib.auth import logout
 
@@ -68,9 +68,39 @@ class ObtenerUsuarioView(View):
             id_usuario = payload.get('id_usuario')
 
             if id_usuario:
+                # Obtener el usuario con roles y personas relacionadas
                 usuario = Usuarios.objects.select_related('id_rol', 'id_persona').get(id_usuario=id_usuario)
 
+                # Obtener la persona asociada al usuario
                 persona = usuario.id_persona
+
+                # Obtener el empleado asociado a la persona
+                empleado = Empleados.objects.select_related('id_cargo', 'id_persona', 'id_cargo__id_unidad__id_estacion').get(id_persona=persona)
+
+                # Obtener las unidades asociadas al empleado
+                unidades = Unidades.objects.filter(id_estacion=empleado.id_cargo.id_unidad.id_estacion)
+
+                unidades_data = []
+                for unidad in unidades:
+                    unidad_data = {
+                        'id_unidad': unidad.id_unidad,
+                        'nombre_unidad': unidad.nombre_unidad,
+                        'siglas_unidad': unidad.siglas_unidad,
+                    }
+
+                    # Obtener los cargos asociados a la unidad
+                    cargos = Cargos.objects.filter(id_unidad=unidad.id_unidad)
+                    cargos_data = []
+                    for cargo in cargos:
+                        cargo_data = {
+                            'id_cargo': cargo.id_cargo,
+                            'cargo': cargo.cargo,
+                        }
+                        cargos_data.append(cargo_data)
+
+                    unidad_data['cargos'] = cargos_data
+                    unidades_data.append(unidad_data)
+
                 usuario_data = {
                     'id_usuario': usuario.id_usuario,
                     'usuario': usuario.usuario,
@@ -84,6 +114,15 @@ class ObtenerUsuarioView(View):
                     'id_rol': usuario.id_rol.id_rol,
                     'rol': usuario.id_rol.rol,
                     'descripcion_rol': usuario.id_rol.descripcion,
+                    'estacion': {
+                        'id_estacion': empleado.id_cargo.id_unidad.id_estacion.id_estacion,
+                        'nombre_estacion': empleado.id_cargo.id_unidad.id_estacion.nombre_estacion,
+                        'siglas_estacion': empleado.id_cargo.id_unidad.id_estacion.siglas_estacion,
+                        'ruc': empleado.id_cargo.id_unidad.id_estacion.ruc,
+                        'direccion': empleado.id_cargo.id_unidad.id_estacion.direccion,
+                        'telefono': empleado.id_cargo.id_unidad.id_estacion.telefono,
+                    },
+                    'unidades': unidades_data,
                 }
 
                 return JsonResponse({'usuario': usuario_data})
@@ -104,6 +143,18 @@ class ObtenerUsuarioView(View):
 
         except Rol.DoesNotExist:
             return JsonResponse({'error': 'Rol no encontrado'}, status=404)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({'error': 'Empleado no encontrado'}, status=404)
+
+        except Unidades.DoesNotExist:
+            return JsonResponse({'error': 'Unidades no encontradas'}, status=404)
+
+        except Cargos.DoesNotExist:
+            return JsonResponse({'error': 'Cargos no encontrados'}, status=404)
+
+        except Estaciones.DoesNotExist:
+            return JsonResponse({'error': 'Estaciones no encontradas'}, status=404)
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
