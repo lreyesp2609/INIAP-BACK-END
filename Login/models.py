@@ -1,6 +1,4 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
-
 # Create your models here.
 
 class Rol(models.Model):
@@ -37,7 +35,7 @@ class Usuarios(models.Model):
     class Meta:
         managed = False
         db_table = 'usuarios'
-
+        
 class Estaciones(models.Model):
     id_estacion = models.AutoField(primary_key=True)
     nombre_estacion = models.CharField(max_length=100)
