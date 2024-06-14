@@ -7,6 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed
 from django.db import transaction
 from .models import *
+from django.contrib.auth.hashers import make_password
 
 @method_decorator(csrf_exempt, name='dispatch')
 class NuevoEmpleadoView(View):
@@ -61,11 +62,9 @@ class NuevoEmpleadoView(View):
             usuario_data = {
                 'id_rol': usuario.id_rol,
                 'id_persona': persona,
-                'usuario': '',
-                'contrasenia': '',
+                'usuario': self.generate_username(persona.nombres, persona.apellidos),
+                'contrasenia': make_password(persona.numero_cedula),
             }
-
-            usuario_data['usuario'] = self.generate_username(persona.nombres, persona.apellidos)
 
             usuario = Usuarios.objects.create(**usuario_data)
 
@@ -91,7 +90,6 @@ class NuevoEmpleadoView(View):
             base_username += str(similar_usernames + 1)
         return base_username
 
-
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaEmpleadosView(View):
     def get(self, request, id_usuario, *args, **kwargs):
@@ -106,12 +104,18 @@ class ListaEmpleadosView(View):
             if not token_id_usuario:
                 raise AuthenticationFailed('ID de usuario no encontrado en el token')
 
-            usuario = Usuarios.objects.select_related('id_rol').get(id_usuario=token_id_usuario)
+            usuario = Usuarios.objects.select_related('id_rol', 'id_persona').get(id_usuario=token_id_usuario)
             if usuario.id_rol.rol != 'SuperUsuario':
                 return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
 
-            empleados = Empleados.objects.select_related('id_persona', 'id_cargo').all()
-            
+            # Obtener la estación del usuario
+            empleado_usuario = Empleados.objects.select_related('id_cargo').get(id_persona=usuario.id_persona)
+            unidad_usuario = Unidades.objects.get(id_unidad=empleado_usuario.id_cargo.id_unidad_id)
+            estacion_usuario = Estaciones.objects.get(id_estacion=unidad_usuario.id_estacion_id)
+
+            # Obtener todos los empleados de la misma estación
+            empleados = Empleados.objects.select_related('id_persona', 'id_cargo').filter(id_cargo__id_unidad__id_estacion=estacion_usuario.id_estacion)
+
             empleados_list = []
             for empleado in empleados:
                 persona = empleado.id_persona
@@ -120,6 +124,7 @@ class ListaEmpleadosView(View):
                 unidad = Unidades.objects.get(id_unidad=cargo.id_unidad_id)
                 estacion = Estaciones.objects.get(id_estacion=unidad.id_estacion_id)
 
+                # Obtener el usuario asociado al empleado
                 try:
                     usuario_empleado = Usuarios.objects.get(id_persona=persona)
                 except Usuarios.DoesNotExist:
@@ -128,6 +133,7 @@ class ListaEmpleadosView(View):
                 empleado_data = {
                     'nombres': persona.nombres,
                     'apellidos': persona.apellidos,
+                    'cedula': persona.numero_cedula,
                     'usuario': usuario_empleado.usuario if usuario_empleado else None,
                     'cargo': cargo.cargo,
                     'nombre_unidad': unidad.nombre_unidad,
