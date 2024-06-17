@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'Login',
     'Empleados',
+    'Estaciones',
 ]
 
 MIDDLEWARE = [

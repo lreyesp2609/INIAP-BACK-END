@@ -1,6 +1,8 @@
 import jwt
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.conf import settings
 from django.http import JsonResponse
+from django.core.exceptions import ObjectDoesNotExist
 from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -89,7 +91,7 @@ class NuevoEmpleadoView(View):
         if similar_usernames > 0:
             base_username += str(similar_usernames + 1)
         return base_username
-
+    
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaEmpleadosView(View):
     def get(self, request, id_usuario, *args, **kwargs):
@@ -121,9 +123,6 @@ class ListaEmpleadosView(View):
                 persona = empleado.id_persona
                 cargo = empleado.id_cargo
 
-                unidad = Unidades.objects.get(id_unidad=cargo.id_unidad_id)
-                estacion = Estaciones.objects.get(id_estacion=unidad.id_estacion_id)
-
                 # Obtener el usuario asociado al empleado
                 try:
                     usuario_empleado = Usuarios.objects.get(id_persona=persona)
@@ -134,14 +133,118 @@ class ListaEmpleadosView(View):
                     'nombres': persona.nombres,
                     'apellidos': persona.apellidos,
                     'cedula': persona.numero_cedula,
-                    'usuario': usuario_empleado.usuario if usuario_empleado else None,
+                    'correo_electronico': persona.correo_electronico,
+                    'fecha_nacimiento': persona.fecha_nacimiento,
+                    'celular': persona.celular,
                     'cargo': cargo.cargo,
-                    'nombre_unidad': unidad.nombre_unidad,
-                    'nombre_estacion': estacion.nombre_estacion
+                    'nombre_unidad': cargo.id_unidad.nombre_unidad,
+                    'nombre_estacion': cargo.id_unidad.id_estacion.nombre_estacion,
+                    'id_empleado': empleado.id_empleado,
+                    'fecha_ingreso': empleado.fecha_ingreso,
+                    'direccion': persona.direccion,
+                    'usuario': usuario_empleado.usuario if usuario_empleado else None,
+                    'habilitado': empleado.habilitado
                 }
                 empleados_list.append(empleado_data)
 
             return JsonResponse(empleados_list, safe=False)
+
+        except ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except AuthenticationFailed as e:
+            return JsonResponse({'error': str(e)}, status=403)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({'error': 'No se encontraron empleados'}, status=404)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': 'Objeto no encontrado'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class EditarEmpleadoView(View):
+    @transaction.atomic
+    def post(self, request, id_usuario, id_empleado, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            usuario = Usuarios.objects.select_related('id_rol', 'id_persona').get(id_usuario=token_id_usuario)
+            if usuario.id_rol.rol != 'SuperUsuario':
+                return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
+
+            if token_id_usuario != id_usuario:
+                return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
+
+            empleado = Empleados.objects.select_related('id_persona', 'id_cargo').get(id_empleado=id_empleado)
+
+            # Obtener la unidad del cargo del usuario a través de la persona
+            usuario_empleado = Empleados.objects.get(id_persona=usuario.id_persona)
+            usuario_unidad = usuario_empleado.id_cargo.id_unidad
+            usuario_estacion = usuario_unidad.id_estacion
+
+            # Obtener la unidad del cargo del empleado
+            empleado_unidad = empleado.id_cargo.id_unidad
+            empleado_estacion = empleado_unidad.id_estacion
+
+            if usuario_estacion != empleado_estacion:
+                return JsonResponse({'error': 'No puedes editar empleados de otra estación'}, status=403)
+
+            persona = empleado.id_persona
+
+            # Validar si se está intentando cambiar el número de cédula
+            nuevo_numero_cedula = request.POST.get('numero_cedula')
+            if nuevo_numero_cedula and nuevo_numero_cedula != persona.numero_cedula:
+                existing_persona = Personas.objects.filter(numero_cedula=nuevo_numero_cedula).exclude(id_persona=persona.id_persona).first()
+                if existing_persona:
+                    return JsonResponse({'error': 'Ya existe una persona con este número de cédula'}, status=400)
+
+            # Actualizar los datos de la persona solo si no se cambia el número de cédula
+            persona.numero_cedula = nuevo_numero_cedula or persona.numero_cedula
+            persona.nombres = request.POST.get('nombres', persona.nombres)
+            persona.apellidos = request.POST.get('apellidos', persona.apellidos)
+            persona.fecha_nacimiento = request.POST.get('fecha_nacimiento', persona.fecha_nacimiento)
+            persona.genero = request.POST.get('genero', persona.genero)
+            persona.celular = request.POST.get('celular', persona.celular)
+            persona.direccion = request.POST.get('direccion', persona.direccion)
+            persona.correo_electronico = request.POST.get('correo_electronico', persona.correo_electronico)
+            persona.save()
+
+            cargo_id = request.POST.get('id_cargo')
+            if cargo_id:
+                cargo = Cargos.objects.get(id_cargo=cargo_id)
+                empleado.id_cargo = cargo
+
+            empleado.fecha_ingreso = request.POST.get('fecha_ingreso', empleado.fecha_ingreso)
+            empleado.habilitado = request.POST.get('habilitado', empleado.habilitado)
+            empleado.save()
+
+            # Validar y actualizar el nombre de usuario
+            nuevo_usuario = request.POST.get('usuario')
+            if nuevo_usuario:
+                existing_usuario = Usuarios.objects.filter(usuario=nuevo_usuario).exclude(id_persona=persona.id_persona).first()
+                if existing_usuario:
+                    return JsonResponse({'error': 'El nombre de usuario ya existe'}, status=400)
+
+                usuario_empleado = Usuarios.objects.get(id_persona=persona)
+                usuario_empleado.usuario = nuevo_usuario
+                usuario_empleado.save()
+
+            return JsonResponse({'mensaje': 'Empleado editado exitosamente'}, status=200)
 
         except jwt.ExpiredSignatureError:
             return JsonResponse({'error': 'Token expirado'}, status=401)
@@ -153,7 +256,8 @@ class ListaEmpleadosView(View):
             return JsonResponse({'error': str(e)}, status=403)
 
         except Empleados.DoesNotExist:
-            return JsonResponse({'error': 'No se encontraron empleados'}, status=404)
+            return JsonResponse({'error': 'Empleado no encontrado'}, status=404)
 
         except Exception as e:
+            transaction.set_rollback(True)
             return JsonResponse({'error': str(e)}, status=500)
