@@ -143,7 +143,8 @@ class ListaEmpleadosView(View):
                     'fecha_ingreso': empleado.fecha_ingreso,
                     'direccion': persona.direccion,
                     'usuario': usuario_empleado.usuario if usuario_empleado else None,
-                    'habilitado': empleado.habilitado
+                    'habilitado': empleado.habilitado,
+                    'genero': persona.genero
                 }
                 empleados_list.append(empleado_data)
 
@@ -166,7 +167,6 @@ class ListaEmpleadosView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
 
 @method_decorator(csrf_exempt, name='dispatch')
 class EditarEmpleadoView(View):
@@ -260,4 +260,87 @@ class EditarEmpleadoView(View):
 
         except Exception as e:
             transaction.set_rollback(True)
+            return JsonResponse({'error': str(e)}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class DetalleEmpleadoView(View):
+    def get(self, request, id_usuario, id_empleado, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            usuario = Usuarios.objects.select_related('id_rol', 'id_persona').get(id_usuario=token_id_usuario)
+            if usuario.id_rol.rol != 'SuperUsuario':
+                return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
+
+            # Obtener el empleado solicitado
+            empleado = Empleados.objects.select_related('id_persona', 'id_cargo__id_unidad__id_estacion').get(id_empleado=id_empleado)
+            persona = empleado.id_persona
+            cargo = empleado.id_cargo
+
+            # Obtener el usuario asociado al empleado
+            try:
+                usuario_empleado = Usuarios.objects.get(id_persona=persona)
+            except Usuarios.DoesNotExist:
+                usuario_empleado = None
+                
+            cargo_data = {
+                'id_cargo': cargo.id_cargo,
+                'cargo': cargo.cargo
+            }
+
+            unidad_data = {
+                'id_unidad': cargo.id_unidad.id_unidad,
+                'unidad': cargo.id_unidad.nombre_unidad
+            }
+
+            estacion_data = {
+                'id_estacion': cargo.id_unidad.id_estacion.id_estacion,
+                'estacion': cargo.id_unidad.id_estacion.nombre_estacion
+            }
+            
+            empleado_data = {
+                'nombres': persona.nombres,
+                'apellidos': persona.apellidos,
+                'cedula': persona.numero_cedula,
+                'correo_electronico': persona.correo_electronico,
+                'fecha_nacimiento': persona.fecha_nacimiento,
+                'celular': persona.celular,
+                'cargo': cargo_data,
+                'unidad': unidad_data,
+                'estacion': estacion_data,
+                'id_empleado': empleado.id_empleado,
+                'fecha_ingreso': empleado.fecha_ingreso,
+                'direccion': persona.direccion,
+                'usuario': usuario_empleado.usuario if usuario_empleado else None,
+                'habilitado': empleado.habilitado,
+                'id_rol': usuario_empleado.id_rol.id_rol if usuario_empleado else None,
+                'genero': persona.genero
+            }
+
+            return JsonResponse(empleado_data, safe=False)
+
+        except ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except AuthenticationFailed as e:
+            return JsonResponse({'error': str(e)}, status=403)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({'error': 'Empleado no encontrado'}, status=404)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': 'Objeto no encontrado'}, status=404)
+
+        except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)

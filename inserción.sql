@@ -57,7 +57,7 @@ INSERT INTO Rol (rol, descripcion)
 VALUES
   ('Administrador', 'Rol con acceso completo al sistema'),
   ('Empleado', 'Rol para usuarios regulares'),
-  ('Supervisor', 'Rol para supervisores de unidades');
+  ('SuperUsuario', 'Rol para supervisores de unidades');
 
 -- Insertar persona
 INSERT INTO Personas (numero_cedula, nombres, apellidos, fecha_nacimiento, genero, celular, direccion, correo_electronico)
