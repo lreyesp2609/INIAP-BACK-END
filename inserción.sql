@@ -3,7 +3,7 @@ BEGIN;
 INSERT INTO Estaciones (nombre_estacion, siglas_estacion, ruc, direccion, telefono)
 VALUES
   (
-    'Estación Experimental Tropical Pichilingue',  -- Nombre de la estación
+    'ESTACIÓN EXPERIMENTAL TROPICAL PICHILINGUE',  -- Nombre de la estación
     'EETP',                                       -- Siglas de la estación
     '1',                                          -- RUC
     'Vía a El Empalme, Quevedo',                  -- Dirección
@@ -16,7 +16,7 @@ VALUES
   (
     'UNIDAD DE INFORMATICA',  -- Nombre de la unidad
     'UI',                     -- Siglas de la unidad
-    (SELECT id_estacion FROM Estaciones WHERE nombre_estacion = 'Estación Experimental Tropical Pichilingue')  -- id_estacion
+    (SELECT id_estacion FROM Estaciones WHERE nombre_estacion = 'ESTACIÓN EXPERIMENTAL TROPICAL PICHILINGUE')  -- id_estacion
   );
 
 -- Insertar cargo
@@ -89,7 +89,7 @@ BEGIN
     INSERT INTO Usuarios (id_rol, id_persona, usuario, contrasenia)
     VALUES
     (
-        (SELECT id_rol FROM Rol WHERE rol = 'Empleado'),  -- Reemplaza con el ID del rol 'Empleado'
+        (SELECT id_rol FROM Rol WHERE rol = 'SuperUsuario'),  -- Reemplaza con el ID del rol 'Empleado'
         persona_id,  -- id_persona recién obtenido
         'luis.reyes',  -- Usuario
         'pbkdf2_sha256$720000$nA1DBiCSy5A4HPTMAfMGDx$MmlhOsKKop+XKgi48HY1WYVShwtU6vD1/nsc8bnk2Zo='  -- Contraseña cifrada
