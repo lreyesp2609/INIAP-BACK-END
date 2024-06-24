@@ -11,7 +11,6 @@ from django.db import transaction
 from .models import *
 from django.contrib.auth.hashers import make_password
 import re
-
 from datetime import datetime
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -48,8 +47,9 @@ class NuevoEmpleadoView(View):
             distintivo = request.POST.get('distintivo')
             fecha_ingreso = request.POST.get('fecha_ingreso')
             habilitado = request.POST.get('habilitado')
+            id_rol = request.POST.get('id_rol')  # Nuevo campo para el ID del rol
 
-            if not all([numero_cedula, nombres, apellidos, fecha_nacimiento, genero, celular, direccion, correo_electronico, distintivo, fecha_ingreso, habilitado]):
+            if not all([numero_cedula, nombres, apellidos, fecha_nacimiento, genero, celular, direccion, correo_electronico, distintivo, fecha_ingreso, habilitado, id_rol]):
                 return JsonResponse({'error': 'Todos los campos son obligatorios'}, status=400)
 
             # Validar formato de campos
@@ -65,8 +65,9 @@ class NuevoEmpleadoView(View):
             if not genero in ['Masculino', 'Femenino']:
                 return JsonResponse({'error': 'El género debe ser Masculino o Femenino'}, status=400)
 
-            if not celular.isdigit():
-                return JsonResponse({'error': 'El número de celular debe contener solo números'}, status=400)
+            celular_pattern = r'^\+?\d[\d\s]{9,15}$'
+            if not re.match(celular_pattern, celular):
+                return JsonResponse({'error': 'El número de celular debe tener un formato válido'}, status=400)
             
             if not re.match(r'^[a-zA-Z0-9\s,.\-áéíóúÁÉÍÓÚñÑ]+$', direccion):
                 return JsonResponse({'error': 'La dirección debe contener solo letras y números'}, status=400)
@@ -103,6 +104,7 @@ class NuevoEmpleadoView(View):
             if existing_persona:
                 raise Exception('Ya existe una persona con este número de cédula')
 
+            # Crear la persona
             persona_data = {
                 'numero_cedula': numero_cedula,
                 'nombres': nombres,
@@ -113,12 +115,13 @@ class NuevoEmpleadoView(View):
                 'direccion': direccion,
                 'correo_electronico': correo_electronico,
             }
-
             persona = Personas.objects.create(**persona_data)
 
+            # Obtener el cargo del empleado
             cargo_id = request.POST.get('id_cargo')
             cargo = Cargos.objects.get(id_cargo=cargo_id)
 
+            # Crear el empleado
             empleado_data = {
                 'id_persona': persona,
                 'id_cargo': cargo,
@@ -128,13 +131,18 @@ class NuevoEmpleadoView(View):
             }
             empleado = Empleados.objects.create(**empleado_data)
 
+            # Obtener y asignar el rol del empleado
+            rol = Rol.objects.get(id_rol=id_rol)
+            empleado.id_rol = rol  # Asignar el rol al empleado
+            empleado.save()
+
+            # Crear el usuario asociado al empleado
             usuario_data = {
-                'id_rol': usuario.id_rol,
+                'id_rol': rol,
                 'id_persona': persona,
                 'usuario': self.generate_username(persona.nombres, persona.apellidos),
                 'contrasenia': make_password(persona.numero_cedula),
             }
-
             usuario = Usuarios.objects.create(**usuario_data)
 
             return JsonResponse({'mensaje': 'Empleado creado exitosamente', 'id_empleado': empleado.id_empleado, 'id_usuario': usuario.id_usuario}, status=201)
@@ -158,8 +166,6 @@ class NuevoEmpleadoView(View):
         if similar_usernames > 0:
             base_username += str(similar_usernames + 1)
         return base_username
-
-
     
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaEmpleadosView(View):
@@ -184,8 +190,8 @@ class ListaEmpleadosView(View):
             unidad_usuario = Unidades.objects.get(id_unidad=empleado_usuario.id_cargo.id_unidad_id)
             estacion_usuario = Estaciones.objects.get(id_estacion=unidad_usuario.id_estacion_id)
 
-            # Obtener todos los empleados de la misma estación
-            empleados = Empleados.objects.select_related('id_persona', 'id_cargo').filter(id_cargo__id_unidad__id_estacion=estacion_usuario.id_estacion)
+            # Obtener todos los empleados de la misma estación ordenados por id_empleado
+            empleados = Empleados.objects.select_related('id_persona', 'id_cargo').filter(id_cargo__id_unidad__id_estacion=estacion_usuario.id_estacion).order_by('id_empleado')
 
             empleados_list = []
             for empleado in empleados:
@@ -220,10 +226,10 @@ class ListaEmpleadosView(View):
 
             return JsonResponse(empleados_list, safe=False)
 
-        except ExpiredSignatureError:
+        except jwt.ExpiredSignatureError:
             return JsonResponse({'error': 'Token expirado'}, status=401)
 
-        except InvalidTokenError:
+        except jwt.InvalidTokenError:
             return JsonResponse({'error': 'Token inválido'}, status=401)
 
         except AuthenticationFailed as e:
@@ -237,6 +243,7 @@ class ListaEmpleadosView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class EditarEmpleadoView(View):
@@ -332,6 +339,7 @@ class EditarEmpleadoView(View):
         except Exception as e:
             transaction.set_rollback(True)
             return JsonResponse({'error': str(e)}, status=500)
+
         
 @method_decorator(csrf_exempt, name='dispatch')
 class DetalleEmpleadoView(View):

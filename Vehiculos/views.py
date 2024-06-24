@@ -11,12 +11,10 @@ from django.conf import settings
 class VehiculosListView(View):
     def get(self, request, *args, **kwargs):
         try:
-            # Obtener el token del encabezado Authorization
             token = request.headers.get('Authorization')
             if not token:
                 return JsonResponse({'error': 'Token no proporcionado'}, status=400)
 
-            # Decodificar el token para obtener la información del usuario
             try:
                 payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
             except jwt.ExpiredSignatureError:
