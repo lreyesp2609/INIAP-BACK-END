@@ -181,6 +181,9 @@ class ListaEmpleadosView(View):
             if not token_id_usuario:
                 raise AuthenticationFailed('ID de usuario no encontrado en el token')
 
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
             usuario = Usuarios.objects.select_related('id_rol', 'id_persona').get(id_usuario=token_id_usuario)
             if usuario.id_rol.rol != 'SuperUsuario':
                 return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
@@ -243,7 +246,6 @@ class ListaEmpleadosView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
 
 @method_decorator(csrf_exempt, name='dispatch')
 class EditarEmpleadoView(View):
@@ -340,7 +342,6 @@ class EditarEmpleadoView(View):
             transaction.set_rollback(True)
             return JsonResponse({'error': str(e)}, status=500)
 
-        
 @method_decorator(csrf_exempt, name='dispatch')
 class DetalleEmpleadoView(View):
     def get(self, request, id_usuario, id_empleado, *args, **kwargs):
@@ -354,6 +355,9 @@ class DetalleEmpleadoView(View):
             token_id_usuario = payload.get('id_usuario')
             if not token_id_usuario:
                 raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
 
             usuario = Usuarios.objects.select_related('id_rol', 'id_persona').get(id_usuario=token_id_usuario)
             if usuario.id_rol.rol != 'SuperUsuario':
@@ -369,7 +373,7 @@ class DetalleEmpleadoView(View):
                 usuario_empleado = Usuarios.objects.get(id_persona=persona)
             except Usuarios.DoesNotExist:
                 usuario_empleado = None
-                
+
             cargo_data = {
                 'id_cargo': cargo.id_cargo,
                 'cargo': cargo.cargo
@@ -384,7 +388,7 @@ class DetalleEmpleadoView(View):
                 'id_estacion': cargo.id_unidad.id_estacion.id_estacion,
                 'estacion': cargo.id_unidad.id_estacion.nombre_estacion
             }
-            
+
             empleado_data = {
                 'nombres': persona.nombres,
                 'apellidos': persona.apellidos,
@@ -407,10 +411,10 @@ class DetalleEmpleadoView(View):
 
             return JsonResponse(empleado_data, safe=False)
 
-        except ExpiredSignatureError:
+        except jwt.ExpiredSignatureError:
             return JsonResponse({'error': 'Token expirado'}, status=401)
 
-        except InvalidTokenError:
+        except jwt.InvalidTokenError:
             return JsonResponse({'error': 'Token inválido'}, status=401)
 
         except AuthenticationFailed as e:

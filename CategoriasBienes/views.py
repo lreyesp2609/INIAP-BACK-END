@@ -24,6 +24,9 @@ class ListaCategoriasBienesView(View):
             if not token_id_usuario:
                 raise AuthenticationFailed('ID de usuario no encontrado en el token')
 
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
             usuario = Usuarios.objects.select_related('id_rol', 'id_persona').get(id_usuario=token_id_usuario)
             if usuario.id_rol.rol != 'SuperUsuario':
                 return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
@@ -83,6 +86,9 @@ class CrearCategoriaBienesView(View):
             if not token_id_usuario:
                 raise AuthenticationFailed('ID de usuario no encontrado en el token')
 
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
             usuario = Usuarios.objects.select_related('id_rol', 'id_persona').get(id_usuario=token_id_usuario)
             if usuario.id_rol.rol != 'SuperUsuario':
                 return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
@@ -119,7 +125,7 @@ class CrearCategoriaBienesView(View):
         except Exception as e:
             transaction.set_rollback(True)  # Asegurar rollback en caso de excepción
             return JsonResponse({'error': str(e)}, status=500)
-        
+    
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearSubcategoriaBienesView(View):
     @transaction.atomic
@@ -134,6 +140,9 @@ class CrearSubcategoriaBienesView(View):
             token_id_usuario = payload.get('id_usuario')
             if not token_id_usuario:
                 raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
 
             usuario = Usuarios.objects.select_related('id_rol', 'id_persona').get(id_usuario=token_id_usuario)
             if usuario.id_rol.rol != 'SuperUsuario':
