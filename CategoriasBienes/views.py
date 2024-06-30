@@ -198,3 +198,5 @@ class CrearSubcategoriaBienesView(View):
         except Exception as e:
             transaction.set_rollback(True)  # Asegurar rollback en caso de excepción
             return JsonResponse({'error': str(e)}, status=500)
+
+#pruebita
