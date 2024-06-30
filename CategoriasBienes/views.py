@@ -99,7 +99,7 @@ class CrearCategoriaBienesView(View):
                 return JsonResponse({'error': 'Descripción de categoría no proporcionada'}, status=400)
 
             # Validar que la descripción solo contenga texto
-            if not isinstance(descripcion_categoria, str) or not re.match("^[a-zA-Z\s]+$", descripcion_categoria):
+            if not isinstance(descripcion_categoria, str) or not re.match(r"^[a-zA-Z\s]+$", descripcion_categoria):
                 return JsonResponse({'error': 'La descripción de la categoría solo debe contener letras y espacios'}, status=400)
 
             # Crear la nueva categoría de bienes
@@ -125,7 +125,7 @@ class CrearCategoriaBienesView(View):
         except Exception as e:
             transaction.set_rollback(True)  # Asegurar rollback en caso de excepción
             return JsonResponse({'error': str(e)}, status=500)
-    
+
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearSubcategoriaBienesView(View):
     @transaction.atomic
@@ -158,7 +158,7 @@ class CrearSubcategoriaBienesView(View):
                 return JsonResponse({'error': 'Identificador no proporcionado'}, status=400)
 
             # Validar que la descripción solo contenga texto
-            if not isinstance(descripcion, str) or not re.match("^[a-zA-Z\s]+$", descripcion):
+            if not isinstance(descripcion, str) or not re.match(r"^[a-zA-Z\s]+$", descripcion):
                 return JsonResponse({'error': 'La descripción solo debe contener letras y espacios'}, status=400)
 
             # Validar que el identificador solo contenga números
@@ -198,5 +198,3 @@ class CrearSubcategoriaBienesView(View):
         except Exception as e:
             transaction.set_rollback(True)  # Asegurar rollback en caso de excepción
             return JsonResponse({'error': str(e)}, status=500)
-
-#pruebita

@@ -7,25 +7,28 @@ from Empleados.models import Usuarios
 import jwt
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
+from rest_framework.exceptions import AuthenticationFailed
 
 @method_decorator(csrf_exempt, name='dispatch')
 class VehiculosListView(View):
-    def get(self, request, *args, **kwargs):
+    def get(self, request, id_usuario, *args, **kwargs):
         try:
             token = request.headers.get('Authorization')
             if not token:
                 return JsonResponse({'error': 'Token no proporcionado'}, status=400)
 
-            try:
-                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            except jwt.ExpiredSignatureError:
-                return JsonResponse({'error': 'Token expirado'}, status=401)
-            except jwt.InvalidTokenError:
-                return JsonResponse({'error': 'Token inválido'}, status=401)
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
 
-            rol_usuario = payload.get('rol')
-            if rol_usuario != 'SuperUsuario':
-                return JsonResponse({'error': 'Acceso denegado, se requieren permisos de SuperUsuario'}, status=403)
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
+            usuario = Usuarios.objects.select_related('id_rol', 'id_persona').get(id_usuario=token_id_usuario)
+            if usuario.id_rol.rol != 'SuperUsuario':
+                return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
 
             vehiculos = Vehiculo.objects.all()
 
@@ -48,6 +51,18 @@ class VehiculosListView(View):
                 vehiculos_data.append(vehiculo_data)
 
             return JsonResponse({'vehiculos': vehiculos_data})
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except AuthenticationFailed as e:
+            return JsonResponse({'error': str(e)}, status=403)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
