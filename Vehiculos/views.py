@@ -9,7 +9,6 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.exceptions import AuthenticationFailed
 import re
-
 @method_decorator(csrf_exempt, name='dispatch')
 class VehiculosListView(View):
     def get(self, request, id_usuario, *args, **kwargs):
@@ -31,7 +30,7 @@ class VehiculosListView(View):
             if usuario.id_rol.rol != 'SuperUsuario':
                 return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
 
-            vehiculos = Vehiculo.objects.all()
+            vehiculos = Vehiculo.objects.filter(habilitado=1)
 
             vehiculos_data = []
             for vehiculo in vehiculos:
@@ -166,6 +165,69 @@ class CrearVehiculoView(View):
             )
 
             return JsonResponse({'mensaje': 'Vehículo creado exitosamente', 'id_vehiculo': vehiculo.id_vehiculo}, status=201)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class DeshabilitarVehiculoView(View):
+    def post(self, request, id_usuario, id_vehiculo, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            try:
+                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            except jwt.ExpiredSignatureError:
+                return JsonResponse({'error': 'Token expirado'}, status=401)
+            except jwt.InvalidTokenError:
+                return JsonResponse({'error': 'Token inválido'}, status=401)
+
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                return JsonResponse({'error': 'ID de usuario no encontrado en el token'}, status=403)
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
+            usuario = Usuarios.objects.select_related('id_rol', 'id_persona').get(id_usuario=token_id_usuario)
+            if usuario.id_rol.rol != 'SuperUsuario':
+                return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
+
+            motivo = request.POST.get('motivo')
+            if not motivo:
+                return JsonResponse({'error': 'Motivo es requerido'}, status=400)
+
+            try:
+                vehiculo = Vehiculo.objects.get(id_vehiculo=id_vehiculo)
+            except ObjectDoesNotExist:
+                return JsonResponse({'error': 'Vehículo no encontrado'}, status=404)
+
+            if vehiculo.habilitado == 0:
+                return JsonResponse({'error': 'El vehículo ya está deshabilitado'}, status=400)
+
+            vehiculo.habilitado = 0
+            vehiculo.save()
+
+            MotivoVehiculo.objects.create(
+                id_vehiculo=vehiculo,
+                motivo=motivo
+            )
+
+            return JsonResponse({'mensaje': 'Vehículo deshabilitado y motivo registrado exitosamente'}, status=200)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except AuthenticationFailed as e:
+            return JsonResponse({'error': str(e)}, status=403)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)

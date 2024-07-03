@@ -37,3 +37,12 @@ class Vehiculo(models.Model):
     class Meta:
         managed = False
         db_table = 'vehiculo'
+
+class MotivoVehiculo(models.Model):
+    id_motivo = models.AutoField(primary_key=True)
+    id_vehiculo = models.ForeignKey(Vehiculo, models.DO_NOTHING, db_column='id_vehiculo')
+    motivo = models.CharField(max_length=255)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'motivo_vehiculo'

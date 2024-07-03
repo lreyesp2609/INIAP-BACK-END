@@ -46,7 +46,6 @@ class IniciarSesionView(View):
 class CerrarSesionView(View):
     def post(self, request, *args, **kwargs):
         try:
-            # Cerrar sesión
             logout(request)
 
             return JsonResponse({'mensaje': 'Sesión cerrada exitosamente'})
@@ -61,23 +60,17 @@ class ObtenerUsuarioView(View):
             if not token:
                 return JsonResponse({'error': 'Token no proporcionado'}, status=400)
 
-            # Decodificar el token para obtener la información del usuario
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
 
-            # Extraer el id de usuario del payload
             id_usuario = payload.get('id_usuario')
 
             if id_usuario:
-                # Obtener el usuario con roles y personas relacionadas
                 usuario = Usuarios.objects.select_related('id_rol', 'id_persona').get(id_usuario=id_usuario)
 
-                # Obtener la persona asociada al usuario
                 persona = usuario.id_persona
 
-                # Obtener el empleado asociado a la persona
                 empleado = Empleados.objects.select_related('id_cargo', 'id_persona', 'id_cargo__id_unidad__id_estacion').get(id_persona=persona)
 
-                # Obtener las unidades asociadas al empleado
                 unidades = Unidades.objects.filter(id_estacion=empleado.id_cargo.id_unidad.id_estacion)
 
                 unidades_data = []
@@ -88,7 +81,6 @@ class ObtenerUsuarioView(View):
                         'siglas_unidad': unidad.siglas_unidad,
                     }
 
-                    # Obtener los cargos asociados a la unidad
                     cargos = Cargos.objects.filter(id_unidad=unidad.id_unidad)
                     cargos_data = []
                     for cargo in cargos:
