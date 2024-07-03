@@ -43,10 +43,13 @@ class NuevoEmpleadoView(View):
             direccion = request.POST.get('direccion')
             correo_electronico = request.POST.get('correo_electronico')
             distintivo = request.POST.get('distintivo')
-            fecha_ingreso = request.POST.get('fecha_ingreso')
             id_rol = request.POST.get('id_rol')
+            id_cargo = request.POST.get('id_cargo')
 
-            if not all([numero_cedula, nombres, apellidos, fecha_nacimiento, genero, celular, direccion, correo_electronico, distintivo, fecha_ingreso, id_rol]):
+            # Usa la fecha actual del servidor como fecha de ingreso
+            fecha_ingreso = datetime.now().strftime('%Y-%m-%d')
+
+            if not all([numero_cedula, nombres, apellidos, fecha_nacimiento, genero, celular, direccion, correo_electronico, distintivo, id_rol, id_cargo]):
                 return JsonResponse({'error': 'Todos los campos son obligatorios'}, status=400)
 
             if not numero_cedula.isdigit():
@@ -68,9 +71,9 @@ class NuevoEmpleadoView(View):
             if not re.match(r'^[a-zA-Z0-9\s,.\-áéíóúÁÉÍÓÚñÑ]+$', direccion):
                 return JsonResponse({'error': 'La dirección debe contener solo letras y números'}, status=400)
 
-            if not distintivo.isalpha():
-                return JsonResponse({'error': 'El distintivo debe contener solo letras'}, status=400)
-            
+            if not re.match(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s.]+$', distintivo):
+                return JsonResponse({'error': 'El distintivo debe contener solo letras, tildes y espacios'}, status=400)
+
             if not distintivo.endswith('.'):
                 distintivo += '.'
 
@@ -84,10 +87,9 @@ class NuevoEmpleadoView(View):
 
             try:
                 fecha_nacimiento = parse_date(fecha_nacimiento)
-                fecha_ingreso = parse_date(fecha_ingreso)
             except ValueError as e:
                 return JsonResponse({'error': str(e)}, status=400)
-            
+
             fecha_nacimiento_dt = datetime.strptime(fecha_nacimiento, '%Y-%m-%d')
             edad = (datetime.now() - fecha_nacimiento_dt).days // 365
             if edad < 18:
@@ -111,8 +113,8 @@ class NuevoEmpleadoView(View):
             }
             persona = Personas.objects.create(**persona_data)
 
-            cargo_id = request.POST.get('id_cargo')
-            cargo = Cargos.objects.get(id_cargo=cargo_id)
+            cargo = Cargos.objects.get(id_cargo=id_cargo)
+            rol = Rol.objects.get(id_rol=id_rol)
 
             empleado_data = {
                 'id_persona': persona,
@@ -122,10 +124,6 @@ class NuevoEmpleadoView(View):
                 'habilitado': habilitado,
             }
             empleado = Empleados.objects.create(**empleado_data)
-
-            rol = Rol.objects.get(id_rol=id_rol)
-            empleado.id_rol = rol
-            empleado.save()
 
             usuario_data = {
                 'id_rol': rol,
@@ -162,7 +160,7 @@ class NuevoEmpleadoView(View):
                 base_username += str(len(similar_usernames) + 1)
 
         return base_username
-    
+
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaEmpleadosView(View):
     def get(self, request, id_usuario, *args, **kwargs):
@@ -331,7 +329,6 @@ class EditarEmpleadoView(View):
                 return JsonResponse({'error': 'Token no proporcionado'}, status=400)
 
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-
             token_id_usuario = payload.get('id_usuario')
             if not token_id_usuario:
                 raise AuthenticationFailed('ID de usuario no encontrado en el token')
@@ -344,7 +341,6 @@ class EditarEmpleadoView(View):
                 return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
 
             empleado = Empleados.objects.select_related('id_persona', 'id_cargo').get(id_empleado=id_empleado)
-
             usuario_empleado = Empleados.objects.get(id_persona=usuario.id_persona)
             usuario_unidad = usuario_empleado.id_cargo.id_unidad
             usuario_estacion = usuario_unidad.id_estacion
@@ -357,20 +353,71 @@ class EditarEmpleadoView(View):
 
             persona = empleado.id_persona
 
+            # Actualización del número de cédula
             nuevo_numero_cedula = request.POST.get('numero_cedula')
             if nuevo_numero_cedula and nuevo_numero_cedula != persona.numero_cedula:
+                if not nuevo_numero_cedula.isdigit():
+                    return JsonResponse({'error': 'El número de cédula debe contener solo números'}, status=400)
+
                 existing_persona = Personas.objects.filter(numero_cedula=nuevo_numero_cedula).exclude(id_persona=persona.id_persona).first()
                 if existing_persona:
                     return JsonResponse({'error': 'Ya existe una persona con este número de cédula'}, status=400)
 
-            persona.numero_cedula = nuevo_numero_cedula or persona.numero_cedula
+                persona.numero_cedula = nuevo_numero_cedula
+
             persona.nombres = request.POST.get('nombres', persona.nombres)
             persona.apellidos = request.POST.get('apellidos', persona.apellidos)
-            persona.fecha_nacimiento = request.POST.get('fecha_nacimiento', persona.fecha_nacimiento)
+
+            fecha_nacimiento_str = request.POST.get('fecha_nacimiento', persona.fecha_nacimiento)
+            if fecha_nacimiento_str:
+                try:
+                    # Asegúrate de que fecha_nacimiento_str sea una cadena antes de parsear
+                    if isinstance(fecha_nacimiento_str, str):
+                        def parse_date(date_str):
+                            for fmt in ('%d/%m/%Y', '%Y-%m-%d'):
+                                try:
+                                    return datetime.strptime(date_str, fmt).strftime('%Y-%m-%d')
+                                except ValueError:
+                                    pass
+                            raise ValueError('Formato de fecha inválido')
+
+                        fecha_nacimiento_str = parse_date(fecha_nacimiento_str)
+                        fecha_nacimiento_dt = datetime.strptime(fecha_nacimiento_str, '%Y-%m-%d').date()
+                        edad = (datetime.now().date() - fecha_nacimiento_dt).days // 365
+                        if edad < 18:
+                            return JsonResponse({'error': 'El empleado debe ser mayor de 18 años'}, status=400)
+                        persona.fecha_nacimiento = fecha_nacimiento_dt
+                except ValueError as e:
+                    return JsonResponse({'error': str(e)}, status=400)
+
             persona.genero = request.POST.get('genero', persona.genero)
             persona.celular = request.POST.get('celular', persona.celular)
             persona.direccion = request.POST.get('direccion', persona.direccion)
             persona.correo_electronico = request.POST.get('correo_electronico', persona.correo_electronico)
+
+            if persona.nombres and not persona.nombres.replace(" ", "").isalpha():
+                return JsonResponse({'error': 'El nombre debe contener solo letras'}, status=400)
+            
+            if persona.apellidos and not persona.apellidos.replace(" ", "").isalpha():
+                return JsonResponse({'error': 'Los apellidos deben contener solo letras'}, status=400)
+            
+            if persona.genero and persona.genero not in ['Masculino', 'Femenino']:
+                return JsonResponse({'error': 'El género debe ser Masculino o Femenino'}, status=400)
+            
+            if persona.celular:
+                celular_pattern = r'^\+?\d[\d\s]{9,15}$'
+                if not re.match(celular_pattern, persona.celular):
+                    return JsonResponse({'error': 'El número de celular debe tener un formato válido'}, status=400)
+            
+            if persona.direccion and not re.match(r'^[a-zA-Z0-9\s,.\-áéíóúÁÉÍÓÚñÑ]+$', persona.direccion):
+                return JsonResponse({'error': 'La dirección debe contener solo letras y números'}, status=400)
+
+            if persona.nombres and not re.match(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$', persona.nombres):
+                return JsonResponse({'error': 'El nombre debe contener solo letras, tildes y espacios'}, status=400)
+
+            if persona.apellidos and not re.match(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$', persona.apellidos):
+                return JsonResponse({'error': 'Los apellidos deben contener solo letras, tildes y espacios'}, status=400)
+
             persona.save()
 
             cargo_id = request.POST.get('id_cargo')
@@ -378,15 +425,26 @@ class EditarEmpleadoView(View):
                 cargo = Cargos.objects.get(id_cargo=cargo_id)
                 empleado.id_cargo = cargo
 
+            rol_id = request.POST.get('id_rol')
+            if rol_id:
+                rol = Rol.objects.get(id_rol=rol_id)
+                if usuario.id_rol.rol != 'SuperUsuario':
+                    return JsonResponse({'error': 'No tienes permisos suficientes para cambiar el rol'}, status=403)
+
+                usuario_a_actualizar = Usuarios.objects.get(id_persona=persona)
+                usuario_a_actualizar.id_rol = rol
+                usuario_a_actualizar.save()
+
             empleado.fecha_ingreso = request.POST.get('fecha_ingreso', empleado.fecha_ingreso)
             empleado.habilitado = request.POST.get('habilitado', empleado.habilitado)
             empleado.distintivo = request.POST.get('distintivo', empleado.distintivo)
+            if empleado.distintivo and not empleado.distintivo.endswith('.'):
+                empleado.distintivo += '.'
             empleado.save()
 
             nuevo_usuario = request.POST.get('usuario')
             if nuevo_usuario:
-                existing_usuario = Usuarios.objects.filter(usuario=nuevo_usuario).exclude(id_persona=persona.id_persona).first()
-                if existing_usuario:
+                if Usuarios.objects.filter(usuario=nuevo_usuario).exclude(id_persona=persona.id_persona).exists():
                     return JsonResponse({'error': 'El nombre de usuario ya existe'}, status=400)
 
                 usuario_empleado = Usuarios.objects.get(id_persona=persona)
@@ -407,10 +465,13 @@ class EditarEmpleadoView(View):
         except Empleados.DoesNotExist:
             return JsonResponse({'error': 'Empleado no encontrado'}, status=404)
 
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'Usuario asociado con la persona no encontrado'}, status=404)
+
         except Exception as e:
             transaction.set_rollback(True)
             return JsonResponse({'error': str(e)}, status=500)
-
+        
 @method_decorator(csrf_exempt, name='dispatch')
 class DetalleEmpleadoView(View):
     def get(self, request, id_usuario, id_empleado, *args, **kwargs):
@@ -437,7 +498,7 @@ class DetalleEmpleadoView(View):
             cargo = empleado.id_cargo
 
             try:
-                usuario_empleado = Usuarios.objects.get(id_persona=persona)
+                usuario_empleado = Usuarios.objects.select_related('id_rol').get(id_persona=persona)
             except Usuarios.DoesNotExist:
                 usuario_empleado = None
 
@@ -456,6 +517,11 @@ class DetalleEmpleadoView(View):
                 'estacion': cargo.id_unidad.id_estacion.nombre_estacion
             }
 
+            rol_data = {
+                'id_rol': usuario_empleado.id_rol.id_rol if usuario_empleado else None,
+                'rol': usuario_empleado.id_rol.rol if usuario_empleado else None
+            }
+
             empleado_data = {
                 'nombres': persona.nombres,
                 'apellidos': persona.apellidos,
@@ -471,7 +537,7 @@ class DetalleEmpleadoView(View):
                 'direccion': persona.direccion,
                 'usuario': usuario_empleado.usuario if usuario_empleado else None,
                 'habilitado': empleado.habilitado,
-                'id_rol': usuario_empleado.id_rol.id_rol if usuario_empleado else None,
+                'rol': rol_data,
                 'genero': persona.genero,
                 'distintivo': empleado.distintivo,
             }
