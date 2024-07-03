@@ -198,3 +198,46 @@ class CrearSubcategoriaBienesView(View):
         except Exception as e:
             transaction.set_rollback(True)  # Asegurar rollback en caso de excepción
             return JsonResponse({'error': str(e)}, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ListaSubcategoriasPorCategoriaView(View):
+    def get(self, request, id_categoria, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            usuario = Usuarios.objects.select_related('id_rol').get(id_usuario=token_id_usuario)
+            if usuario.id_rol.rol != 'SuperUsuario':
+                return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
+
+            # Obtener subcategorías por id de categoría
+            subcategorias = SubcategoriasBienes.objects.filter(id_categorias_bien=id_categoria)
+            subcategorias_list = []
+            for subcategoria in subcategorias:
+                subcategoria_data = {
+                    'id_subcategoria_bien': subcategoria.id_subcategoria_bien,
+                    'descripcion': subcategoria.descripcion,
+                    'identificador': subcategoria.identificador
+                }
+                subcategorias_list.append(subcategoria_data)
+
+            return JsonResponse(subcategorias_list, safe=False)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except AuthenticationFailed as e:
+            return JsonResponse({'error': str(e)}, status=403)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)

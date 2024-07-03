@@ -8,6 +8,7 @@ import jwt
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.exceptions import AuthenticationFailed
+import re
 
 @method_decorator(csrf_exempt, name='dispatch')
 class VehiculosListView(View):
@@ -93,7 +94,6 @@ class CrearVehiculoView(View):
             if usuario.id_rol.rol != 'SuperUsuario':
                 return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
 
-            # Obtener datos del formulario
             id_subcategoria_bien = request.POST.get('id_subcategoria_bien')
             placa = request.POST.get('placa')
             codigo_inventario = request.POST.get('codigo_inventario')
@@ -105,12 +105,50 @@ class CrearVehiculoView(View):
             numero_motor = request.POST.get('numero_motor')
             numero_chasis = request.POST.get('numero_chasis')
             numero_matricula = request.POST.get('numero_matricula')
-            habilitado = request.POST.get('habilitado')
+
+            errores = {}
+
+            if not re.match(r'^[A-Za-z0-9]+$', placa):
+                errores['placa'] = 'La placa debe contener solo letras y números.'
+            placa = placa.upper()
+
+            if not re.match(r'^[A-Za-z0-9]+$', modelo):
+                errores['modelo'] = 'El modelo debe contener solo letras y números.'
+            modelo = modelo.upper()
+
+            if not re.match(r'^[A-Za-z]+$', marca):
+                errores['marca'] = 'La marca debe contener solo letras.'
+            marca = marca.upper()
+
+            if not re.match(r'^[A-Za-z]+$', color_primario):
+                errores['color_primario'] = 'El color primario debe contener solo letras.'
+            color_primario = color_primario.upper()
+
+            if not re.match(r'^[A-Za-z]+$', color_secundario):
+                errores['color_secundario'] = 'El color secundario debe contener solo letras.'
+            color_secundario = color_secundario.upper()
+
+            if not re.match(r'^\d{4}$', anio_fabricacion) or not (1900 <= int(anio_fabricacion) <= 2099):
+                errores['anio_fabricacion'] = 'El año de fabricación debe ser un año válido entre 1900 y 2099.'
+
+            if not re.match(r'^[A-Za-z0-9]+$', numero_motor):
+                errores['numero_motor'] = 'El número de motor debe contener solo letras y números.'
+            numero_motor = numero_motor.upper() 
+
+            if not re.match(r'^[A-Za-z0-9]+$', numero_chasis):
+                errores['numero_chasis'] = 'El número de chasis debe contener solo letras y números.'
+            numero_chasis = numero_chasis.upper()
+
+            if not re.match(r'^\d+$', numero_matricula):
+                errores['numero_matricula'] = 'El número de matrícula debe contener solo números.'
+
+            if errores:
+                return JsonResponse({'errores': errores}, status=400)
 
             try:
                 subcategoria = SubcategoriasBienes.objects.get(id_subcategoria_bien=id_subcategoria_bien)
             except ObjectDoesNotExist:
-                return JsonResponse({'error': 'Subcategoría de bien no encontrada'}, status=404)
+                return JsonResponse({'error': 'Subcategoría de bienes no encontrada'}, status=404)
 
             vehiculo = Vehiculo.objects.create(
                 id_subcategoria_bien=subcategoria,
@@ -124,7 +162,7 @@ class CrearVehiculoView(View):
                 numero_motor=numero_motor,
                 numero_chasis=numero_chasis,
                 numero_matricula=numero_matricula,
-                habilitado=habilitado
+                habilitado=1
             )
 
             return JsonResponse({'mensaje': 'Vehículo creado exitosamente', 'id_vehiculo': vehiculo.id_vehiculo}, status=201)
