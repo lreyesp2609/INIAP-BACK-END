@@ -9,6 +9,8 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.exceptions import AuthenticationFailed
 import re
+from jwt import ExpiredSignatureError, InvalidTokenError
+
 @method_decorator(csrf_exempt, name='dispatch')
 class VehiculosListView(View):
     def get(self, request, id_usuario, *args, **kwargs):
@@ -30,7 +32,140 @@ class VehiculosListView(View):
             if usuario.id_rol.rol != 'SuperUsuario':
                 return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
 
-            vehiculos = Vehiculo.objects.filter(habilitado=1)
+            vehiculos = Vehiculo.objects.filter(habilitado=1).select_related('id_subcategoria_bien', 'id_subcategoria_bien__id_categorias_bien')
+
+            vehiculos_data = []
+            for vehiculo in vehiculos:
+                vehiculo_data = {
+                    'id_vehiculo': vehiculo.id_vehiculo,
+                    'placa': vehiculo.placa,
+                    'codigo_inventario': vehiculo.codigo_inventario,
+                    'modelo': vehiculo.modelo,
+                    'marca': vehiculo.marca,
+                    'color_primario': vehiculo.color_primario,
+                    'color_secundario': vehiculo.color_secundario,
+                    'anio_fabricacion': vehiculo.anio_fabricacion,
+                    'numero_motor': vehiculo.numero_motor,
+                    'numero_chasis': vehiculo.numero_chasis,
+                    'numero_matricula': vehiculo.numero_matricula,
+                    'habilitado': vehiculo.habilitado,
+                    'categoria': vehiculo.id_subcategoria_bien.id_categorias_bien.descripcion_categoria,
+                    'subcategoria': vehiculo.id_subcategoria_bien.descripcion,
+                }
+                vehiculos_data.append(vehiculo_data)
+
+            return JsonResponse({'vehiculos': vehiculos_data})
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except AuthenticationFailed as e:
+            return JsonResponse({'error': str(e)}, status=403)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class DetalleVehiculoView(View):
+    def get(self, request, id_usuario, id_vehiculo, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
+            usuario = Usuarios.objects.select_related('id_rol', 'id_persona').get(id_usuario=token_id_usuario)
+            if usuario.id_rol.rol != 'SuperUsuario':
+                return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
+
+            vehiculo = Vehiculo.objects.select_related('id_subcategoria_bien', 'id_subcategoria_bien__id_categorias_bien').get(id_vehiculo=id_vehiculo)
+
+            categoria_data = {
+                'id_categoria': vehiculo.id_subcategoria_bien.id_categorias_bien.id_categorias_bien,
+                'categoria': vehiculo.id_subcategoria_bien.id_categorias_bien.descripcion_categoria,
+            }
+
+            subcategoria_data = {
+                'id_subcategoria': vehiculo.id_subcategoria_bien.id_subcategoria_bien,
+                'subcategoria': vehiculo.id_subcategoria_bien.descripcion,
+            }
+
+            vehiculo_data = {
+                'id_vehiculo': vehiculo.id_vehiculo,
+                'placa': vehiculo.placa,
+                'codigo_inventario': vehiculo.codigo_inventario,
+                'modelo': vehiculo.modelo,
+                'marca': vehiculo.marca,
+                'color_primario': vehiculo.color_primario,
+                'color_secundario': vehiculo.color_secundario,
+                'anio_fabricacion': vehiculo.anio_fabricacion,
+                'numero_motor': vehiculo.numero_motor,
+                'numero_chasis': vehiculo.numero_chasis,
+                'numero_matricula': vehiculo.numero_matricula,
+                'habilitado': vehiculo.habilitado,
+                'categoria': categoria_data,
+                'subcategoria': subcategoria_data,
+            }
+
+            return JsonResponse(vehiculo_data)
+
+        except ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except AuthenticationFailed as e:
+            return JsonResponse({'error': str(e)}, status=403)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        except Vehiculo.DoesNotExist:
+            return JsonResponse({'error': 'Vehículo no encontrado'}, status=404)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': 'Objeto no encontrado'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class VehiculosListViewDeshabilitados(View):
+    def get(self, request, id_usuario, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
+            usuario = Usuarios.objects.select_related('id_rol', 'id_persona').get(id_usuario=token_id_usuario)
+            if usuario.id_rol.rol != 'SuperUsuario':
+                return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
+
+            vehiculos = Vehiculo.objects.filter(habilitado=0)
 
             vehiculos_data = []
             for vehiculo in vehiculos:
@@ -216,6 +351,156 @@ class DeshabilitarVehiculoView(View):
             )
 
             return JsonResponse({'mensaje': 'Vehículo deshabilitado y motivo registrado exitosamente'}, status=200)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except AuthenticationFailed as e:
+            return JsonResponse({'error': str(e)}, status=403)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class HabilitarVehiculoView(View):
+    def post(self, request, id_usuario, id_vehiculo, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            try:
+                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            except ExpiredSignatureError:
+                return JsonResponse({'error': 'Token expirado'}, status=401)
+            except InvalidTokenError:
+                return JsonResponse({'error': 'Token inválido'}, status=401)
+
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                return JsonResponse({'error': 'ID de usuario no encontrado en el token'}, status=403)
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
+            usuario = Usuarios.objects.select_related('id_rol', 'id_persona').get(id_usuario=token_id_usuario)
+            if usuario.id_rol.rol != 'SuperUsuario':
+                return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
+
+            motivo = request.POST.get('motivo')
+            if not motivo:
+                return JsonResponse({'error': 'Motivo es requerido'}, status=400)
+
+            try:
+                vehiculo = Vehiculo.objects.get(id_vehiculo=id_vehiculo)
+            except ObjectDoesNotExist:
+                return JsonResponse({'error': 'Vehículo no encontrado'}, status=404)
+
+            if vehiculo.habilitado == 1:
+                return JsonResponse({'error': 'El vehículo ya está habilitado'}, status=400)
+
+            vehiculo.habilitado = 1
+            vehiculo.save()
+
+            MotivoVehiculo.objects.create(
+                id_vehiculo=vehiculo,
+                motivo=motivo
+            )
+
+            return JsonResponse({'mensaje': 'Vehículo habilitado y motivo registrado exitosamente'}, status=200)
+
+        except ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ModificarVehiculoView(View):
+    def post(self, request, id_usuario, id_vehiculo, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            try:
+                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            except jwt.ExpiredSignatureError:
+                return JsonResponse({'error': 'Token expirado'}, status=401)
+            except jwt.InvalidTokenError:
+                return JsonResponse({'error': 'Token inválido'}, status=401)
+
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                return JsonResponse({'error': 'ID de usuario no encontrado en el token'}, status=403)
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
+            usuario = Usuarios.objects.select_related('id_rol', 'id_persona').get(id_usuario=token_id_usuario)
+            if usuario.id_rol.rol != 'SuperUsuario':
+                return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
+
+            try:
+                vehiculo = Vehiculo.objects.get(id_vehiculo=id_vehiculo)
+            except ObjectDoesNotExist:
+                return JsonResponse({'error': 'Vehículo no encontrado'}, status=404)
+
+            id_subcategoria_bien = request.POST.get('id_subcategoria_bien')
+            placa = request.POST.get('placa')
+            codigo_inventario = request.POST.get('codigo_inventario')
+            modelo = request.POST.get('modelo')
+            marca = request.POST.get('marca')
+            color_primario = request.POST.get('color_primario')
+            color_secundario = request.POST.get('color_secundario')
+            anio_fabricacion = request.POST.get('anio_fabricacion')
+            numero_motor = request.POST.get('numero_motor')
+            numero_chasis = request.POST.get('numero_chasis')
+            numero_matricula = request.POST.get('numero_matricula')
+
+            if id_subcategoria_bien:
+                try:
+                    subcategoria = SubcategoriasBienes.objects.get(id_subcategoria_bien=id_subcategoria_bien)
+                    vehiculo.id_subcategoria_bien = subcategoria
+                except ObjectDoesNotExist:
+                    return JsonResponse({'error': 'Subcategoría de bienes no encontrada'}, status=404)
+
+            if placa:
+                vehiculo.placa = placa
+            if codigo_inventario:
+                vehiculo.codigo_inventario = codigo_inventario
+            if modelo:
+                vehiculo.modelo = modelo
+            if marca:
+                vehiculo.marca = marca
+            if color_primario:
+                vehiculo.color_primario = color_primario
+            if color_secundario:
+                vehiculo.color_secundario = color_secundario
+            if anio_fabricacion:
+                vehiculo.anio_fabricacion = anio_fabricacion
+            if numero_motor:
+                vehiculo.numero_motor = numero_motor
+            if numero_chasis:
+                vehiculo.numero_chasis = numero_chasis
+            if numero_matricula:
+                vehiculo.numero_matricula = numero_matricula
+
+            vehiculo.save()
+
+            return JsonResponse({'mensaje': 'Vehículo modificado exitosamente'}, status=200)
 
         except jwt.ExpiredSignatureError:
             return JsonResponse({'error': 'Token expirado'}, status=401)
