@@ -8,7 +8,6 @@ from django.conf import settings
 from Empleados.models import Usuarios
 from .models import *
 
-# Create your views here.
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaUnidadesPorEstacionView(View):
     def post(self, request, *args, **kwargs):
@@ -23,7 +22,8 @@ class ListaUnidadesPorEstacionView(View):
             if not estacion_id:
                 return JsonResponse({'error': 'ID de estación no proporcionado'}, status=400)
 
-            unidades = Unidades.objects.filter(id_estacion=estacion_id).values('id_unidad', 'nombre_unidad', 'id_estacion_id')
+            # Obtener las unidades con las siglas incluidas
+            unidades = Unidades.objects.filter(id_estacion=estacion_id).values('id_unidad', 'nombre_unidad', 'siglas_unidad', 'id_estacion_id')
 
             return JsonResponse(list(unidades), safe=False)
 
@@ -38,7 +38,7 @@ class ListaUnidadesPorEstacionView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
+        
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearUnidadView(View):
     def post(self, request, id_usuario, id_estacion, *args, **kwargs):
