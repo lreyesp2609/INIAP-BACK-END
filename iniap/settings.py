@@ -32,6 +32,8 @@ INSTALLED_APPS = [
     'Roles',
     'Vehiculos',
     'CategoriasBienes',
+    'Cargos',
+    'Unidades'
 ]
 
 MIDDLEWARE = [
