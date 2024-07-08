@@ -3,12 +3,11 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from .models import Empleados, Personas, Unidades, Estaciones, Solicitudes, Informes
 from datetime import datetime
-from django.http import JsonResponse
-from .models import Solicitudes, Informes, Empleados
-from datetime import datetime
 import json
-from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+
+
 
 def generar_numero_solicitud(request, id_solicitud):
     try:
@@ -121,3 +120,51 @@ def crear_solicitud_informe(request, id_empleado):
             return JsonResponse({"error": str(e)}, status=500)
     else:
         return JsonResponse({"error": "Método no permitido"}, status=405)
+    
+
+
+
+def generar_numero_solicitud(solicitud):
+    try:
+        empleado = solicitud.id_empleado
+        persona = Personas.objects.get(id_persona=empleado.id_persona.id_persona)
+        informe = Informes.objects.get(id_solicitud=solicitud.id_solicitud)
+        nombres = persona.nombres.split()
+        apellidos = persona.apellidos.split()
+        unidad = Unidades.objects.get(id_unidad=empleado.id_cargo.id_unidad.id_unidad)
+        estacion = Estaciones.objects.get(id_estacion=unidad.id_estacion.id_estacion)
+
+        secuencia_informe = informe.secuencia_informe
+        siglas_nombres = nombres[0][:1].upper() + (nombres[1][:1].upper() if len(nombres) >= 2 else '')
+        siglas_apellidos = apellidos[0][:1].upper() + (apellidos[1][:1].upper() if len(apellidos) >= 2 else '')
+        siglas_unidad = unidad.siglas_unidad
+        siglas_estacion = estacion.siglas_estacion
+        año_solicitud = datetime.now().year
+
+        numero_solicitud = f"{secuencia_informe:03d}-{siglas_nombres}{siglas_apellidos}-{siglas_unidad}-INIAP-{siglas_estacion}-{año_solicitud}"
+        return numero_solicitud
+    except Exception as e:
+        return str(e)
+
+@csrf_exempt
+def listar_solicitudes(request, id_empleado):
+    if request.method == 'GET':
+        try:
+            empleado = Empleados.objects.get(id_empleado=id_empleado)
+            solicitudes = Solicitudes.objects.filter(id_empleado=empleado)
+            lista_solicitudes = []
+            for solicitud in solicitudes:
+                numero_solicitud = generar_numero_solicitud(solicitud)
+                lista_solicitudes.append({
+                    'id_solicitud': solicitud.id_solicitud,
+                    'numero_solicitud': numero_solicitud,
+                    'fecha_solicitud': solicitud.fecha_solicitud,
+                    'motivo_movilizacion': solicitud.motivo_movilizacion,
+                    'estado_solicitud': solicitud.estado_solicitud
+                })
+            return JsonResponse(lista_solicitudes, safe=False)
+        except Empleados.DoesNotExist:
+            return JsonResponse({"error": "Empleado no encontrado"}, status=404)
+    else:
+        return JsonResponse({"error": "Método no permitido"}, status=405)
+
