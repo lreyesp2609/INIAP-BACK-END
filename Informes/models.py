@@ -28,6 +28,26 @@ class Personas(models.Model):
         managed = False
         db_table = 'personas'
 
+class Rol(models.Model):
+    id_rol = models.AutoField(primary_key=True)
+    rol = models.CharField(max_length=50)
+    descripcion = models.CharField(max_length=255, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'rol'
+
+class Usuarios(models.Model):
+    id_usuario = models.AutoField(primary_key=True)
+    id_rol = models.ForeignKey(Rol, models.DO_NOTHING, db_column='id_rol')
+    id_persona = models.ForeignKey(Personas, models.DO_NOTHING, db_column='id_persona')
+    usuario = models.CharField(max_length=50)
+    contrasenia = models.CharField(max_length=255)
+
+    class Meta:
+        managed = False
+        db_table = 'usuarios'
+
 
 class Unidades(models.Model):
     id_unidad = models.AutoField(primary_key=True)
@@ -48,6 +68,8 @@ class Cargos(models.Model):
     class Meta:
         managed = False
         db_table = 'cargos'
+
+
 
 
 class Empleados(models.Model):

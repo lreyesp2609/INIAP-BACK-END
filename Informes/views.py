@@ -1,7 +1,8 @@
 
 from django.shortcuts import render
 from django.http import JsonResponse
-from .models import Empleados, Personas, Unidades, Estaciones, Solicitudes, Informes
+
+from .models import Empleados, Personas, Unidades, Estaciones, Solicitudes, Informes,Usuarios
 from datetime import datetime
 import json
 from django.utils.decorators import method_decorator
@@ -50,11 +51,6 @@ def generar_numero_solicitud(request, id_solicitud):
         return JsonResponse({"error": "Estación no encontrada"}, status=404)
 
 
-from datetime import datetime
-import json
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from .models import Empleados, Solicitudes, Informes
 
 @csrf_exempt
 def crear_solicitud_informe(request, id_empleado):
@@ -122,8 +118,6 @@ def crear_solicitud_informe(request, id_empleado):
         return JsonResponse({"error": "Método no permitido"}, status=405)
     
 
-
-
 def generar_numero_solicitud(solicitud):
     try:
         empleado = solicitud.id_empleado
@@ -147,10 +141,11 @@ def generar_numero_solicitud(solicitud):
         return str(e)
 
 @csrf_exempt
-def listar_solicitudes(request, id_empleado):
+def listar_solicitudes(request, id_usuario):
     if request.method == 'GET':
         try:
-            empleado = Empleados.objects.get(id_empleado=id_empleado)
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
+            empleado = Empleados.objects.get(id_persona=usuario.id_persona)
             solicitudes = Solicitudes.objects.filter(id_empleado=empleado)
             lista_solicitudes = []
             for solicitud in solicitudes:
@@ -163,8 +158,12 @@ def listar_solicitudes(request, id_empleado):
                     'estado_solicitud': solicitud.estado_solicitud
                 })
             return JsonResponse(lista_solicitudes, safe=False)
+        except Usuarios.DoesNotExist:
+            return JsonResponse({"error": "Usuario no encontrado"}, status=404)
         except Empleados.DoesNotExist:
             return JsonResponse({"error": "Empleado no encontrado"}, status=404)
+        except Exception as e:
+            return JsonResponse({"error": f"Error interno del servidor: {str(e)}"}, status=500)
     else:
         return JsonResponse({"error": "Método no permitido"}, status=405)
 
