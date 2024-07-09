@@ -73,6 +73,14 @@ VALUES
     'luis@example.com'  -- Correo electrónico
   );
 
+
+INSERT INTO Motivo (nombre_motivo, descripcion_motivo, estado_motivo) VALUES
+('Viáticos', 'Gastos relacionados con viajes de trabajo.', 1),
+('Movilizaciones', 'Gastos de transporte durante la jornada laboral.', 1),
+('Subsistencias', 'Gastos diarios de mantenimiento personal.', 1),
+('Alimentación', 'Gastos de comidas durante la jornada laboral.', 1);
+
+
 -- Obtener el id_persona recién insertado
 DO $$
 DECLARE
