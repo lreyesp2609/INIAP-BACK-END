@@ -3,18 +3,18 @@ CREATE TABLE Provincias (
     Provincia VARCHAR(100) NOT NULL
 );
 
-CREATE TABLE Motivo (
-    id_motivo SERIAL PRIMARY KEY,
-    nombre_motivo VARCHAR(20) NOT NULL,
-    descripcion_motivo VARCHAR(500) NOT NULL,
-    estado_motivo INTEGER NOT NULL CHECK (estado_motivo IN (0, 1))
-);
-
 CREATE TABLE Ciudades (
     id_ciudad SERIAL PRIMARY KEY,
     id_provincia INT NOT NULL,
     Ciudad VARCHAR(100) NOT NULL,
     FOREIGN KEY (id_provincia) REFERENCES Provincias(id_provincia)
+);
+
+CREATE TABLE Motivo (
+    id_motivo SERIAL PRIMARY KEY,
+    nombre_motivo VARCHAR(20) NOT NULL,
+    descripcion_motivo VARCHAR(500) NOT NULL,
+    estado_motivo INTEGER NOT NULL CHECK (estado_motivo IN (0, 1))
 );
 
 CREATE TABLE Rol (
