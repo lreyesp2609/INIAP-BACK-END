@@ -5,7 +5,7 @@ from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from .models import *
-from django.contrib.auth.hashers import check_password
+from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth import logout
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -32,8 +32,12 @@ class IniciarSesionView(View):
                     request.user = user
 
                     token = self.generate_token(user)
+                    
+                    needs_password_change = False
+                    if check_password(user.id_persona.numero_cedula, user.contrasenia):
+                        needs_password_change = True
 
-                    return JsonResponse({'token': token, 'nombre_usuario': nombre_usuario, 'id_usuario': user.id_usuario})
+                    return JsonResponse({'token': token, 'nombre_usuario': nombre_usuario, 'id_usuario': user.id_usuario, 'needs_password_change': needs_password_change})
                 else:
                     return JsonResponse({'mensaje': 'Contraseña incorrecta'}, status=401)
             else:
@@ -147,6 +151,43 @@ class ObtenerUsuarioView(View):
 
         except Estaciones.DoesNotExist:
             return JsonResponse({'error': 'Estaciones no encontradas'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CambiarContraseniaView(View):
+    def post(self, request, id_usuario, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_id_usuario = payload.get('id_usuario')
+
+            # Verificar que el id_usuario en la URL coincide con el id_usuario del token
+            if id_usuario != token_id_usuario:
+                return JsonResponse({'error': 'No autorizado'}, status=401)
+
+            nueva_contrasenia = request.POST.get('nueva_contrasenia')
+            if not nueva_contrasenia:
+                return JsonResponse({'error': 'La nueva contraseña es obligatoria'}, status=400)
+
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
+            usuario.contrasenia = make_password(nueva_contrasenia)
+            usuario.save()
+
+            return JsonResponse({'mensaje': 'Contraseña cambiada exitosamente'}, status=200)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)

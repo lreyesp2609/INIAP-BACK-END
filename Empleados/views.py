@@ -565,6 +565,7 @@ class DetalleEmpleadoView(View):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
+
 @method_decorator(csrf_exempt, name='dispatch')
 class DeshabilitarEmpleadoView(View):
     @transaction.atomic
@@ -591,8 +592,17 @@ class DeshabilitarEmpleadoView(View):
             if empleado.habilitado == 0:
                 return JsonResponse({'error': 'El empleado ya está deshabilitado'}, status=400)
 
+            # Extraer motivo de la solicitud
+            motivo = request.POST.get('motivo')
+            if not motivo:
+                return JsonResponse({'error': 'Motivo no proporcionado'}, status=400)
+
+            # Deshabilitar empleado
             empleado.habilitado = 0
             empleado.save()
+
+            # Registrar motivo en MotivoEmpleados
+            MotivoEmpleados.objects.create(id_empleado=empleado, motivo=motivo)
 
             return JsonResponse({'mensaje': 'Empleado deshabilitado exitosamente'}, status=200)
 
@@ -611,6 +621,8 @@ class DeshabilitarEmpleadoView(View):
         except Exception as e:
             transaction.set_rollback(True)
             return JsonResponse({'error': str(e)}, status=500)
+
+# views.py
 
 @method_decorator(csrf_exempt, name='dispatch')
 class HabilitarEmpleadoView(View):
@@ -638,8 +650,18 @@ class HabilitarEmpleadoView(View):
             if empleado.habilitado == 1:
                 return JsonResponse({'error': 'El empleado ya está habilitado'}, status=400)
 
+            motivo = request.POST.get('motivo')
+            if not motivo:
+                return JsonResponse({'error': 'Motivo es requerido'}, status=400)
+
             empleado.habilitado = 1
             empleado.save()
+
+            # Registrar el motivo en el modelo MotivoEmpleados
+            MotivoEmpleados.objects.create(
+                id_empleado=empleado,
+                motivo=motivo,
+            )
 
             return JsonResponse({'mensaje': 'Empleado habilitado exitosamente'}, status=200)
 

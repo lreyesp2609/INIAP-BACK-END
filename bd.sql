@@ -261,3 +261,19 @@ CREATE TABLE control_solicitudes (
     ultima_secuencia INT NOT NULL,
     fecha_ultima_secuencia DATE NOT NULL
 );
+
+CREATE TABLE Motivo_Vehiculo (
+    id_motivo SERIAL PRIMARY KEY,
+    id_vehiculo INTEGER NOT NULL,
+    motivo VARCHAR(255) NOT NULL,
+    fecha TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_vehiculo) REFERENCES Vehiculo(id_vehiculo) ON DELETE NO ACTION
+);
+
+CREATE TABLE Motivo_Empleados (
+    id_motivo SERIAL PRIMARY KEY,
+    id_empleado INTEGER NOT NULL,
+    motivo VARCHAR(255) NOT NULL,
+    fecha TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado) ON DELETE NO ACTION
+);

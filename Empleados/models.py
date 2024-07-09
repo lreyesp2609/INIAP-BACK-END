@@ -50,3 +50,12 @@ class Usuarios(models.Model):
     class Meta:
         managed = False
         db_table = 'usuarios'
+
+class MotivoEmpleados(models.Model):
+    id_motivo = models.AutoField(primary_key=True)
+    id_empleado = models.ForeignKey(Empleados, models.DO_NOTHING, db_column='id_empleado')
+    motivo = models.CharField(max_length=255)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'motivo_empleados'
