@@ -1,112 +1,184 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.views import View
+from django.shortcuts import render
 from django.http import JsonResponse
+from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-import jwt
-from rest_framework.exceptions import AuthenticationFailed
 from django.conf import settings
-from .models import OrdenesMovilizacion
-
-@method_decorator(csrf_exempt, name='dispatch')
-class ListarOrdenMovilizacionView(View):
-    def get(self, request, *args, **kwargs):
-        try:
-            ordenes = OrdenesMovilizacion.objects.all().values()
-            return JsonResponse(list(ordenes), safe=False)
-
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
+import jwt
 import json
+from datetime import datetime
+
+from .models import OrdenesMovilizacion
+from Empleados.models import Empleados, Usuarios, Rol
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearOrdenMovilizacionView(View):
-    def post(self, request, *args, **kwargs):
+    def post(self, request, id_usuario):
         try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+
             data = json.loads(request.body)
-            secuencial_orden = data.get('secuencial_orden_movilizacion')
-            fecha_hora_emision = data.get('fecha_hora_emision')
-            fecha_desde = data.get('fecha_desde')
-            hora_desde = data.get('hora_desde')
-            fecha_hasta = data.get('fecha_hasta')
-            hora_hasta = data.get('hora_hasta')
-
-            nueva_orden = OrdenesMovilizacion(
-                secuencial_orden_movilizacion=secuencial_orden,
-                fecha_hora_emision=fecha_hora_emision,
-                fecha_desde=fecha_desde,
-                hora_desde=hora_desde,
-                fecha_hasta=fecha_hasta,
-                hora_hasta=hora_hasta
+            
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
+            if usuario.id_rol.rol != 'Empleado':
+                return JsonResponse({"error": "No tienes permisos para realizar esta acción"}, status=403)
+            
+            empleado = Empleados.objects.get(id_persona=usuario.id_persona)
+            
+            nueva_orden = OrdenesMovilizacion.objects.create(
+                secuencial_orden_movilizacion=data.get('secuencial_orden_movilizacion', ''),
+                fecha_hora_emision=datetime.now(),
+                fecha_viaje=data.get('fecha_viaje'),
+                hora_ida=data.get('hora_ida'),
+                hora_regreso=data.get('hora_regreso'),
+                estado_movilizacion="En Espera",
+                id_empleado=empleado
             )
-            nueva_orden.save()
-
+            
             return JsonResponse({
                 'id_orden_movilizacion': nueva_orden.id_orden_movilizacion,
-                'secuencial_orden_movilizacion': nueva_orden.secuencial_orden_movilizacion,
-                'fecha_hora_emision': nueva_orden.fecha_hora_emision,
-                'fecha_desde': nueva_orden.fecha_desde,
-                'hora_desde': nueva_orden.hora_desde,
-                'fecha_hasta': nueva_orden.fecha_hasta,
-                'hora_hasta': nueva_orden.hora_hasta,
-                'habilitado': nueva_orden.habilitado
+                'mensaje': 'Orden de movilización creada exitosamente'
+            }, status=201)
+        
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+        
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+        
+        except Usuarios.DoesNotExist:
+            return JsonResponse({"error": "Usuario no encontrado"}, status=404)
+        
+        except Empleados.DoesNotExist:
+            return JsonResponse({"error": "Empleado no encontrado"}, status=404)
+        
+        except Rol.DoesNotExist:
+            return JsonResponse({"error": "Rol no encontrado"}, status=404)
+        
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Datos JSON inválidos"}, status=400)
+        
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CancelarOrdenMovilizacionView(View):
+    def put(self, request, id_orden):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+
+            orden = OrdenesMovilizacion.objects.get(id_orden_movilizacion=id_orden)
+            orden.estado_movilizacion = 0
+            orden.save()
+
+            return JsonResponse({
+                'id_orden_movilizacion': orden.id_orden_movilizacion,
+                'mensaje': 'Orden de movilización cancelada exitosamente'
             })
 
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+        
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+        
+        except OrdenesMovilizacion.DoesNotExist:
+            return JsonResponse({"error": "Orden de movilización no encontrada"}, status=404)
+        
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ListarOrdenMovilizacionView(View):
+    def get(self, request, id_usuario):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
+            empleado = Empleados.objects.get(id_persona=usuario.id_persona)
+            ordenes = OrdenesMovilizacion.objects.filter(id_empleado=empleado)
+
+            lista_ordenes = []
+            for orden in ordenes:
+                lista_ordenes.append({
+                    'id_orden_movilizacion': orden.id_orden_movilizacion,
+                    'secuencial_orden_movilizacion': orden.secuencial_orden_movilizacion,
+                    'fecha_hora_emision': orden.fecha_hora_emision.strftime('%Y-%m-%d %H:%M:%S'),
+                    'fecha_viaje': orden.fecha_viaje.strftime('%Y-%m-%d'),
+                    'hora_ida': orden.hora_ida.strftime('%H:%M:%S'),
+                    'hora_regreso': orden.hora_regreso.strftime('%H:%M:%S'),
+                    'estado_movilizacion': orden.estado_movilizacion,
+                    'id_empleado': orden.id_empleado.id_empleado,
+                    'habilitado': orden.habilitado,
+                })
+
+            return JsonResponse(lista_ordenes, safe=False)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+        
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+        
+        except Usuarios.DoesNotExist:
+            return JsonResponse({"error": "Usuario no encontrado"}, status=404)
+        
+        except Empleados.DoesNotExist:
+            return JsonResponse({"error": "Empleado no encontrado"}, status=404)
+        
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
 class EditarOrdenMovilizacionView(View):
-    def post(self, request, id_orden, *args, **kwargs):
+    def put(self, request, id_orden):
         try:
-            orden = get_object_or_404(OrdenesMovilizacion, id_orden_movilizacion=id_orden)
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
 
-            # Procesar el cuerpo de la solicitud JSON
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+
+            orden = OrdenesMovilizacion.objects.get(id_orden_movilizacion=id_orden)
             data = json.loads(request.body)
             orden.secuencial_orden_movilizacion = data.get('secuencial_orden_movilizacion', orden.secuencial_orden_movilizacion)
-            orden.fecha_hora_emision = data.get('fecha_hora_emision', orden.fecha_hora_emision)
-            orden.fecha_desde = data.get('fecha_desde', orden.fecha_desde)
-            orden.hora_desde = data.get('hora_desde', orden.hora_desde)
-            orden.fecha_hasta = data.get('fecha_hasta', orden.fecha_hasta)
-            orden.hora_hasta = data.get('hora_hasta', orden.hora_hasta)
-
+            orden.fecha_viaje = data.get('fecha_viaje', orden.fecha_viaje)
+            orden.hora_ida = data.get('hora_ida', orden.hora_ida)
+            orden.hora_regreso = data.get('hora_regreso', orden.hora_regreso)
             orden.save()
 
             return JsonResponse({
                 'id_orden_movilizacion': orden.id_orden_movilizacion,
-                'secuencial_orden_movilizacion': orden.secuencial_orden_movilizacion,
-                'fecha_hora_emision': orden.fecha_hora_emision,
-                'fecha_desde': orden.fecha_desde,
-                'hora_desde': orden.hora_desde,
-                'fecha_hasta': orden.fecha_hasta,
-                'hora_hasta': orden.hora_hasta,
-                'habilitado': orden.habilitado
+                'mensaje': 'Orden de movilización actualizada exitosamente'
             })
 
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+        
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+        
+        except OrdenesMovilizacion.DoesNotExist:
+            return JsonResponse({"error": "Orden de movilización no encontrada"}, status=404)
+        
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Datos JSON inválidos"}, status=400)
+        
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
-@method_decorator(csrf_exempt, name='dispatch')
-class CancelarOrdenMovilizacionView(View):
-    def post(self, request, id_orden, *args, **kwargs):
-        try:
-            orden = get_object_or_404(OrdenesMovilizacion, id_orden_movilizacion=id_orden)
-            orden.habilitado = 0  # Cambiar estado de habilitado a 0 para cancelar
-
-            orden.save()
-
-            return JsonResponse({
-                'id_orden_movilizacion': orden.id_orden_movilizacion,
-                'secuencial_orden_movilizacion': orden.secuencial_orden_movilizacion,
-                'fecha_hora_emision': orden.fecha_hora_emision,
-                'fecha_desde': orden.fecha_desde,
-                'hora_desde': orden.hora_desde,
-                'fecha_hasta': orden.fecha_hasta,
-                'hora_hasta': orden.hora_hasta,
-                'habilitado': orden.habilitado
-            })
-
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({"error": str(e)}, status=500)

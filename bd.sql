@@ -7,7 +7,7 @@ CREATE TABLE Motivo (
     id_motivo SERIAL PRIMARY KEY,
     nombre_motivo VARCHAR(20) NOT NULL,
     descripcion_motivo VARCHAR(500) NOT NULL,
-    estado_motivo BOOLEAN NOT NULL CHECK (estado_motivo IN (0, 1))
+    estado_motivo SMALLINT DEFAULT 1
 );
 
 
@@ -117,12 +117,15 @@ CREATE TABLE Ordenes_Movilizacion (
     id_orden_movilizacion SERIAL PRIMARY KEY,
     secuencial_orden_movilizacion VARCHAR(50) NOT NULL,
     fecha_hora_emision TIMESTAMP NOT NULL,
-    fecha_desde DATE,
-    hora_desde TIME,
-    fecha_hasta DATE,
-    hora_hasta TIME,
-    habilitado SMALLINT DEFAULT 1
+    fecha_viaje DATE,
+    hora_ida TIME,
+    hora_regreso TIME,
+    habilitado SMALLINT DEFAULT 1,
+    estado_movilizacion VARCHAR(50),
+    id_empleado INT NOT NULL,
+    FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado)
 );
+
 
 CREATE TABLE Tipo_Ordenes_Movilizacion (
     id_tipo_om SERIAL PRIMARY KEY,
