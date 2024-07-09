@@ -2,7 +2,7 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 
-from .models import Empleados, Personas, Unidades, Estaciones, Solicitudes, Informes,Usuarios
+from .models import Empleados, Personas, Unidades, Estaciones, Solicitudes, Informes, Usuarios
 from datetime import datetime
 import json
 from django.utils.decorators import method_decorator
@@ -50,19 +50,28 @@ def generar_numero_solicitud(request, id_solicitud):
     except Estaciones.DoesNotExist:
         return JsonResponse({"error": "Estación no encontrada"}, status=404)
 
-
-
 @csrf_exempt
-def crear_solicitud_informe(request, id_empleado):
+def crear_solicitud_informe(request, id_usuario):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             
-            # Obtener la última secuencia de informe del empleado
-            ultima_solicitud = Solicitudes.objects.filter(id_empleado=id_empleado).order_by('-id_solicitud').first()
+            # Obtener el usuario asociado al id_usuario
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
+            
+            # Obtener la persona asociada al usuario
+            persona = usuario.id_persona
+            
+            # Obtener el empleado asociado a la persona
+            empleado = Empleados.objects.get(id_persona=persona)
+            
+            # Obtener la última solicitud del empleado
+            ultima_solicitud = Solicitudes.objects.filter(id_empleado=empleado).order_by('-id_solicitud').first()
+            
             secuencia_informe = 1
             if ultima_solicitud:
-                ultima_informe = Informes.objects.filter(id_solicitud=ultima_solicitud.id_solicitud).order_by('-secuencia_informe').first()
+                # Obtener el último informe asociado a la última solicitud
+                ultima_informe = Informes.objects.filter(id_solicitud=ultima_solicitud).order_by('-secuencia_informe').first()
                 if ultima_informe:
                     secuencia_informe = ultima_informe.secuencia_informe + 1
 
@@ -77,7 +86,7 @@ def crear_solicitud_informe(request, id_empleado):
                 descripcion_actividades=data.get('descripcion_actividades', ''),
                 listado_empleado=data.get('listado_empleado', ''),
                 estado_solicitud='Pendiente',
-                id_empleado=Empleados.objects.get(id_empleado=id_empleado)
+                id_empleado=empleado
             )
 
             # Crear el informe asociado
@@ -101,13 +110,15 @@ def crear_solicitud_informe(request, id_empleado):
                     # Agrega aquí los otros campos que desees devolver
                 },
                 'informe': {
-                    'id_informe': nuevo_informe.id_informes,
+                    'id_informe': nuevo_informe.id_informes,  # Nombre correcto del campo para el id del informe
                     'secuencia_informe': nuevo_informe.secuencia_informe,
                     'fecha_informe': nuevo_informe.fecha_informe,
                     'evento': nuevo_informe.evento,
                     # Agrega aquí los otros campos que desees devolver
                 }
             }, status=201)
+        except Usuarios.DoesNotExist:
+            return JsonResponse({"error": "Usuario no encontrado"}, status=404)
         except Empleados.DoesNotExist:
             return JsonResponse({"error": "Empleado no encontrado"}, status=404)
         except json.JSONDecodeError:
@@ -116,7 +127,7 @@ def crear_solicitud_informe(request, id_empleado):
             return JsonResponse({"error": str(e)}, status=500)
     else:
         return JsonResponse({"error": "Método no permitido"}, status=405)
-    
+
 
 def generar_numero_solicitud(solicitud):
     try:
