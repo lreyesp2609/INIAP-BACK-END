@@ -10,17 +10,17 @@ CREATE TABLE Ciudades (
     FOREIGN KEY (id_provincia) REFERENCES Provincias(id_provincia)
 );
 
+CREATE TABLE Rol (
+    id_rol SERIAL PRIMARY KEY,
+    rol VARCHAR(50) NOT NULL,
+    descripcion VARCHAR(255)
+);
+
 CREATE TABLE Motivo (
     id_motivo SERIAL PRIMARY KEY,
     nombre_motivo VARCHAR(20) NOT NULL,
     descripcion_motivo VARCHAR(500) NOT NULL,
     estado_motivo INTEGER NOT NULL CHECK (estado_motivo IN (0, 1))
-);
-
-CREATE TABLE Rol (
-    id_rol SERIAL PRIMARY KEY,
-    rol VARCHAR(50) NOT NULL,
-    descripcion VARCHAR(255)
 );
 
 CREATE TABLE Personas (

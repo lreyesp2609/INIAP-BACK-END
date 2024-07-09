@@ -12,6 +12,15 @@ class Estaciones(models.Model):
         managed = False
         db_table = 'estaciones' 
 
+class Motivo(models.Model):
+    id_motivo = models.AutoField(primary_key=True)
+    nombre_motivo = models.CharField(max_length=20, null=False)
+    descripcion_motivo = models.CharField(max_length=500, null=False)
+    estado_motivo = models.IntegerField(null=False, choices=[(0, 'Inactive'), (1, 'Active')])
+
+    class Meta:
+        managed = False  # Indica que Django no maneja esta tabla (puede ser gestionada por otra aplicación)
+        db_table = 'motivo'
 
 class Personas(models.Model):
     id_persona = models.AutoField(primary_key=True)
@@ -87,6 +96,7 @@ class Empleados(models.Model):
 
 class Solicitudes(models.Model):
     id_solicitud = models.AutoField(primary_key=True)
+    secuencia_solicitud = models.IntegerField(blank=True, null=True)
     fecha_solicitud = models.DateField()
     motivo_movilizacion = models.CharField(max_length=255, blank=True, null=True)
     fecha_salida_solicitud = models.DateField(blank=True, null=True)
@@ -96,7 +106,7 @@ class Solicitudes(models.Model):
     descripcion_actividades = models.TextField(blank=True, null=True)
     listado_empleado = models.TextField(blank=True, null=True)
     estado_solicitud = models.CharField(max_length=50, blank=True, null=True)
-    id_empleado = models.ForeignKey(Empleados, models.DO_NOTHING, db_column='id_empleado')
+    id_empleado = models.ForeignKey('Empleados', models.DO_NOTHING, db_column='id_empleado')
 
     class Meta:
         managed = False
@@ -106,7 +116,6 @@ class Solicitudes(models.Model):
 class Informes(models.Model):
     id_informes = models.AutoField(primary_key=True)
     id_solicitud = models.ForeignKey('Solicitudes', models.DO_NOTHING, db_column='id_solicitud')
-    secuencia_informe = models.IntegerField(blank=True, null=True)
     fecha_informe = models.DateField(blank=True, null=True)
     fecha_salida_informe = models.DateField(blank=True, null=True)
     hora_salida_informe = models.TimeField(blank=True, null=True)
@@ -182,3 +191,61 @@ class ProductosAlcanzadosInformes(models.Model):
     class Meta:
         managed = False
         db_table = 'productos_alcanzados_informes'
+
+
+class CategoriasBienes(models.Model):
+    id_categorias_bien = models.AutoField(primary_key=True)
+    descripcion_categoria = models.CharField(max_length=255)
+
+    class Meta:
+        managed = False
+        db_table = 'categorias_bienes'
+
+class SubcategoriasBienes(models.Model):
+    id_subcategoria_bien = models.AutoField(primary_key=True)
+    id_categorias_bien = models.ForeignKey(CategoriasBienes, models.DO_NOTHING, db_column='id_categorias_bien')
+    descripcion = models.CharField(max_length=255)
+    identificador = models.CharField(max_length=50, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'subcategorias_bienes'
+
+class Vehiculo(models.Model):
+    id_vehiculo = models.AutoField(primary_key=True)
+    id_subcategoria_bien = models.ForeignKey(SubcategoriasBienes, models.DO_NOTHING, db_column='id_subcategoria_bien')
+    placa = models.CharField(max_length=20)
+    codigo_inventario = models.CharField(max_length=50, blank=True, null=True)
+    modelo = models.CharField(max_length=50, blank=True, null=True)
+    marca = models.CharField(max_length=50, blank=True, null=True)
+    color_primario = models.CharField(max_length=50, blank=True, null=True)
+    color_secundario = models.CharField(max_length=50, blank=True, null=True)
+    anio_fabricacion = models.IntegerField(blank=True, null=True)
+    numero_motor = models.CharField(max_length=50, blank=True, null=True)
+    numero_chasis = models.CharField(max_length=50, blank=True, null=True)
+    numero_matricula = models.CharField(max_length=50, blank=True, null=True)
+    habilitado = models.SmallIntegerField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'vehiculo'
+
+class Bancos(models.Model):
+    id_banco = models.AutoField(primary_key=True)
+    nombre_banco = models.CharField(max_length=100)
+
+    class Meta:
+        managed = False
+        db_table = 'bancos'
+
+class CuentasBancarias(models.Model):
+    id_cuenta_bancaria = models.AutoField(primary_key=True)
+    id_banco = models.ForeignKey(Bancos, models.DO_NOTHING, db_column='id_banco')
+    id_empleado = models.ForeignKey('Empleados', models.DO_NOTHING, db_column='id_empleado')
+    tipo_cuenta = models.CharField(max_length=50, blank=True, null=True)
+    numero_cuenta = models.CharField(max_length=50, blank=True, null=True)
+    habilitado = models.SmallIntegerField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'cuentas_bancarias'
