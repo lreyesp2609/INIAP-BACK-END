@@ -24,6 +24,13 @@ CREATE TABLE Rol (
     descripcion VARCHAR(255)
 );
 
+CREATE TABLE Motivo (
+    id_motivo SERIAL PRIMARY KEY,
+    nombre_motivo VARCHAR(20) NOT NULL,
+    descripcion_motivo VARCHAR(500) NOT NULL,
+    estado_motivo INTEGER NOT NULL CHECK (estado_motivo IN (0, 1))
+);
+
 CREATE TABLE Personas (
     id_persona SERIAL PRIMARY KEY,
     numero_cedula VARCHAR(20) NOT NULL,
