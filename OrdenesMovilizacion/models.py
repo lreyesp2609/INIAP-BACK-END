@@ -1,20 +1,27 @@
 from django.db import models
 from Empleados.models import Empleados  
+from Vehiculos.models import Vehiculo
+
 
 class OrdenesMovilizacion(models.Model):
     id_orden_movilizacion = models.AutoField(primary_key=True)
-    secuencial_orden_movilizacion = models.CharField(max_length=50)
-    fecha_hora_emision = models.DateTimeField()
+    secuencial_orden_movilizacion = models.CharField(max_length=50, default='000')
+    fecha_hora_emision = models.DateTimeField(auto_now_add=True)
+    motivo_movilizacion = models.CharField(max_length=50)
+    lugar_origen_destino_movilizacion = models.CharField(max_length=50, default='Mocache-Quevedo')
+    duracion_movilizacion = models.TimeField()
+    id_conductor = models.ForeignKey(Empleados, on_delete=models.DO_NOTHING, related_name='ordenes_conductor', db_column='id_conductor')
+    id_vehiculo = models.ForeignKey(Vehiculo, on_delete=models.DO_NOTHING, db_column='id_vehiculo')
     fecha_viaje = models.DateField()
     hora_ida = models.TimeField()
     hora_regreso = models.TimeField()
-    estado_movilizacion = models.CharField(max_length=50, blank=True, null=True)
-    id_empleado = models.ForeignKey(Empleados, models.DO_NOTHING, db_column='id_empleado')
+    estado_movilizacion = models.CharField(max_length=50, default='En Espera')
+    id_empleado = models.ForeignKey(Empleados, on_delete=models.DO_NOTHING, related_name='ordenes_empleado', db_column='id_empleado')
     habilitado = models.BigIntegerField(default=1)
 
     class Meta:
-        managed = False  
-        db_table = 'ordenes_movilizacion'  
+        managed = False
+        db_table = 'ordenes_movilizacion'
 
 class Personas(models.Model):
     id_persona = models.AutoField(primary_key=True)
