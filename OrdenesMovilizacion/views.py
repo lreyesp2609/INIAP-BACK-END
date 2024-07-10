@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.views import View
 from django.utils.decorators import method_decorator
+from rest_framework.exceptions import AuthenticationFailed
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 import jwt
@@ -108,6 +109,12 @@ class ListarOrdenMovilizacionView(View):
                 return JsonResponse({'error': 'Token no proporcionado'}, status=400)
 
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
 
             usuario = Usuarios.objects.get(id_usuario=id_usuario)
             empleado = Empleados.objects.get(id_persona=usuario.id_persona)
@@ -135,6 +142,9 @@ class ListarOrdenMovilizacionView(View):
         except jwt.InvalidTokenError:
             return JsonResponse({'error': 'Token inválido'}, status=401)
         
+        except AuthenticationFailed as e:
+            return JsonResponse({'error': str(e)}, status=403)
+
         except Usuarios.DoesNotExist:
             return JsonResponse({"error": "Usuario no encontrado"}, status=404)
         
