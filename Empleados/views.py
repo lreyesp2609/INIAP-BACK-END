@@ -48,11 +48,12 @@ class NuevoEmpleadoView(View):
             distintivo = request.POST.get('distintivo')
             id_rol = request.POST.get('id_rol')
             id_cargo = request.POST.get('id_cargo')
+            id_tipo_licencia = request.POST.get('id_tipo_licencia')  # nuevo campo
 
             # Usa la fecha actual del servidor como fecha de ingreso
             fecha_ingreso = datetime.now().strftime('%Y-%m-%d')
 
-            if not all([numero_cedula, nombres, apellidos, fecha_nacimiento, genero, celular, direccion, correo_electronico, distintivo, id_rol, id_cargo]):
+            if not all([numero_cedula, nombres, apellidos, fecha_nacimiento, genero, celular, direccion, correo_electronico, distintivo, id_rol, id_cargo, id_tipo_licencia]):
                 return JsonResponse({'error': 'Todos los campos son obligatorios'}, status=400)
 
             if not numero_cedula.isdigit():
@@ -66,10 +67,6 @@ class NuevoEmpleadoView(View):
 
             if not genero in ['Masculino', 'Femenino']:
                 return JsonResponse({'error': 'El género debe ser Masculino o Femenino'}, status=400)
-
-            celular_pattern = r'^\+?\d[\d\s]{9,15}$'
-            if not re.match(celular_pattern, celular):
-                return JsonResponse({'error': 'El número de celular debe tener un formato válido'}, status=400)
             
             if not re.match(r'^[a-zA-Z0-9\s,.\-áéíóúÁÉÍÓÚñÑ]+$', direccion):
                 return JsonResponse({'error': 'La dirección debe contener solo letras y números'}, status=400)
@@ -118,6 +115,7 @@ class NuevoEmpleadoView(View):
 
             cargo = Cargos.objects.get(id_cargo=id_cargo)
             rol = Rol.objects.get(id_rol=id_rol)
+            tipo_licencia = TipoLicencias.objects.get(id_tipo_licencia=id_tipo_licencia)
 
             empleado_data = {
                 'id_persona': persona,
@@ -135,6 +133,9 @@ class NuevoEmpleadoView(View):
                 'contrasenia': make_password(persona.numero_cedula),
             }
             usuario = Usuarios.objects.create(**usuario_data)
+
+            # Asignar el tipo de licencia al empleado
+            EmpleadosTipoLicencias.objects.create(id_empleado=empleado, id_tipo_licencia=tipo_licencia)
 
             return JsonResponse({'mensaje': 'Empleado creado exitosamente', 'id_empleado': empleado.id_empleado, 'id_usuario': usuario.id_usuario}, status=201)
 
