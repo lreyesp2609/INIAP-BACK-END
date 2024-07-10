@@ -6,10 +6,9 @@ from rest_framework.exceptions import AuthenticationFailed
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 import jwt
-import json
-from datetime import datetime
 
 from .models import OrdenesMovilizacion
+from Vehiculos.models import Vehiculo 
 from Empleados.models import Empleados, Usuarios, Rol
 
 
@@ -23,22 +22,43 @@ class CrearOrdenMovilizacionView(View):
 
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
 
-            data = json.loads(request.body)
-            
             usuario = Usuarios.objects.get(id_usuario=id_usuario)
             if usuario.id_rol.rol != 'Empleado':
                 return JsonResponse({"error": "No tienes permisos para realizar esta acción"}, status=403)
             
             empleado = Empleados.objects.get(id_persona=usuario.id_persona)
-            
+
+            # Obtener datos del formulario
+            secuencial_orden_movilizacion = request.POST.get('secuencial_orden_movilizacion', '000')
+            motivo_movilizacion = request.POST.get('motivo_movilizacion', '')
+            lugar_origen_destino_movilizacion = request.POST.get('lugar_origen_destino_movilizacion', 'Mocache-Quevedo')
+            duracion_movilizacion = request.POST.get('duracion_movilizacion', '00:00:00')
+            id_conductor_id = request.POST.get('id_conductor', '')  
+            id_vehiculo_id = request.POST.get('id_vehiculo', '') 
+            fecha_viaje = request.POST.get('fecha_viaje', '')
+            hora_ida = request.POST.get('hora_ida', '00:00:00')
+            hora_regreso = request.POST.get('hora_regreso', '00:00:00')
+            estado_movilizacion = request.POST.get('estado_movilizacion', 'En Espera')
+            id_empleado = empleado
+
+            # Buscar objetos relacionados por ID
+            id_conductor = Empleados.objects.get(id_empleado=id_conductor_id)
+            id_vehiculo = Vehiculo.objects.get(id_vehiculo=id_vehiculo_id)
+
+            # Crear nueva orden de movilización
             nueva_orden = OrdenesMovilizacion.objects.create(
-                secuencial_orden_movilizacion=data.get('secuencial_orden_movilizacion', ''),
-                fecha_hora_emision=datetime.now(),
-                fecha_viaje=data.get('fecha_viaje'),
-                hora_ida=data.get('hora_ida'),
-                hora_regreso=data.get('hora_regreso'),
-                estado_movilizacion="En Espera",
-                id_empleado=empleado
+                secuencial_orden_movilizacion=secuencial_orden_movilizacion,
+                motivo_movilizacion=motivo_movilizacion,
+                lugar_origen_destino_movilizacion=lugar_origen_destino_movilizacion,
+                duracion_movilizacion=duracion_movilizacion,
+                id_conductor=id_conductor,
+                id_vehiculo=id_vehiculo,
+                fecha_viaje=fecha_viaje,
+                hora_ida=hora_ida,
+                hora_regreso=hora_regreso,
+                estado_movilizacion=estado_movilizacion,
+                id_empleado=id_empleado,
+                habilitado=1  
             )
             
             return JsonResponse({
@@ -58,11 +78,8 @@ class CrearOrdenMovilizacionView(View):
         except Empleados.DoesNotExist:
             return JsonResponse({"error": "Empleado no encontrado"}, status=404)
         
-        except Rol.DoesNotExist:
-            return JsonResponse({"error": "Rol no encontrado"}, status=404)
-        
-        except json.JSONDecodeError:
-            return JsonResponse({"error": "Datos JSON inválidos"}, status=400)
+        except Vehiculo.DoesNotExist:
+            return JsonResponse({"error": "Vehículo no encontrado"}, status=404)
         
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
@@ -99,7 +116,6 @@ class CancelarOrdenMovilizacionView(View):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
-
 @method_decorator(csrf_exempt, name='dispatch')
 class ListarOrdenMovilizacionView(View):
     def get(self, request, id_usuario):
@@ -126,6 +142,11 @@ class ListarOrdenMovilizacionView(View):
                     'id_orden_movilizacion': orden.id_orden_movilizacion,
                     'secuencial_orden_movilizacion': orden.secuencial_orden_movilizacion,
                     'fecha_hora_emision': orden.fecha_hora_emision.strftime('%Y-%m-%d %H:%M:%S'),
+                    'motivo_movilizacion': orden.motivo_movilizacion,
+                    'lugar_origen_destino_movilizacion': orden.lugar_origen_destino_movilizacion,
+                    'duracion_movilizacion': str(orden.duracion_movilizacion),
+                    'id_conductor': orden.id_conductor.id_empleado,
+                    'id_vehiculo': orden.id_vehiculo.id_vehiculo,
                     'fecha_viaje': orden.fecha_viaje.strftime('%Y-%m-%d'),
                     'hora_ida': orden.hora_ida.strftime('%H:%M:%S'),
                     'hora_regreso': orden.hora_regreso.strftime('%H:%M:%S'),
@@ -153,7 +174,7 @@ class ListarOrdenMovilizacionView(View):
         
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-
+        
 
 @method_decorator(csrf_exempt, name='dispatch')
 class EditarOrdenMovilizacionView(View):
@@ -166,11 +187,25 @@ class EditarOrdenMovilizacionView(View):
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
 
             orden = OrdenesMovilizacion.objects.get(id_orden_movilizacion=id_orden)
-            data = json.loads(request.body)
-            orden.secuencial_orden_movilizacion = data.get('secuencial_orden_movilizacion', orden.secuencial_orden_movilizacion)
-            orden.fecha_viaje = data.get('fecha_viaje', orden.fecha_viaje)
-            orden.hora_ida = data.get('hora_ida', orden.hora_ida)
-            orden.hora_regreso = data.get('hora_regreso', orden.hora_regreso)
+
+            # Obtener datos del formulario
+            orden.motivo_movilizacion = request.POST.get('motivo_movilizacion', orden.motivo_movilizacion)
+            orden.duracion_movilizacion = request.POST.get('duracion_movilizacion', orden.duracion_movilizacion)
+            id_conductor_id = request.POST.get('id_conductor', orden.id_conductor.id_empleado)
+            id_vehiculo_id = request.POST.get('id_vehiculo', orden.id_vehiculo.id_vehiculo)
+            orden.fecha_viaje = request.POST.get('fecha_viaje', orden.fecha_viaje)
+            orden.hora_ida = request.POST.get('hora_ida', orden.hora_ida)
+            orden.hora_regreso = request.POST.get('hora_regreso', orden.hora_regreso)
+
+            # Buscar objetos relacionados por ID
+            id_conductor = Empleados.objects.get(id_empleado=id_conductor_id)
+            id_vehiculo = Vehiculo.objects.get(id_vehiculo=id_vehiculo_id)
+
+            # Asignar nuevos valores
+            orden.id_conductor = id_conductor
+            orden.id_vehiculo = id_vehiculo
+
+            # Guardar la orden actualizada
             orden.save()
 
             return JsonResponse({
@@ -187,8 +222,11 @@ class EditarOrdenMovilizacionView(View):
         except OrdenesMovilizacion.DoesNotExist:
             return JsonResponse({"error": "Orden de movilización no encontrada"}, status=404)
         
-        except json.JSONDecodeError:
-            return JsonResponse({"error": "Datos JSON inválidos"}, status=400)
+        except Empleados.DoesNotExist:
+            return JsonResponse({"error": "Empleado no encontrado"}, status=404)
+        
+        except Vehiculo.DoesNotExist:
+            return JsonResponse({"error": "Vehículo no encontrado"}, status=404)
         
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)

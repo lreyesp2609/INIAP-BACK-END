@@ -112,20 +112,6 @@ CREATE TABLE Empleados_Tipo_Licencias (
     FOREIGN KEY (id_tipo_licencia) REFERENCES Tipo_Licencias(id_tipo_licencia)
 );
 
-CREATE TABLE Ordenes_Movilizacion (
-    id_orden_movilizacion SERIAL PRIMARY KEY,
-    secuencial_orden_movilizacion VARCHAR(50) NOT NULL,
-    fecha_hora_emision TIMESTAMP NOT NULL,
-    fecha_viaje DATE,
-    hora_ida TIME,
-    hora_regreso TIME,
-    habilitado SMALLINT DEFAULT 1,
-    estado_movilizacion VARCHAR(50),
-    id_empleado INT NOT NULL,
-    FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado)
-);
-
-
 CREATE TABLE Tipo_Ordenes_Movilizacion (
     id_tipo_om SERIAL PRIMARY KEY,
     tipo_orden_movilizacion VARCHAR(100) NOT NULL,
@@ -242,10 +228,7 @@ CREATE TABLE Vehiculo (
     FOREIGN KEY (id_subcategoria_bien) REFERENCES Subcategorias_Bienes(id_subcategoria_bien)
 );
 
-CREATE TABLE control_ordenes_movilizacion (
-    id_com SERIAL PRIMARY KEY,
-    ultima_numeracion INT NOT NULL
-);
+
 
 CREATE TABLE control_solicitudes (
     id_control_solicitudes SERIAL PRIMARY KEY,
@@ -254,18 +237,22 @@ CREATE TABLE control_solicitudes (
     fecha_ultima_secuencia DATE NOT NULL
 );
 
-CREATE TABLE Motivo_Vehiculo (
-    id_motivo SERIAL PRIMARY KEY,
-    id_vehiculo INTEGER NOT NULL,
-    motivo VARCHAR(255) NOT NULL,
-    fecha TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_vehiculo) REFERENCES Vehiculo(id_vehiculo) ON DELETE NO ACTION
-);
-
-CREATE TABLE Motivo_Empleados (
-    id_motivo SERIAL PRIMARY KEY,
-    id_empleado INTEGER NOT NULL,
-    motivo VARCHAR(255) NOT NULL,
-    fecha TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado) ON DELETE NO ACTION
+CREATE TABLE ordenes_movilizacion (
+    id_orden_movilizacion SERIAL PRIMARY KEY,
+    secuencial_orden_movilizacion VARCHAR(50) NOT NULL DEFAULT '000',
+    fecha_hora_emision TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    motivo_movilizacion VARCHAR(50) NOT NULL,
+    lugar_origen_destino_movilizacion VARCHAR(50) NOT NULL DEFAULT 'Mocache-Quevedo',
+    duracion_movilizacion TIME NOT NULL,
+    id_conductor INT NOT NULL,
+    id_vehiculo INT NOT NULL,
+    fecha_viaje DATE NOT NULL,
+    hora_ida TIME NOT NULL,
+    hora_regreso TIME NOT NULL,
+    estado_movilizacion VARCHAR(50) NOT NULL DEFAULT 'En Espera',
+    id_empleado INT NOT NULL,
+    habilitado SMALLINT NOT NULL DEFAULT 1,
+    FOREIGN KEY (id_conductor) REFERENCES empleados(id_empleado),
+    FOREIGN KEY (id_vehiculo) REFERENCES vehiculo(id_vehiculo),
+    FOREIGN KEY (id_empleado) REFERENCES empleados(id_empleado)
 );
