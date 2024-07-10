@@ -35,7 +35,8 @@ INSTALLED_APPS = [
     'Cargos',
     'Unidades',
     'Informes',
-    'OrdenesMovilizacion'
+    'OrdenesMovilizacion',
+    'Licencias',
 ]
 
 MIDDLEWARE = [
