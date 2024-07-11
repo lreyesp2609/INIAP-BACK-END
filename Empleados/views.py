@@ -7,7 +7,6 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed
 from django.db import transaction
-
 from Estaciones.models import Estaciones
 from Unidades.models import Unidades
 from .models import *
@@ -677,6 +676,55 @@ class HabilitarEmpleadoView(View):
 
         except Empleados.DoesNotExist:
             return JsonResponse({'error': 'Empleado no encontrado'}, status=404)
+
+        except Exception as e:
+            transaction.set_rollback(True)
+            return JsonResponse({'error': str(e)}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class ResetPasswordView(View):
+    @transaction.atomic
+    def post(self, request, id_usuario, id_empleado, *args, **kwargs):
+        try:
+            # Obtener el token de los headers
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            # Decodificar el token
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            # Verificar que el rol sea 'SuperUsuario'
+            usuario = Usuarios.objects.select_related('id_rol').get(id_usuario=token_id_usuario)
+            if usuario.id_rol.rol != 'SuperUsuario':
+                return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
+
+            # Verificar que el id_usuario del token coincide con el id_usuario en la URL
+            if token_id_usuario != id_usuario:
+                return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
+
+            # Obtener el empleado basado en id_empleado
+            persona = Personas.objects.get(id_persona=id_empleado)
+            numero_cedula = persona.numero_cedula
+
+            # Obtener el usuario basado en id_usuario asociado con el empleado
+            usuario_empleado = Usuarios.objects.get(id_persona=id_empleado)
+
+            # Establecer la nueva contraseña en formato hasheado
+            nueva_contrasenia = numero_cedula
+            usuario_empleado.contrasenia = make_password(nueva_contrasenia)
+            usuario_empleado.save()
+
+            return JsonResponse({'mensaje': 'Contraseña reseteada exitosamente'}, status=200)
+
+        except Personas.DoesNotExist:
+            return JsonResponse({'error': 'Empleado no encontrado'}, status=404)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'Usuario no encontrado para el empleado'}, status=404)
 
         except Exception as e:
             transaction.set_rollback(True)
