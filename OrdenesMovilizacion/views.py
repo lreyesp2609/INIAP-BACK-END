@@ -1,20 +1,38 @@
-from django.shortcuts import render
 from django.http import JsonResponse
 from django.views import View
 from django.utils.decorators import method_decorator
-from rest_framework.exceptions import AuthenticationFailed
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 import jwt
-
+from datetime import datetime
 from .models import OrdenesMovilizacion
-from Vehiculos.models import Vehiculo 
+from Vehiculos.models import Vehiculo
 from Empleados.models import Empleados, Usuarios, Rol
+from rest_framework.exceptions import AuthenticationFailed
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearOrdenMovilizacionView(View):
-    def post(self, request, *args, **kwargs):
+    def post(self, request, id_usuario, *args, **kwargs):
         try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            # Validación de permisos y coincidencia de ID de usuario en la URL
+            if token_id_usuario != id_usuario:
+                return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
+
+            usuario = Usuarios.objects.select_related('id_rol').get(id_usuario=id_usuario)
+            if usuario.id_rol.rol != 'Empleado':
+                return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
+
+            # Obtención de datos del formulario form-data
             secuencial_orden_movilizacion = request.POST.get('secuencial_orden_movilizacion')
             motivo_movilizacion = request.POST.get('motivo_movilizacion')
             lugar_origen_destino_movilizacion = request.POST.get('lugar_origen_destino_movilizacion')
@@ -25,25 +43,42 @@ class CrearOrdenMovilizacionView(View):
             hora_ida = request.POST.get('hora_ida')
             hora_regreso = request.POST.get('hora_regreso')
             estado_movilizacion = request.POST.get('estado_movilizacion')
-            id_empleado_id = request.POST.get('id_empleado')
 
+            # Obtención de objetos relacionados por ID
+            empleado = Empleados.objects.get(id_persona=usuario.id_persona)
+            id_conductor = Empleados.objects.get(id_empleado=id_conductor_id)
+            id_vehiculo = Vehiculo.objects.get(id_vehiculo=id_vehiculo_id)
+
+            # Creación de la orden de movilización
             orden = OrdenesMovilizacion.objects.create(
                 secuencial_orden_movilizacion=secuencial_orden_movilizacion,
-                motivo_movilizacion=motivo_movilizacion,
-                lugar_origen_destino_movilizacion=lugar_origen_destino_movilizacion,
-                duracion_movilizacion=duracion_movilizacion,
-                id_conductor_id=id_conductor_id,
-                id_vehiculo_id=id_vehiculo_id,
+                fecha_hora_emision=datetime.now(),
                 fecha_viaje=fecha_viaje,
                 hora_ida=hora_ida,
                 hora_regreso=hora_regreso,
                 estado_movilizacion=estado_movilizacion,
-                id_empleado_id=id_empleado_id
+                id_empleado=empleado,
+                motivo_movilizacion=motivo_movilizacion,
+                lugar_origen_destino_movilizacion=lugar_origen_destino_movilizacion,
+                duracion_movilizacion=duracion_movilizacion,
+                id_conductor=id_conductor,
+                id_vehiculo=id_vehiculo,
+                habilitado=1
             )
 
             return JsonResponse({'message': 'Solicitud creada correctamente', 'id_orden_movilizacion': orden.id_orden_movilizacion})
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({"error": "Usuario no encontrado"}, status=404)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({"error": "Empleado no encontrado"}, status=404)
+
+        except Vehiculo.DoesNotExist:
+            return JsonResponse({"error": "Vehículo no encontrado"}, status=404)
+
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
+            return JsonResponse({'error': str(e)}, status=500)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CancelarOrdenMovilizacionView(View):

@@ -52,7 +52,7 @@ class NuevoEmpleadoView(View):
             # Usa la fecha actual del servidor como fecha de ingreso
             fecha_ingreso = datetime.now().strftime('%Y-%m-%d')
 
-            if not all([numero_cedula, nombres, apellidos, fecha_nacimiento, genero, celular, direccion, correo_electronico, distintivo, id_rol, id_cargo, id_tipo_licencia]):
+            if not all([numero_cedula, nombres, apellidos, fecha_nacimiento, genero, celular, direccion, correo_electronico, distintivo, id_rol, id_cargo]):
                 return JsonResponse({'error': 'Todos los campos son obligatorios'}, status=400)
 
             if not numero_cedula.isdigit():
@@ -114,7 +114,7 @@ class NuevoEmpleadoView(View):
 
             cargo = Cargos.objects.get(id_cargo=id_cargo)
             rol = Rol.objects.get(id_rol=id_rol)
-            tipo_licencia = TipoLicencias.objects.get(id_tipo_licencia=id_tipo_licencia)
+            # tipo_licencia = TipoLicencias.objects.get(id_tipo_licencia=id_tipo_licencia)
 
             empleado_data = {
                 'id_persona': persona,
@@ -134,7 +134,7 @@ class NuevoEmpleadoView(View):
             usuario = Usuarios.objects.create(**usuario_data)
 
             # Asignar el tipo de licencia al empleado
-            EmpleadosTipoLicencias.objects.create(id_empleado=empleado, id_tipo_licencia=tipo_licencia)
+            # EmpleadosTipoLicencias.objects.create(id_empleado=empleado, id_tipo_licencia=tipo_licencia)
 
             return JsonResponse({'mensaje': 'Empleado creado exitosamente', 'id_empleado': empleado.id_empleado, 'id_usuario': usuario.id_usuario}, status=201)
 
