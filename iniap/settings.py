@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'Informes',
     'OrdenesMovilizacion',
     'Licencias',
+    'MotivosOrdenes',
 ]
 
 MIDDLEWARE = [
