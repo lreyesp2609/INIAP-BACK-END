@@ -99,6 +99,7 @@ class ObtenerUsuarioView(View):
 
                 usuario_data = {
                     'id_usuario': usuario.id_usuario,
+                    'id_empleado': empleado.id_empleado,
                     'usuario': usuario.usuario,
                     'nombre': persona.nombres,
                     'apellido': persona.apellidos,
