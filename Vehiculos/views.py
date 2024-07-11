@@ -29,7 +29,7 @@ class VehiculosListView(View):
                 return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
 
             usuario = Usuarios.objects.select_related('id_rol', 'id_persona').get(id_usuario=token_id_usuario)
-            if usuario.id_rol.rol != 'SuperUsuario':
+            if usuario.id_rol.rol not in ['SuperUsuario', 'Empleado', 'Administrador']:
                 return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
 
             vehiculos = Vehiculo.objects.filter(habilitado=1).select_related('id_subcategoria_bien', 'id_subcategoria_bien__id_categorias_bien')
