@@ -1,6 +1,7 @@
 from django.db import models
 
 from Cargos.models import Cargos
+from Licencias.models import TipoLicencias
 
 # Create your models here.
 
@@ -59,3 +60,12 @@ class MotivoEmpleados(models.Model):
 
     class Meta:
         db_table = 'motivo_empleados'
+
+class EmpleadosTipoLicencias(models.Model):
+    id_empleado = models.OneToOneField(Empleados, models.DO_NOTHING, db_column='id_empleado', primary_key=True)  # The composite primary key (id_empleado, id_tipo_licencia) found, that is not supported. The first column is selected.
+    id_tipo_licencia = models.ForeignKey(TipoLicencias, models.DO_NOTHING, db_column='id_tipo_licencia')
+
+    class Meta:
+        managed = False
+        db_table = 'empleados_tipo_licencias'
+        unique_together = (('id_empleado', 'id_tipo_licencia'),)

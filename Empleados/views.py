@@ -7,7 +7,6 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed
 from django.db import transaction
-
 from Estaciones.models import Estaciones
 from Unidades.models import Unidades
 from .models import *
@@ -48,11 +47,12 @@ class NuevoEmpleadoView(View):
             distintivo = request.POST.get('distintivo')
             id_rol = request.POST.get('id_rol')
             id_cargo = request.POST.get('id_cargo')
+            id_tipo_licencia = request.POST.get('id_tipo_licencia')  # nuevo campo
 
             # Usa la fecha actual del servidor como fecha de ingreso
             fecha_ingreso = datetime.now().strftime('%Y-%m-%d')
 
-            if not all([numero_cedula, nombres, apellidos, fecha_nacimiento, genero, celular, direccion, correo_electronico, distintivo, id_rol, id_cargo]):
+            if not all([numero_cedula, nombres, apellidos, fecha_nacimiento, genero, celular, direccion, correo_electronico, distintivo, id_rol, id_cargo, id_tipo_licencia]):
                 return JsonResponse({'error': 'Todos los campos son obligatorios'}, status=400)
 
             if not numero_cedula.isdigit():
@@ -66,10 +66,6 @@ class NuevoEmpleadoView(View):
 
             if not genero in ['Masculino', 'Femenino']:
                 return JsonResponse({'error': 'El género debe ser Masculino o Femenino'}, status=400)
-
-            celular_pattern = r'^\+?\d[\d\s]{9,15}$'
-            if not re.match(celular_pattern, celular):
-                return JsonResponse({'error': 'El número de celular debe tener un formato válido'}, status=400)
             
             if not re.match(r'^[a-zA-Z0-9\s,.\-áéíóúÁÉÍÓÚñÑ]+$', direccion):
                 return JsonResponse({'error': 'La dirección debe contener solo letras y números'}, status=400)
@@ -118,6 +114,7 @@ class NuevoEmpleadoView(View):
 
             cargo = Cargos.objects.get(id_cargo=id_cargo)
             rol = Rol.objects.get(id_rol=id_rol)
+            tipo_licencia = TipoLicencias.objects.get(id_tipo_licencia=id_tipo_licencia)
 
             empleado_data = {
                 'id_persona': persona,
@@ -135,6 +132,9 @@ class NuevoEmpleadoView(View):
                 'contrasenia': make_password(persona.numero_cedula),
             }
             usuario = Usuarios.objects.create(**usuario_data)
+
+            # Asignar el tipo de licencia al empleado
+            EmpleadosTipoLicencias.objects.create(id_empleado=empleado, id_tipo_licencia=tipo_licencia)
 
             return JsonResponse({'mensaje': 'Empleado creado exitosamente', 'id_empleado': empleado.id_empleado, 'id_usuario': usuario.id_usuario}, status=201)
 
@@ -677,6 +677,55 @@ class HabilitarEmpleadoView(View):
 
         except Empleados.DoesNotExist:
             return JsonResponse({'error': 'Empleado no encontrado'}, status=404)
+
+        except Exception as e:
+            transaction.set_rollback(True)
+            return JsonResponse({'error': str(e)}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class ResetPasswordView(View):
+    @transaction.atomic
+    def post(self, request, id_usuario, id_empleado, *args, **kwargs):
+        try:
+            # Obtener el token de los headers
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            # Decodificar el token
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            # Verificar que el rol sea 'SuperUsuario'
+            usuario = Usuarios.objects.select_related('id_rol').get(id_usuario=token_id_usuario)
+            if usuario.id_rol.rol != 'SuperUsuario':
+                return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
+
+            # Verificar que el id_usuario del token coincide con el id_usuario en la URL
+            if token_id_usuario != id_usuario:
+                return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
+
+            # Obtener el empleado basado en id_empleado
+            persona = Personas.objects.get(id_persona=id_empleado)
+            numero_cedula = persona.numero_cedula
+
+            # Obtener el usuario basado en id_usuario asociado con el empleado
+            usuario_empleado = Usuarios.objects.get(id_persona=id_empleado)
+
+            # Establecer la nueva contraseña en formato hasheado
+            nueva_contrasenia = numero_cedula
+            usuario_empleado.contrasenia = make_password(nueva_contrasenia)
+            usuario_empleado.save()
+
+            return JsonResponse({'mensaje': 'Contraseña reseteada exitosamente'}, status=200)
+
+        except Personas.DoesNotExist:
+            return JsonResponse({'error': 'Empleado no encontrado'}, status=404)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'Usuario no encontrado para el empleado'}, status=404)
 
         except Exception as e:
             transaction.set_rollback(True)

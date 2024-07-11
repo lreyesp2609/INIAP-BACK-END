@@ -112,6 +112,31 @@ class Solicitudes(models.Model):
         managed = False
         db_table = 'solicitudes'
 
+    def generar_codigo_solicitud(self):
+        # Obtener empleado asociado a la solicitud
+        empleado = self.id_empleado
+
+        # Obtener datos de la persona asociada al empleado
+        persona = empleado.id_persona
+        primer_apellido = persona.apellidos.split()[0] if persona.apellidos else ''
+        segundo_apellido = persona.apellidos.split()[1][0] if len(persona.apellidos.split()) > 1 else ''
+        primer_nombre = persona.nombres.split()[0] if persona.nombres else ''
+        segundo_nombre = persona.nombres.split()[1][0] if len(persona.nombres.split()) > 1 else ''
+
+        # Obtener siglas de la unidad y estación asociadas al empleado
+        unidad = Unidades.objects.get(id_unidad=empleado.id_cargo.id_unidad_id)
+        siglas_unidad = unidad.siglas_unidad if unidad.siglas_unidad else ''
+        estacion = unidad.id_estacion
+        siglas_estacion = estacion.siglas_estacion if estacion.siglas_estacion else ''
+
+        # Obtener año de la solicitud
+        year_solicitud = self.fecha_solicitud.year
+
+        # Construir el código de solicitud
+        codigo_solicitud = f'{self.secuencia_solicitud:03}-{primer_apellido[0]}{segundo_apellido[0]}{primer_nombre[0]}{segundo_nombre[0]}-{siglas_unidad}-INIAP-{siglas_estacion}-{year_solicitud}'
+
+        return codigo_solicitud
+
 
 class Informes(models.Model):
     id_informes = models.AutoField(primary_key=True)
