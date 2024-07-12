@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 import jwt
 
-from .models import Empleados, Personas, Unidades, Estaciones, Solicitudes, Informes, Usuarios
+from .models import Empleados, Personas, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades
 from datetime import datetime, date
 import json
 from django.utils.decorators import method_decorator
@@ -124,6 +124,55 @@ class ListarSolicitudesView(View):
 
         except Empleados.DoesNotExist:
             return JsonResponse({'error': 'El empleado correspondiente al usuario no existe'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+class ListarBancosView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtener todos los bancos
+            bancos = Bancos.objects.all()
+
+            # Preparar la respuesta con los nombres de los bancos
+            data = [banco.nombre_banco for banco in bancos]
+
+            return JsonResponse({'bancos': data}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+class ListarMotivosView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtener todos los motivos activos
+            motivos = Motivo.objects.filter(estado_motivo=1)
+
+            # Preparar la respuesta con los nombres de los motivos
+            data = [motivo.nombre_motivo for motivo in motivos]
+
+            return JsonResponse({'motivos': data}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+class ListarProvinciaCiudadesView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtener todas las provincias
+            provincias = Provincias.objects.all()
+
+            # Preparar la respuesta con las provincias y ciudades relacionadas
+            data = []
+            for provincia in provincias:
+                ciudades = Ciudades.objects.filter(id_provincia=provincia.id_provincia)
+                ciudades_list = [ciudad.ciudad for ciudad in ciudades]
+                data.append({
+                    'Provincia': provincia.provincia,
+                    'Ciudades': ciudades_list,
+                })
+
+            return JsonResponse({'provincias_ciudades': data}, status=200)
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
