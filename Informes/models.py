@@ -263,6 +263,23 @@ class Bancos(models.Model):
         managed = False
         db_table = 'bancos'
 
+class Provincias(models.Model):
+    id_provincia = models.AutoField(primary_key=True)
+    provincia = models.CharField(max_length=100)
+
+    class Meta:
+        managed = False
+        db_table = 'provincias'
+
+class Ciudades(models.Model):
+    id_ciudad = models.AutoField(primary_key=True)
+    id_provincia = models.ForeignKey('Provincias', models.DO_NOTHING, db_column='id_provincia')
+    ciudad = models.CharField(max_length=100)
+
+    class Meta:
+        managed = False
+        db_table = 'ciudades'
+
 class CuentasBancarias(models.Model):
     id_cuenta_bancaria = models.AutoField(primary_key=True)
     id_banco = models.ForeignKey(Bancos, models.DO_NOTHING, db_column='id_banco')

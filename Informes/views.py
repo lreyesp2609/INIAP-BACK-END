@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 import jwt
 
-from .models import Empleados, Personas, Unidades, Estaciones, Solicitudes, Informes, Usuarios
+from .models import Empleados, Personas, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades
 from datetime import datetime, date
 import json
 from django.utils.decorators import method_decorator
@@ -124,6 +124,155 @@ class ListarSolicitudesView(View):
 
         except Empleados.DoesNotExist:
             return JsonResponse({'error': 'El empleado correspondiente al usuario no existe'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+class ListarBancosView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtener todos los bancos
+            bancos = Bancos.objects.all()
+
+            # Preparar la respuesta con los nombres de los bancos
+            data = [banco.nombre_banco for banco in bancos]
+
+            return JsonResponse({'bancos': data}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+class ListarMotivosView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtener todos los motivos activos
+            motivos = Motivo.objects.filter(estado_motivo=1)
+
+            # Preparar la respuesta con los nombres de los motivos
+            data = [motivo.nombre_motivo for motivo in motivos]
+
+            return JsonResponse({'motivos': data}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+class ListarProvinciaCiudadesView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtener todas las provincias
+            provincias = Provincias.objects.all()
+
+            # Preparar la respuesta con las provincias y ciudades relacionadas
+            data = []
+            for provincia in provincias:
+                ciudades = Ciudades.objects.filter(id_provincia=provincia.id_provincia)
+                ciudades_list = [ciudad.ciudad for ciudad in ciudades]
+                data.append({
+                    'Provincia': provincia.provincia,
+                    'Ciudades': ciudades_list,
+                })
+
+            return JsonResponse({'provincias_ciudades': data}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+
+
+class ListarDatosPersonalesView(View):
+    def get(self, request, id_usuario, *args, **kwargs):
+        try:
+            # Obtener el usuario asociado a la id_usuario proporcionada en la URL
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
+
+            # Obtener la persona asociada al usuario
+            persona = usuario.id_persona  # Accedemos directamente al campo id_persona del usuario
+
+            # Obtener el empleado asociado a la persona
+            empleado = Empleados.objects.get(id_persona=persona)
+
+            # Obtener el cargo del empleado
+            cargo = Cargos.objects.get(id_cargo=empleado.id_cargo_id)
+
+            # Obtener la unidad asociada al cargo
+            unidad = Unidades.objects.get(id_unidad=cargo.id_unidad_id)
+
+            # Construir la respuesta con los datos requeridos
+            datos_personales = {
+                'Nombre': f"{empleado.distintivo} {persona.nombres} {persona.apellidos}",
+                'Cargo': cargo.cargo,
+                'Unidad': unidad.nombre_unidad,
+            }
+
+            return JsonResponse({'datos_personales': datos_personales}, status=200)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'El usuario no existe'}, status=404)
+
+        except Personas.DoesNotExist:
+            return JsonResponse({'error': 'La persona asociada al usuario no existe'}, status=404)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({'error': 'El empleado asociado a la persona no existe'}, status=404)
+
+        except Cargos.DoesNotExist:
+            return JsonResponse({'error': 'El cargo asociado al empleado no existe'}, status=404)
+
+        except Unidades.DoesNotExist:
+            return JsonResponse({'error': 'La unidad asociada al cargo no existe'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+
+class PrevisualizarCodigoSolicitudView(View):
+    def get(self, request, id_usuario, *args, **kwargs):
+        try:
+            # Obtener el empleado asociado al usuario
+            empleado = Empleados.objects.get(id_persona_id=id_usuario)
+
+            # Obtener la última secuencia de solicitud del empleado
+            ultima_solicitud = Solicitudes.objects.filter(id_empleado=empleado).order_by('-secuencia_solicitud').first()
+
+            # Obtener la secuencia actual y ajustarla para la previsualización
+            if ultima_solicitud:
+                secuencia_actual = ultima_solicitud.secuencia_solicitud + 1
+            else:
+                secuencia_actual = 1  # Si no hay solicitudes anteriores, empezamos en 1
+
+            # Obtener datos para construir el código de solicitud
+            persona = empleado.id_persona
+            primer_apellido = persona.apellidos.split()[0] if persona.apellidos else ''
+            segundo_apellido = persona.apellidos.split()[1][0] if len(persona.apellidos.split()) > 1 else ''
+            primer_nombre = persona.nombres.split()[0] if persona.nombres else ''
+            segundo_nombre = persona.nombres.split()[1][0] if len(persona.nombres.split()) > 1 else ''
+
+            unidad = Unidades.objects.get(id_unidad=empleado.id_cargo.id_unidad_id)
+            siglas_unidad = unidad.siglas_unidad if unidad.siglas_unidad else ''
+            estacion = unidad.id_estacion
+            siglas_estacion = estacion.siglas_estacion if estacion.siglas_estacion else ''
+
+            year_solicitud = datetime.now().year
+
+            # Construir el código de solicitud con la secuencia actualizada
+            codigo_solicitud = f'{secuencia_actual:03}-{primer_apellido[0]}{segundo_apellido[0]}{primer_nombre[0]}{segundo_nombre[0]}-{siglas_unidad}-INIAP-{siglas_estacion}-{year_solicitud}'
+
+            # Preparar la respuesta con los datos requeridos
+            datos_previsualizacion = {
+                'Codigo de Solicitud': codigo_solicitud,
+                'Fecha y Hora de Previsualización': datetime.now().strftime('%d-%m-%Y'),
+            }
+
+            return JsonResponse({'previsualizacion': datos_previsualizacion}, status=200)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({'error': 'El empleado correspondiente al usuario no existe'}, status=404)
+
+        except Unidades.DoesNotExist:
+            return JsonResponse({'error': 'La unidad asociada al empleado no existe'}, status=404)
+
+        except Estaciones.DoesNotExist:
+            return JsonResponse({'error': 'La estación asociada a la unidad no existe'}, status=404)
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)

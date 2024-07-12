@@ -317,6 +317,17 @@ INSERT INTO Ciudades (id_provincia, Ciudad) VALUES
 (24, 'Yacuambi'),
 (24, 'Yantzaza');
 
+INSERT INTO Bancos (nombre_banco) VALUES 
+('Banco del Pichincha'),
+('Banco de Guayaquil'),
+('Banco del Pacífico'),
+('Produbanco'),
+('Banco Internacional'),
+('Banco Bolivariano'),
+('Banco Amazonas'),
+('Banco Solidario'),
+('Banco de Loja'),
+('Banco del Austro');
 
 -- Obtener el id_persona recién insertado
 DO $$
