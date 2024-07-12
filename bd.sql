@@ -124,6 +124,7 @@ CREATE TABLE Solicitudes (
     secuencia_solicitud INT,
     fecha_solicitud DATE NOT NULL,
     motivo_movilizacion VARCHAR(255),
+    lugar_servicio VARCHAR(255), -- Agregando el nuevo campo lugar_servicio
     fecha_salida_solicitud DATE,
     hora_salida_solicitud TIME,
     fecha_llegada_solicitud DATE,
@@ -134,6 +135,7 @@ CREATE TABLE Solicitudes (
     id_empleado INT NOT NULL,
     FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado)
 );
+
 
 CREATE TABLE Transporte_Solicitudes (
     id_transporte_soli SERIAL PRIMARY KEY,

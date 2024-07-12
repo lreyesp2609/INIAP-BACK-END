@@ -99,6 +99,7 @@ class Solicitudes(models.Model):
     secuencia_solicitud = models.IntegerField(blank=True, null=True)
     fecha_solicitud = models.DateField()
     motivo_movilizacion = models.CharField(max_length=255, blank=True, null=True)
+    lugar_servicio = models.CharField(max_length=255, blank=True, null=True)  # Nuevo campo agregado
     fecha_salida_solicitud = models.DateField(blank=True, null=True)
     hora_salida_solicitud = models.TimeField(blank=True, null=True)
     fecha_llegada_solicitud = models.DateField(blank=True, null=True)

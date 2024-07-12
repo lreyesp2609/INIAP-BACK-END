@@ -60,6 +60,7 @@ class CrearSolicitudView(View):
             hora_llegada_solicitud = data.get('hora_llegada_solicitud', '')
             descripcion_actividades = data.get('descripcion_actividades', '')
             listado_empleado = data.get('listado_empleado', '')
+            lugar_servicio = data.get('lugar_servicio', '')  # Nuevo campo lugar_servicio
 
             # Convertir las fechas de texto a objetos date si es necesario
             if fecha_salida_solicitud:
@@ -77,6 +78,7 @@ class CrearSolicitudView(View):
                     secuencia_solicitud=secuencia_solicitud,
                     fecha_solicitud=date.today(),
                     motivo_movilizacion=motivo_movilizacion,
+                    lugar_servicio=lugar_servicio,  # Agregar el lugar_servicio
                     fecha_salida_solicitud=fecha_salida_solicitud,
                     hora_salida_solicitud=hora_salida_solicitud,
                     fecha_llegada_solicitud=fecha_llegada_solicitud,
