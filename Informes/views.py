@@ -223,3 +223,56 @@ class ListarDatosPersonalesView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+        
+
+class PrevisualizarCodigoSolicitudView(View):
+    def get(self, request, id_usuario, *args, **kwargs):
+        try:
+            # Obtener el empleado asociado al usuario
+            empleado = Empleados.objects.get(id_persona_id=id_usuario)
+
+            # Obtener la última secuencia de solicitud del empleado
+            ultima_solicitud = Solicitudes.objects.filter(id_empleado=empleado).order_by('-secuencia_solicitud').first()
+
+            # Obtener la secuencia actual y ajustarla para la previsualización
+            if ultima_solicitud:
+                secuencia_actual = ultima_solicitud.secuencia_solicitud + 1
+            else:
+                secuencia_actual = 1  # Si no hay solicitudes anteriores, empezamos en 1
+
+            # Obtener datos para construir el código de solicitud
+            persona = empleado.id_persona
+            primer_apellido = persona.apellidos.split()[0] if persona.apellidos else ''
+            segundo_apellido = persona.apellidos.split()[1][0] if len(persona.apellidos.split()) > 1 else ''
+            primer_nombre = persona.nombres.split()[0] if persona.nombres else ''
+            segundo_nombre = persona.nombres.split()[1][0] if len(persona.nombres.split()) > 1 else ''
+
+            unidad = Unidades.objects.get(id_unidad=empleado.id_cargo.id_unidad_id)
+            siglas_unidad = unidad.siglas_unidad if unidad.siglas_unidad else ''
+            estacion = unidad.id_estacion
+            siglas_estacion = estacion.siglas_estacion if estacion.siglas_estacion else ''
+
+            year_solicitud = datetime.now().year
+
+            # Construir el código de solicitud con la secuencia actualizada
+            codigo_solicitud = f'{secuencia_actual:03}-{primer_apellido[0]}{segundo_apellido[0]}{primer_nombre[0]}{segundo_nombre[0]}-{siglas_unidad}-INIAP-{siglas_estacion}-{year_solicitud}'
+
+            # Preparar la respuesta con los datos requeridos
+            datos_previsualizacion = {
+                'Codigo de Solicitud': codigo_solicitud,
+                'Fecha y Hora de Previsualización': datetime.now().strftime('%d-%m-%Y'),
+            }
+
+            return JsonResponse({'previsualizacion': datos_previsualizacion}, status=200)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({'error': 'El empleado correspondiente al usuario no existe'}, status=404)
+
+        except Unidades.DoesNotExist:
+            return JsonResponse({'error': 'La unidad asociada al empleado no existe'}, status=404)
+
+        except Estaciones.DoesNotExist:
+            return JsonResponse({'error': 'La estación asociada a la unidad no existe'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)

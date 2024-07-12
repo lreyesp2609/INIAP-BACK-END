@@ -9,5 +9,5 @@ urlpatterns = [
     path('listar-motivos/', ListarMotivosView.as_view(), name='listar_motivos'),
     path('listar-provincias-ciudades/', ListarProvinciaCiudadesView.as_view(), name='listar_provincias_ciudades'),
     path('listar-datos-personales/<int:id_usuario>/', ListarDatosPersonalesView.as_view(), name='listar_datos_personales'),
-
+    path('previsualizar-codigo-solicitud/<int:id_usuario>/', PrevisualizarCodigoSolicitudView.as_view(), name='previsualizar_codigo_solicitud'),
  ]
