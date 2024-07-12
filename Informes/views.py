@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 import jwt
 
-from .models import Empleados, Personas, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades
+from .models import Empleados, Personas, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades
 from datetime import datetime, date
 import json
 from django.utils.decorators import method_decorator
@@ -173,6 +173,53 @@ class ListarProvinciaCiudadesView(View):
                 })
 
             return JsonResponse({'provincias_ciudades': data}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+
+
+class ListarDatosPersonalesView(View):
+    def get(self, request, id_usuario, *args, **kwargs):
+        try:
+            # Obtener el usuario asociado a la id_usuario proporcionada en la URL
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
+
+            # Obtener la persona asociada al usuario
+            persona = usuario.id_persona  # Accedemos directamente al campo id_persona del usuario
+
+            # Obtener el empleado asociado a la persona
+            empleado = Empleados.objects.get(id_persona=persona)
+
+            # Obtener el cargo del empleado
+            cargo = Cargos.objects.get(id_cargo=empleado.id_cargo_id)
+
+            # Obtener la unidad asociada al cargo
+            unidad = Unidades.objects.get(id_unidad=cargo.id_unidad_id)
+
+            # Construir la respuesta con los datos requeridos
+            datos_personales = {
+                'Nombre': f"{empleado.distintivo} {persona.nombres} {persona.apellidos}",
+                'Cargo': cargo.cargo,
+                'Unidad': unidad.nombre_unidad,
+            }
+
+            return JsonResponse({'datos_personales': datos_personales}, status=200)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'El usuario no existe'}, status=404)
+
+        except Personas.DoesNotExist:
+            return JsonResponse({'error': 'La persona asociada al usuario no existe'}, status=404)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({'error': 'El empleado asociado a la persona no existe'}, status=404)
+
+        except Cargos.DoesNotExist:
+            return JsonResponse({'error': 'El cargo asociado al empleado no existe'}, status=404)
+
+        except Unidades.DoesNotExist:
+            return JsonResponse({'error': 'La unidad asociada al cargo no existe'}, status=404)
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
