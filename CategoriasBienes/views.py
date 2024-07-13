@@ -98,9 +98,9 @@ class CrearCategoriaBienesView(View):
             if not descripcion_categoria:
                 return JsonResponse({'error': 'Descripción de categoría no proporcionada'}, status=400)
 
-            # Validar que la descripción solo contenga texto
-            if not isinstance(descripcion_categoria, str) or not re.match(r"^[a-zA-Z\s]+$", descripcion_categoria):
-                return JsonResponse({'error': 'La descripción de la categoría solo debe contener letras y espacios'}, status=400)
+            # Validar que la descripción solo contenga texto, incluyendo letras con tildes y espacios
+            if not isinstance(descripcion_categoria, str) or not re.match(r"^[\w\sáéíóúüñÁÉÍÓÚÜÑ]+$", descripcion_categoria):
+                return JsonResponse({'error': 'La descripción de la categoría solo debe contener letras, tildes, espacios y caracteres especiales'}, status=400)
 
             # Crear la nueva categoría de bienes
             nueva_categoria = CategoriasBienes.objects.create(descripcion_categoria=descripcion_categoria)

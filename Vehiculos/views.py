@@ -10,6 +10,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.exceptions import AuthenticationFailed
 import re
 from jwt import ExpiredSignatureError, InvalidTokenError
+from django.db import transaction
 
 @method_decorator(csrf_exempt, name='dispatch')
 class VehiculosListView(View):
@@ -204,6 +205,7 @@ class VehiculosListViewDeshabilitados(View):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearVehiculoView(View):
+    @transaction.atomic
     def post(self, request, id_usuario, *args, **kwargs):
         try:
             token = request.headers.get('Authorization')
@@ -231,49 +233,58 @@ class CrearVehiculoView(View):
             id_subcategoria_bien = request.POST.get('id_subcategoria_bien')
             placa = request.POST.get('placa')
             codigo_inventario = request.POST.get('codigo_inventario')
-            modelo = request.POST.get('modelo')
+            modelo = request.POST.get('modelo', '')
             marca = request.POST.get('marca')
             color_primario = request.POST.get('color_primario')
-            color_secundario = request.POST.get('color_secundario')
+            color_secundario = request.POST.get('color_secundario', '')
             anio_fabricacion = request.POST.get('anio_fabricacion')
             numero_motor = request.POST.get('numero_motor')
             numero_chasis = request.POST.get('numero_chasis')
-            numero_matricula = request.POST.get('numero_matricula')
+            numero_matricula = request.POST.get('numero_matricula', '')
 
             errores = {}
 
+            # Validación de placa
             if not re.match(r'^[A-Za-z0-9]+$', placa):
                 errores['placa'] = 'La placa debe contener solo letras y números.'
             placa = placa.upper()
 
-            if not re.match(r'^[A-Za-z0-9]+$', modelo):
-                errores['modelo'] = 'El modelo debe contener solo letras y números.'
+            # Validación de modelo (no es obligatorio)
+            if modelo and not re.match(r'^[A-Za-z0-9\s\-()]+$', modelo):
+                errores['modelo'] = 'El modelo debe contener solo letras, números, espacios, guiones y paréntesis.'
             modelo = modelo.upper()
 
-            if not re.match(r'^[A-Za-z]+$', marca):
-                errores['marca'] = 'La marca debe contener solo letras.'
+            # Validación de marca
+            if not re.match(r'^[A-Za-z0-9\s]+$', marca):
+                errores['marca'] = 'La marca debe contener solo letras y espacios.'
             marca = marca.upper()
 
-            if not re.match(r'^[A-Za-z]+$', color_primario):
-                errores['color_primario'] = 'El color primario debe contener solo letras.'
+            # Validación de color primario
+            if not re.match(r'^[A-Za-z\s]+$', color_primario):
+                errores['color_primario'] = 'El color primario debe contener solo letras y espacios.'
             color_primario = color_primario.upper()
 
-            if not re.match(r'^[A-Za-z]+$', color_secundario):
-                errores['color_secundario'] = 'El color secundario debe contener solo letras.'
+            # Validación de color secundario (no es obligatorio)
+            if color_secundario and not re.match(r'^[A-Za-z\s]+$', color_secundario):
+                errores['color_secundario'] = 'El color secundario debe contener solo letras y espacios.'
             color_secundario = color_secundario.upper()
 
+            # Validación de año de fabricación
             if not re.match(r'^\d{4}$', anio_fabricacion) or not (1900 <= int(anio_fabricacion) <= 2099):
                 errores['anio_fabricacion'] = 'El año de fabricación debe ser un año válido entre 1900 y 2099.'
 
-            if not re.match(r'^[A-Za-z0-9]+$', numero_motor):
-                errores['numero_motor'] = 'El número de motor debe contener solo letras y números.'
-            numero_motor = numero_motor.upper() 
+            # Validación de número de motor
+            if not re.match(r'^[A-Za-z0-9\s\-]+$', numero_motor):
+                errores['numero_motor'] = 'El número de motor debe contener solo letras, números, espacios y guiones.'
+            numero_motor = numero_motor.upper()
 
-            if not re.match(r'^[A-Za-z0-9]+$', numero_chasis):
-                errores['numero_chasis'] = 'El número de chasis debe contener solo letras y números.'
+            # Validación de número de chasis
+            if not re.match(r'^[A-Za-z0-9\s\-]+$', numero_chasis):
+                errores['numero_chasis'] = 'El número de chasis debe contener solo letras, números, espacios y guiones.'
             numero_chasis = numero_chasis.upper()
 
-            if not re.match(r'^\d+$', numero_matricula):
+            # Validación de número de matrícula (no es obligatorio)
+            if numero_matricula and not re.match(r'^\d+$', numero_matricula):
                 errores['numero_matricula'] = 'El número de matrícula debe contener solo números.'
 
             if errores:
@@ -284,22 +295,26 @@ class CrearVehiculoView(View):
             except ObjectDoesNotExist:
                 return JsonResponse({'error': 'Subcategoría de bienes no encontrada'}, status=404)
 
-            vehiculo = Vehiculo.objects.create(
-                id_subcategoria_bien=subcategoria,
-                placa=placa,
-                codigo_inventario=codigo_inventario,
-                modelo=modelo,
-                marca=marca,
-                color_primario=color_primario,
-                color_secundario=color_secundario,
-                anio_fabricacion=anio_fabricacion,
-                numero_motor=numero_motor,
-                numero_chasis=numero_chasis,
-                numero_matricula=numero_matricula,
-                habilitado=1
-            )
-
-            return JsonResponse({'mensaje': 'Vehículo creado exitosamente', 'id_vehiculo': vehiculo.id_vehiculo}, status=201)
+            try:
+                # Crear el vehículo dentro de la transacción
+                vehiculo = Vehiculo.objects.create(
+                    id_subcategoria_bien=subcategoria,
+                    placa=placa,
+                    codigo_inventario=codigo_inventario,
+                    modelo=modelo,
+                    marca=marca,
+                    color_primario=color_primario,
+                    color_secundario=color_secundario,
+                    anio_fabricacion=anio_fabricacion,
+                    numero_motor=numero_motor,
+                    numero_chasis=numero_chasis,
+                    numero_matricula=numero_matricula,
+                    habilitado=1
+                )
+                return JsonResponse({'mensaje': 'Vehículo creado exitosamente', 'id_vehiculo': vehiculo.id_vehiculo}, status=201)
+            except Exception as e:
+                transaction.set_rollback(True)  # Asegurar rollback en caso de excepción
+                raise e  # Re-lanzar la excepción para que sea manejada por el bloque de excepción superior
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
