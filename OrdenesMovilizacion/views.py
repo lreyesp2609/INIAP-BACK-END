@@ -227,3 +227,64 @@ class CancelarOrdenMovilizacionView(View):
         
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
+   
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class DetalleOrdenMovilizacion(View):
+    def get(self, request, id_usuario, id_orden):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
+            empleado = Empleados.objects.get(id_persona=usuario.id_persona)
+            orden = OrdenesMovilizacion.objects.get(id_orden_movilizacion=id_orden, id_empleado=empleado)
+
+            detalle_orden = {
+                'id_orden_movilizacion': orden.id_orden_movilizacion,
+                'secuencial_orden_movilizacion': orden.secuencial_orden_movilizacion,
+                'fecha_hora_emision': orden.fecha_hora_emision.strftime('%Y-%m-%d %H:%M:%S'),
+                'motivo_movilizacion': orden.motivo_movilizacion,
+                'lugar_origen_destino_movilizacion': orden.lugar_origen_destino_movilizacion,
+                'duracion_movilizacion': str(orden.duracion_movilizacion),
+                'id_conductor': orden.id_conductor.id_empleado,
+                'id_vehiculo': orden.id_vehiculo.id_vehiculo,
+                'fecha_viaje': orden.fecha_viaje.strftime('%Y-%m-%d'),
+                'hora_ida': orden.hora_ida.strftime('%H:%M:%S'),
+                'hora_regreso': orden.hora_regreso.strftime('%H:%M:%S'),
+                'estado_movilizacion': orden.estado_movilizacion,
+                'id_empleado': orden.id_empleado.id_empleado,
+                'habilitado': orden.habilitado,
+            }
+
+            return JsonResponse(detalle_orden)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except AuthenticationFailed as e:
+            return JsonResponse({'error': str(e)}, status=403)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({"error": "Usuario no encontrado"}, status=404)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({"error": "Empleado no encontrado"}, status=404)
+
+        except OrdenesMovilizacion.DoesNotExist:
+            return JsonResponse({"error": "Orden de movilización no encontrada"}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
