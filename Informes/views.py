@@ -278,3 +278,24 @@ class PrevisualizarCodigoSolicitudView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+        
+class ListarEmpleadosView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtener todos los empleados
+            empleados = Empleados.objects.all()
+
+            # Preparar la respuesta con los datos de los empleados
+            data = [
+                {
+                    'distintivo': emp.distintivo,
+                    'nombres': emp.id_persona.nombres,
+                    'apellidos': emp.id_persona.apellidos,
+                }
+                for emp in empleados
+            ]
+
+            return JsonResponse({'empleados': data}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
