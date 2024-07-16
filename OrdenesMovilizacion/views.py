@@ -202,39 +202,6 @@ class EditarOrdenMovilizacionView(View):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
-
-@method_decorator(csrf_exempt, name='dispatch')
-class CancelarOrdenMovilizacionView(View):
-    def put(self, request, id_orden):
-        try:
-            token = request.headers.get('Authorization')
-            if not token:
-                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
-
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-
-            orden = OrdenesMovilizacion.objects.get(id_orden_movilizacion=id_orden)
-            orden.estado_movilizacion = 'Cancelado'
-            orden.habilitado = 0
-            orden.save()
-
-            return JsonResponse({
-                'id_orden_movilizacion': orden.id_orden_movilizacion,
-                'mensaje': 'Orden de movilización cancelada exitosamente'
-            })
-
-        except jwt.ExpiredSignatureError:
-            return JsonResponse({'error': 'Token expirado'}, status=401)
-        
-        except jwt.InvalidTokenError:
-            return JsonResponse({'error': 'Token inválido'}, status=401)
-        
-        except OrdenesMovilizacion.DoesNotExist:
-            return JsonResponse({"error": "Orden de movilización no encontrada"}, status=404)
-        
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
-   
         
 @method_decorator(csrf_exempt, name='dispatch')
 class DetalleOrdenMovilizacion(View):
@@ -295,3 +262,93 @@ class DetalleOrdenMovilizacion(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class CancelarOrdenMovilizacionView(View):
+    def put(self, request, id_usuario, id_orden):
+        try:
+
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
+            orden = OrdenesMovilizacion.objects.get(id_orden_movilizacion=id_orden, id_empleado__id_persona=usuario.id_persona)
+
+            if orden.estado_movilizacion == 'Cancelado':
+                return JsonResponse({'error': 'La orden ya está cancelada'}, status=400)
+
+            orden.estado_movilizacion = 'Cancelado'
+            orden.habilitado = 0
+            orden.save()
+
+            return JsonResponse({
+                'id_orden_movilizacion': orden.id_orden_movilizacion,
+                'mensaje': 'Orden de movilización cancelada exitosamente'
+            })
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+        
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+        
+        except OrdenesMovilizacion.DoesNotExist:
+            return JsonResponse({"error": "Orden de movilización no encontrada"}, status=404)
+        
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class HabilitarOrdenMovilizacionView(View):
+    def put(self, request, id_usuario, id_orden):
+        try:
+             
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
+            orden = OrdenesMovilizacion.objects.get(id_orden_movilizacion=id_orden, id_empleado__id_persona=usuario.id_persona)
+
+            if orden.habilitado == 1:
+                return JsonResponse({'error': 'La orden ya está habilitada'}, status=400)
+
+            orden.estado_movilizacion = 'En Espera'
+            orden.habilitado = 1
+            orden.save()
+
+            return JsonResponse({
+                'id_orden_movilizacion': orden.id_orden_movilizacion,
+                'mensaje': 'Orden de movilización habilitada exitosamente'
+            })
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+        
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+        
+        except OrdenesMovilizacion.DoesNotExist:
+            return JsonResponse({"error": "Orden de movilización no encontrada"}, status=404)
+        
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
