@@ -299,3 +299,32 @@ class ListarEmpleadosView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+        
+
+class ListarEmpleadoSesion(View):
+    def get(self, request, id_usuario, *args, **kwargs):
+        try:
+            # Obtener el usuario por id_usuario
+            usuario = Usuarios.objects.get(pk=id_usuario)
+
+            # Obtener la persona asociada al usuario
+            persona = usuario.id_persona
+
+            # Obtener el empleado asociado a la persona
+            empleado = Empleados.objects.get(id_persona=persona)
+
+            # Preparar la respuesta con los datos del empleado
+            data = {
+                'distintivo': empleado.distintivo,
+                'nombres': empleado.id_persona.nombres,
+                'apellidos': empleado.id_persona.apellidos,
+            }
+
+            return JsonResponse(data, status=200)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+        except Empleados.DoesNotExist:
+            return JsonResponse({'error': 'Empleado no encontrado'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
