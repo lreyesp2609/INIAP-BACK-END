@@ -112,13 +112,6 @@ CREATE TABLE Empleados_Tipo_Licencias (
     FOREIGN KEY (id_tipo_licencia) REFERENCES Tipo_Licencias(id_tipo_licencia)
 );
 
-CREATE TABLE Tipo_Ordenes_Movilizacion (
-    id_tipo_om SERIAL PRIMARY KEY,
-    tipo_orden_movilizacion VARCHAR(100) NOT NULL,
-    nomenclatura VARCHAR(20),
-    abreviatura VARCHAR(10)
-);
-
 CREATE TABLE Solicitudes (
     id_solicitud SERIAL PRIMARY KEY,
     secuencia_solicitud INT,
@@ -231,14 +224,6 @@ CREATE TABLE Vehiculo (
 );
 
 
-
-CREATE TABLE control_solicitudes (
-    id_control_solicitudes SERIAL PRIMARY KEY,
-    anio INT NOT NULL,
-    ultima_secuencia INT NOT NULL,
-    fecha_ultima_secuencia DATE NOT NULL
-);
-
 CREATE TABLE ordenes_movilizacion (
     id_orden_movilizacion SERIAL PRIMARY KEY,
     secuencial_orden_movilizacion VARCHAR(50) NOT NULL DEFAULT '000',
@@ -258,3 +243,13 @@ CREATE TABLE ordenes_movilizacion (
     FOREIGN KEY (id_vehiculo) REFERENCES vehiculo(id_vehiculo),
     FOREIGN KEY (id_empleado) REFERENCES empleados(id_empleado)
 );
+
+CREATE TABLE motivo_orden_movilizacion (
+    id_motivo_orden SERIAL PRIMARY KEY,
+    id_orden_movilizacion INT NOT NULL,
+    motivo VARCHAR(250) NOT NULL, 
+    fecha TIMESTAMP NOT NULL,
+
+    FOREIGN KEY (id_orden_movilizacion) REFERENCES ordenes_movilizacion(id_orden_movilizacion)
+);
+

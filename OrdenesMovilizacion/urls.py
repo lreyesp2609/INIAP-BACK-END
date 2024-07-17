@@ -8,4 +8,8 @@ urlpatterns = [
     path('detalle-orden/<int:id_usuario>/<int:id_orden>/', DetalleOrdenMovilizacion.as_view(), name='detalle_orden'),
     path('cancelar-orden/<int:id_usuario>/<int:id_orden>/', CancelarOrdenMovilizacionView.as_view(), name='cancelar_orden'),
     path('habilitar-orden/<int:id_usuario>/<int:id_orden>/', HabilitarOrdenMovilizacionView.as_view(), name='habilitar_orden'),
+    path('listar-todas-orden/<int:id_usuario>/', ListarTodasOrdenMovilizacionView.as_view(), name='listar-todas-orden'),
+    path('aprobar-orden/<int:id_usuario>/<int:id_orden>/', AprobarOrdenMovilizacionView.as_view(), name='aprobar_orden'),
+    path('rechazar-orden/<int:id_usuario>/<int:id_orden>/', RechazarOrdenMovilizacionView.as_view(), name='rechazar_orden'),
+
 ]
