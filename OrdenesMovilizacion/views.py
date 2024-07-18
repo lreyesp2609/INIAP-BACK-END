@@ -5,13 +5,12 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.db import transaction
 import jwt
+from .models import Empleados, OrdenesMovilizacion, MotivoOrdenMovilizacion, Usuarios
 from datetime import datetime
-from .models import OrdenesMovilizacion
 from Vehiculos.models import Vehiculo
-from Empleados.models import Empleados, Usuarios, Rol
+# from Empleados.models import Empleados, Usuarios, Rol
 from rest_framework.exceptions import AuthenticationFailed
 import logging
-from .models import MotivoOrdenMovilizacion
 
 logger = logging.getLogger(__name__)
 
@@ -355,6 +354,8 @@ class HabilitarOrdenMovilizacionView(View):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
         
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class ListarTodasOrdenMovilizacionView(View):
     def get(self, request, id_usuario):
@@ -410,6 +411,7 @@ class ListarTodasOrdenMovilizacionView(View):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
+
 @method_decorator(csrf_exempt, name='dispatch')
 class RechazarOrdenMovilizacionView(View):
     def post(self, request, id_usuario, id_orden):
@@ -432,16 +434,22 @@ class RechazarOrdenMovilizacionView(View):
             if orden.estado_movilizacion == 'Denegado':
                 return JsonResponse({'error': 'La orden ya está denegada'}, status=400)
 
-            motivo = request.POST.get('motivo', '')
+            motivo = request.POST.get('motivo')
+            if not motivo:
+                return JsonResponse({'error': 'El motivo es obligatorio'}, status=400)
             motivo_formateado = f'Denegado: {motivo}'
 
-            orden.estado_movilizacion = 'Denegado'
-            orden.save()
+            empleado = Empleados.objects.get(id_persona=usuario.id_persona)
 
-            MotivoOrdenMovilizacion.objects.create(
-                id_orden_movilizacion=orden,
-                motivo=motivo_formateado
-            )
+            with transaction.atomic():
+                orden.estado_movilizacion = 'Denegado'
+                orden.save()
+
+                MotivoOrdenMovilizacion.objects.create(
+                    id_orden_movilizacion=orden,
+                    id_empleado=empleado,  # Asegúrate de que esto sea una instancia válida de Empleados
+                    motivo=motivo_formateado
+                )
 
             return JsonResponse({
                 'id_orden_movilizacion': orden.id_orden_movilizacion,
@@ -460,9 +468,11 @@ class RechazarOrdenMovilizacionView(View):
         except OrdenesMovilizacion.DoesNotExist:
             return JsonResponse({"error": "Orden de movilización no encontrada"}, status=404)
 
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+        except Empleados.DoesNotExist:
+            return JsonResponse({"error": "Empleado no encontrado"}, status=404)
 
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class AprobarOrdenMovilizacionView(View):
@@ -486,27 +496,26 @@ class AprobarOrdenMovilizacionView(View):
             if orden.estado_movilizacion == 'Aprobado':
                 return JsonResponse({'error': 'La orden ya está aprobada'}, status=400)
 
-            secuencial_orden_movilizacion = request.POST.get('secuencial_orden_movilizacion', None)
+            secuencial_orden_movilizacion = request.POST.get('secuencial_orden_movilizacion')
             if not secuencial_orden_movilizacion:
                 return JsonResponse({'error': 'El campo Secuencial es obligatorio'}, status=400)
             
-            # Actualizar secuencial_orden_movilizacion en el objeto orden
             orden.secuencial_orden_movilizacion = secuencial_orden_movilizacion
 
-            # Obtener motivo (opcional)
-            motivo = request.POST.get('motivo', '')
-            if motivo:
-                motivo_formateado = f'Aprobado: {motivo}'
-                with transaction.atomic():
-                    orden.estado_movilizacion = 'Aprobado'
-                    orden.save()
-                    MotivoOrdenMovilizacion.objects.create(
-                        id_orden_movilizacion=orden,
-                        motivo=motivo_formateado
-                    )
-            else:
+            empleado = Empleados.objects.get(id_persona=usuario.id_persona)
+
+            motivo = request.POST.get('motivo', 'Aprobado')
+            motivo_formateado = f'Aprobado: {motivo}'
+
+            with transaction.atomic():
                 orden.estado_movilizacion = 'Aprobado'
                 orden.save()
+
+                MotivoOrdenMovilizacion.objects.create(
+                    id_orden_movilizacion=orden,
+                    id_empleado=empleado,  # Asegúrate de que esto sea una instancia válida de Empleados
+                    motivo=motivo_formateado
+                )
 
             return JsonResponse({
                 'id_orden_movilizacion': orden.id_orden_movilizacion,
@@ -524,6 +533,9 @@ class AprobarOrdenMovilizacionView(View):
 
         except OrdenesMovilizacion.DoesNotExist:
             return JsonResponse({"error": "Orden de movilización no encontrada"}, status=404)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({"error": "Empleado no encontrado"}, status=404)
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)

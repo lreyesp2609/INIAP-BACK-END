@@ -246,10 +246,12 @@ CREATE TABLE ordenes_movilizacion (
 
 CREATE TABLE motivo_orden_movilizacion (
     id_motivo_orden SERIAL PRIMARY KEY,
+    id_empleado INT NOT NULL,
     id_orden_movilizacion INT NOT NULL,
     motivo VARCHAR(250) NOT NULL, 
     fecha TIMESTAMP NOT NULL,
 
+    FOREIGN KEY (id_empleado) REFERENCES empleados(id_empleado),
     FOREIGN KEY (id_orden_movilizacion) REFERENCES ordenes_movilizacion(id_orden_movilizacion)
 );
 

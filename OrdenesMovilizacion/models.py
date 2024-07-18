@@ -105,6 +105,7 @@ class Empleados(models.Model):
 
 class MotivoOrdenMovilizacion(models.Model):
     id_motivo_orden = models.AutoField(primary_key=True)
+    id_empleado = models.ForeignKey(Empleados, on_delete=models.DO_NOTHING, db_column='id_empleado')
     id_orden_movilizacion = models.ForeignKey(OrdenesMovilizacion, models.DO_NOTHING, db_column='id_orden_movilizacion')
     motivo = models.CharField(max_length=255)
     fecha = models.DateTimeField(auto_now_add=True)
