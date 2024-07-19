@@ -288,6 +288,7 @@ class ListarEmpleadosView(View):
             # Preparar la respuesta con los datos de los empleados
             data = [
                 {
+                    'id': emp.id_empleado,
                     'distintivo': emp.distintivo,
                     'nombres': emp.id_persona.nombres,
                     'apellidos': emp.id_persona.apellidos,
@@ -300,27 +301,27 @@ class ListarEmpleadosView(View):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
         
-
-class ListarEmpleadoSesion(View):
+class ListarEmpleadoSesionView(View):
     def get(self, request, id_usuario, *args, **kwargs):
         try:
-            # Obtener el usuario por id_usuario
-            usuario = Usuarios.objects.get(pk=id_usuario)
+            # Obtener el usuario correspondiente
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
 
-            # Obtener la persona asociada al usuario
-            persona = usuario.id_persona
+            # Obtener la id_persona del usuario
+            id_persona = usuario.id_persona.id_persona
 
-            # Obtener el empleado asociado a la persona
-            empleado = Empleados.objects.get(id_persona=persona)
+            # Obtener el empleado correspondiente a la id_persona
+            empleado = Empleados.objects.get(id_persona=id_persona)
 
             # Preparar la respuesta con los datos del empleado
             data = {
+                'id': empleado.id_empleado,
                 'distintivo': empleado.distintivo,
                 'nombres': empleado.id_persona.nombres,
                 'apellidos': empleado.id_persona.apellidos,
             }
 
-            return JsonResponse(data, status=200)
+            return JsonResponse({'empleado': data}, status=200)
 
         except Usuarios.DoesNotExist:
             return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
