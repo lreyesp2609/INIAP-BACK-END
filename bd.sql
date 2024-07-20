@@ -134,6 +134,7 @@ CREATE TABLE Transporte_Solicitudes (
     id_transporte_soli SERIAL PRIMARY KEY,
     id_solicitud INT NOT NULL,
     tipo_transporte_soli VARCHAR(50),
+    nombre_transporte_soli VARCHAR(50),
     ruta_soli VARCHAR(255),
     fecha_salida_soli DATE,
     hora_salida_soli TIME,
