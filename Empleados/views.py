@@ -114,7 +114,6 @@ class NuevoEmpleadoView(View):
 
             cargo = Cargos.objects.get(id_cargo=id_cargo)
             rol = Rol.objects.get(id_rol=id_rol)
-            tipo_licencia = TipoLicencias.objects.get(id_tipo_licencia=id_tipo_licencia)
 
             empleado_data = {
                 'id_persona': persona,
@@ -133,8 +132,10 @@ class NuevoEmpleadoView(View):
             }
             usuario = Usuarios.objects.create(**usuario_data)
 
-            # Asignar el tipo de licencia al empleado
-            EmpleadosTipoLicencias.objects.create(id_empleado=empleado, id_tipo_licencia=tipo_licencia)
+            # Asignar el tipo de licencia al empleado solo si se proporcionó
+            if id_tipo_licencia:
+                tipo_licencia = TipoLicencias.objects.get(id_tipo_licencia=id_tipo_licencia)
+                EmpleadosTipoLicencias.objects.create(id_empleado=empleado, id_tipo_licencia=tipo_licencia)
 
             return JsonResponse({'mensaje': 'Empleado creado exitosamente', 'id_empleado': empleado.id_empleado, 'id_usuario': usuario.id_usuario}, status=201)
 
@@ -700,7 +701,7 @@ class ResetPasswordView(View):
 
             # Verificar que el rol sea 'SuperUsuario'
             usuario = Usuarios.objects.select_related('id_rol').get(id_usuario=token_id_usuario)
-            if usuario.id_rol.rol != 'SuperUsuario':
+            if usuario.id_rol.rol not in ['SuperUsuario', 'Administrador']:
                 return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
 
             # Verificar que el id_usuario del token coincide con el id_usuario en la URL
@@ -708,11 +709,12 @@ class ResetPasswordView(View):
                 return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
 
             # Obtener el empleado basado en id_empleado
-            persona = Personas.objects.get(id_persona=id_empleado)
+            empleado = Empleados.objects.get(id_empleado=id_empleado)
+            persona = empleado.id_persona
             numero_cedula = persona.numero_cedula
 
             # Obtener el usuario basado en id_usuario asociado con el empleado
-            usuario_empleado = Usuarios.objects.get(id_persona=id_empleado)
+            usuario_empleado = Usuarios.objects.get(id_persona=persona.id_persona)
 
             # Establecer la nueva contraseña en formato hasheado
             nueva_contrasenia = numero_cedula
@@ -721,7 +723,7 @@ class ResetPasswordView(View):
 
             return JsonResponse({'mensaje': 'Contraseña reseteada exitosamente'}, status=200)
 
-        except Personas.DoesNotExist:
+        except Empleados.DoesNotExist:
             return JsonResponse({'error': 'Empleado no encontrado'}, status=404)
 
         except Usuarios.DoesNotExist:
