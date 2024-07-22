@@ -11,5 +11,7 @@ urlpatterns = [
     path('listar-todas-orden/<int:id_usuario>/', ListarTodasOrdenMovilizacionView.as_view(), name='listar-todas-orden'),
     path('aprobar-orden/<int:id_usuario>/<int:id_orden>/', AprobarOrdenMovilizacionView.as_view(), name='aprobar_orden'),
     path('rechazar-orden/<int:id_usuario>/<int:id_orden>/', RechazarOrdenMovilizacionView.as_view(), name='rechazar_orden'),
-
+    path('listar-motivos/<int:id_usuario>/', ListarMotivoOrdenesMovilizacionView.as_view(), name='listar_motivos'),
+    path('editar-motivo/<int:id_usuario>/<int:id_motivo>/', EditarMotivoOrdenMovilizacionView.as_view(), name='editar_motivo'),
+    path('editar-secuencial/<int:id_usuario>/<int:id_orden>/', EditarSecuencialOrdenMovilizacionView.as_view(), name='editar_secuencial'),
 ]

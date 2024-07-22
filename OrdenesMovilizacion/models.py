@@ -90,18 +90,6 @@ class Cargos(models.Model):
         managed = False
         db_table = 'cargos'
 
-class Empleados(models.Model):
-    id_empleado = models.AutoField(primary_key=True)
-    id_persona = models.ForeignKey('Personas', models.DO_NOTHING, db_column='id_persona')
-    id_cargo = models.ForeignKey(Cargos, models.DO_NOTHING, db_column='id_cargo', blank=True, null=True)
-    distintivo = models.CharField(max_length=100, blank=True, null=True)
-    fecha_ingreso = models.DateField(blank=True, null=True)
-    habilitado = models.SmallIntegerField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'empleados'
-
 
 class MotivoOrdenMovilizacion(models.Model):
     id_motivo_orden = models.AutoField(primary_key=True)
