@@ -62,8 +62,8 @@ class MotivoEmpleados(models.Model):
         db_table = 'motivo_empleados'
 
 class EmpleadosTipoLicencias(models.Model):
-    id_empleado = models.OneToOneField(Empleados, models.DO_NOTHING, db_column='id_empleado', primary_key=True)  # The composite primary key (id_empleado, id_tipo_licencia) found, that is not supported. The first column is selected.
-    id_tipo_licencia = models.ForeignKey(TipoLicencias, models.DO_NOTHING, db_column='id_tipo_licencia')
+    id_empleado = models.OneToOneField(Empleados, models.DO_NOTHING, db_column='id_empleado', primary_key=True)
+    id_tipo_licencia = models.ForeignKey(TipoLicencias, null=True, blank=True, on_delete=models.SET_NULL)
 
     class Meta:
         managed = False
