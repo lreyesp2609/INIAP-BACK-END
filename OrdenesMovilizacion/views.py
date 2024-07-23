@@ -333,7 +333,7 @@ class HabilitarOrdenMovilizacionView(View):
             if orden.habilitado == 1:
                 return JsonResponse({'error': 'La orden ya está habilitada'}, status=400)
 
-            orden.estado_movilizacion = 'En Espera'
+            orden.estado_movilizacion = 'Pendiente'
             orden.habilitado = 1
             orden.save()
 
