@@ -554,7 +554,8 @@ class AprobarOrdenMovilizacionView(View):
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-        
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class ListarMotivoOrdenesMovilizacionView(View):
     def get(self, request, id_usuario):
@@ -602,79 +603,65 @@ class ListarMotivoOrdenesMovilizacionView(View):
             return JsonResponse({"error": str(e)}, status=500)
 
 
+
 @method_decorator(csrf_exempt, name='dispatch')
 class EditarMotivoOrdenMovilizacionView(View):
-    def post(self, request, id_usuario, id_motivo):
+    def post(self, request, id_usuario, id_orden, id_motivo):
         try:
             token = request.headers.get('Authorization')
             if not token:
                 return JsonResponse({'error': 'Token no proporcionado'}, status=400)
 
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-
             token_id_usuario = payload.get('id_usuario')
             if not token_id_usuario:
                 raise AuthenticationFailed('ID de usuario no encontrado en el token')
 
-            motivo_orden = MotivoOrdenMovilizacion.objects.get(id_motivo_orden=id_motivo)
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'No tienes permiso para editar esta orden'}, status=403)
 
-            # Verificar que el usuario tenga permiso para editar este motivo
-            if motivo_orden.id_empleado.id_persona.id_usuario != id_usuario:
-                return JsonResponse({'error': 'No tienes permiso para editar este motivo'}, status=403)
+            # Verificar y obtener la orden
+            try:
+                orden = OrdenesMovilizacion.objects.get(id_orden_movilizacion=id_orden)
+            except OrdenesMovilizacion.DoesNotExist:
+                return JsonResponse({'error': 'Orden no encontrada'}, status=404)
 
-            # Obtener datos del formulario
-            motivo_orden.motivo = request.POST.get('motivo', motivo_orden.motivo)
+            # Verificar y obtener el motivo
+            try:
+                motivo = MotivoOrdenMovilizacion.objects.get(id_motivo_orden=id_motivo, id_orden_movilizacion=orden)
+            except MotivoOrdenMovilizacion.DoesNotExist:
+                return JsonResponse({'error': 'Motivo no encontrado'}, status=404)
 
-            # Guardar el motivo actualizado
-            motivo_orden.save()
+            nuevo_estado = request.POST.get('estado')
+            nuevo_motivo = request.POST.get('motivo')
+            nuevo_secuencial = request.POST.get('secuencial')
 
-            return JsonResponse({
-                'id_motivo_orden': motivo_orden.id_motivo_orden,
-                'mensaje': 'Motivo de orden de movilización actualizado exitosamente'
-            })
+            if nuevo_estado:
+                if nuevo_estado == 'Aprobado':
+                    # Actualizar solo si el estado cambia de 'Denegado' a 'Aprobado'
+                    if orden.estado_movilizacion == 'Denegado':
+                        orden.estado_movilizacion = 'Aprobado'
+                    # Siempre actualizar el secuencial si es 'Aprobado'
+                    orden.secuencial_orden_movilizacion = nuevo_secuencial or '0000'
+                elif nuevo_estado == 'Denegado':
+                    orden.estado_movilizacion = 'Denegado'
+                    orden.secuencial_orden_movilizacion = '0000'
+                else:
+                    # Otros estados
+                    orden.estado_movilizacion = nuevo_estado
+                    if nuevo_secuencial:
+                        orden.secuencial_orden_movilizacion = nuevo_secuencial
 
-        except jwt.ExpiredSignatureError:
-            return JsonResponse({'error': 'Token expirado'}, status=401)
+            # Actualizar el motivo en la tabla de motivos
+            if nuevo_motivo:
+                motivo.motivo = nuevo_motivo
+                motivo.save()
 
-        except jwt.InvalidTokenError:
-            return JsonResponse({'error': 'Token inválido'}, status=401)
-
-        except MotivoOrdenMovilizacion.DoesNotExist:
-            return JsonResponse({"error": "Motivo de orden de movilización no encontrado"}, status=404)
-
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
-
-
-@method_decorator(csrf_exempt, name='dispatch')
-class EditarSecuencialOrdenMovilizacionView(View):
-    def post(self, request, id_usuario, id_orden):
-        try:
-            token = request.headers.get('Authorization')
-            if not token:
-                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
-
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-
-            token_id_usuario = payload.get('id_usuario')
-            if not token_id_usuario:
-                raise AuthenticationFailed('ID de usuario no encontrado en el token')
-
-            usuario = Usuarios.objects.select_related('id_rol').get(id_usuario=id_usuario)
-            if usuario.id_rol.rol != 'Administrador':
-                return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
-
-            orden = OrdenesMovilizacion.objects.get(id_orden_movilizacion=id_orden)
-
-            # Obtener datos del formulario
-            orden.secuencial_orden_movilizacion = request.POST.get('secuencial_orden_movilizacion', orden.secuencial_orden_movilizacion)
-
-            # Guardar la orden actualizada
             orden.save()
 
             return JsonResponse({
                 'id_orden_movilizacion': orden.id_orden_movilizacion,
-                'mensaje': 'Secuencial de orden de movilización actualizado exitosamente'
+                'mensaje': 'Orden de movilización actualizada exitosamente'
             })
 
         except jwt.ExpiredSignatureError:
@@ -683,8 +670,5 @@ class EditarSecuencialOrdenMovilizacionView(View):
         except jwt.InvalidTokenError:
             return JsonResponse({'error': 'Token inválido'}, status=401)
 
-        except OrdenesMovilizacion.DoesNotExist:
-            return JsonResponse({"error": "Orden de movilización no encontrada"}, status=404)
-
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+            return JsonResponse({'error': str(e)}, status=500)
