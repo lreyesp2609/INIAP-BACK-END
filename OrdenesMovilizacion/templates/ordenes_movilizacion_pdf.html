@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Orden de Movilización</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            color: #333;
+        }
+        .content {
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <h1>Orden de Movilización</h1>
+        <p><strong>ID:</strong> {{ orden.id_orden_movilizacion }}</p>
+        <p><strong>Fecha de emisión:</strong> {{ orden.fecha_hora_emision }}</p>
+        <p><strong>Motivo:</strong> {{ orden.motivo_movilizacion }}</p>
+        <p><strong>Lugar:</strong> {{ orden.lugar_origen_destino_movilizacion }}</p>
+        <p><strong>Duración:</strong> {{ orden.duracion_movilizacion }}</p>
+        <p><strong>Conductor:</strong> {{ orden.id_conductor }}</p>
+        <p><strong>Vehículo:</strong> {{ orden.id_vehiculo }}</p>
+        <p><strong>Fecha del viaje:</strong> {{ orden.fecha_viaje }}</p>
+        <p><strong>Hora de ida:</strong> {{ orden.hora_ida }}</p>
+        <p><strong>Hora de regreso:</strong> {{ orden.hora_regreso }}</p>
+        <p><strong>Estado:</strong> {{ orden.estado_movilizacion }}</p>
+        <p><strong>Empleado:</strong> {{ orden.id_empleado }}</p>
+        <p><strong>Habilitado:</strong> {{ orden.habilitado }}</p>
+        
+        <!-- Verifica si hay motivos asociados y muestra en una tabla -->
+        {% if orden.motivoordenmovilizacions.all %}
+            <h2>Motivos de Movilización</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Empleado</th>
+                        <th>Motivo</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for motivo in orden.motivoordenmovilizacions.all %}
+                        <tr>
+                            <td>{{ motivo.id_empleado }}</td>
+                            <td>{{ motivo.motivo }}</td>
+                            <td>{{ motivo.fecha }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="3">No hay motivos disponibles.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No hay motivos de movilización.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

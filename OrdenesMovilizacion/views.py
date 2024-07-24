@@ -672,3 +672,72 @@ class EditarMotivoOrdenMovilizacionView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from xhtml2pdf import pisa
+import os
+
+def generar_pdf(orden):
+    try:
+        template_path = 'ordenes_movilizacion_pdf.html'
+        context = {'orden': orden}
+        html = render_to_string(template_path, context)
+        
+        # Verifica el contexto
+        print(f'Contexto del PDF: {context}')
+
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="orden_{orden.id_orden_movilizacion}.pdf"'
+
+        pisa_status = pisa.CreatePDF(html, dest=response)
+        if pisa_status.err:
+            logger.error(f'Error al generar el PDF: {pisa_status.err}')
+            return HttpResponse('Error al generar el PDF', status=500)
+        return response
+
+    except Exception as e:
+        logger.error(f'Error en generar_pdf: {str(e)}')
+        return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class GenerarPdfOrdenMovilizacionView(View):
+    def get(self, request, id_usuario, id_orden):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
+            orden = OrdenesMovilizacion.objects.get(id_orden_movilizacion=id_orden)
+            if not orden:
+                return JsonResponse({"error": "Orden de movilización no encontrada"}, status=404)
+
+
+            return generar_pdf(orden)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except AuthenticationFailed as e:
+            return JsonResponse({'error': str(e)}, status=403)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({"error": "Usuario no encontrado"}, status=404)
+
+        except OrdenesMovilizacion.DoesNotExist:
+            return JsonResponse({"error": "Orden de movilización no encontrada"}, status=404)
+
+        except Exception as e:
+            print(f'Error al generar el PDF: {str(e)}')
+            return JsonResponse({'error': str(e)}, status=500)
