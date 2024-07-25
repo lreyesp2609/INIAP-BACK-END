@@ -4,73 +4,108 @@
     <meta charset="UTF-8">
     <title>Orden de Movilización</title>
     <style>
+        @page {
+            size: 15.7cm 10cm;
+            margin: 0cm;
+        }
         body {
             font-family: Arial, sans-serif;
-        }
-        h1 {
-            color: #333;
+            margin: 0;
+            padding: 0;
+            width: 15.7cm;
+            height: 10cm;
         }
         .content {
-            margin: 20px;
+            padding: 0;
+            margin: 0;
         }
         table {
             width: 100%;
             border-collapse: collapse;
+            table-layout: fixed;
         }
         table, th, td {
-            border: 1px solid black;
+            border: 0px solid white;
         }
         th, td {
-            padding: 8px;
-            text-align: left;
+            padding: 0;
+            text-align: right;
+            word-wrap: break-word;
+        }
+        .row-1 {
+            height: 3cm;
+        }
+        .row-2 {
+            height: 0.6cm;
+        }
+        .row-3 {
+            height: 0.5cm;
+        }
+        .row-4 {
+            height: 1.3cm;
+        }
+        .row-5 {
+            height: 0.5cm;
+        }
+        .row-6 {
+            height: 1.3cm;
+        }
+        .row-7 {
+            height: 2.3cm;
+        }
+        .col-1 {
+            width: 1.3cm;
+        }
+        .col-2 {
+            width: 7.9cm;
+        }
+        .col-3 {
+            width: 5.2cm;
         }
     </style>
 </head>
 <body>
     <div class="content">
-        <h1>Orden de Movilización</h1>
-        <p><strong>ID:</strong> {{ orden.id_orden_movilizacion }}</p>
-        <p><strong>Fecha de emisión:</strong> {{ orden.fecha_hora_emision }}</p>
-        <p><strong>Motivo:</strong> {{ orden.motivo_movilizacion }}</p>
-        <p><strong>Lugar:</strong> {{ orden.lugar_origen_destino_movilizacion }}</p>
-        <p><strong>Duración:</strong> {{ orden.duracion_movilizacion }}</p>
-        <p><strong>Conductor:</strong> {{ orden.id_conductor }}</p>
-        <p><strong>Vehículo:</strong> {{ orden.id_vehiculo }}</p>
-        <p><strong>Fecha del viaje:</strong> {{ orden.fecha_viaje }}</p>
-        <p><strong>Hora de ida:</strong> {{ orden.hora_ida }}</p>
-        <p><strong>Hora de regreso:</strong> {{ orden.hora_regreso }}</p>
-        <p><strong>Estado:</strong> {{ orden.estado_movilizacion }}</p>
-        <p><strong>Empleado:</strong> {{ orden.id_empleado }}</p>
-        <p><strong>Habilitado:</strong> {{ orden.habilitado }}</p>
-        
-        <!-- Verifica si hay motivos asociados y muestra en una tabla -->
-        {% if orden.motivoordenmovilizacions.all %}
-            <h2>Motivos de Movilización</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Empleado</th>
-                        <th>Motivo</th>
-                        <th>Fecha</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for motivo in orden.motivoordenmovilizacions.all %}
-                        <tr>
-                            <td>{{ motivo.id_empleado }}</td>
-                            <td>{{ motivo.motivo }}</td>
-                            <td>{{ motivo.fecha }}</td>
-                        </tr>
-                    {% empty %}
-                        <tr>
-                            <td colspan="3">No hay motivos disponibles.</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p>No hay motivos de movilización.</p>
-        {% endif %}
+        <table>
+            <tr class="row-1">
+                <td colspan="3"></td>
+            </tr>
+            <tr>
+                <td rowspan="7" class="col-1"></td>
+                <td class="row-2 col-2">{{ fecha_actual }}</td>
+                <td class="row-2 col-3">{{ vehiculo.marca }} / {{ vehiculo.modelo }}</td>
+                <td rowspan="7" class="col-1"></td>
+            </tr>
+            <tr>
+                <td class="row-3 col-2">{{ orden.motivo_movilizacion }}</td>
+                <td class="row-3 col-3">{{ vehiculo.color_primario }}</td>
+            </tr>
+            <tr>
+                <td class="row-3 col-2">{{ orden.lugar_origen_destino_movilizacion }}</td>
+                <td class="row-3 col-3">{{ vehiculo.placa }}</td>
+            </tr>
+            <tr>
+                <td class="row-3 col-2">{{ duracion_formateada }}</td>
+                <td class="row-3 col-3">{{ vehiculo.numero_matricula }}</td>
+            </tr>
+            <tr>
+                <td class="row-4 col-2">
+                    {{ conductor.distintivo }} {{ conductor_persona.nombres }} {{ conductor_persona.apellidos }}
+                <br> {{ conductor_persona.numero_cedula }}
+                </td>
+                <td class="row-4 col-3">{{ vehiculo.numero_motor }}</td>
+            </tr>
+            <tr>
+                <td class="row-6 col-2">
+                    {{ empleado.distintivo }} {{ empleado_persona.nombres }} {{ empleado_persona.apellidos }}
+                <br> {{ empleado_persona.numero_cedula }}
+                </td>
+                <td class="row-6 col-3">{{ vehiculo.anio_fabricacion }}</td>
+            </tr>
+            <tr>
+                <td class="row-7 col-2" colspan="2"></td>
+            </tr>
+        </table>
     </div>
 </body>
 </html>

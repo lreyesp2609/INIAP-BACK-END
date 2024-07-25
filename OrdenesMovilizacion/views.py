@@ -519,8 +519,12 @@ class AprobarOrdenMovilizacionView(View):
 
             empleado = Empleados.objects.get(id_persona=usuario.id_persona)
 
-            motivo = request.POST.get('motivo', 'Aprobado')
-            motivo_formateado = f'Aprobado: {motivo}'
+            motivo = request.POST.get('motivo', '')
+            if motivo:
+                motivo_formateado = f'Aprobado: {motivo}'
+            else:
+                motivo_formateado = 'Aprobado'
+
 
             with transaction.atomic():
                 orden.estado_movilizacion = 'Aprobado'
@@ -568,10 +572,6 @@ class ListarMotivoOrdenesMovilizacionView(View):
             token_id_usuario = payload.get('id_usuario')
             if not token_id_usuario:
                 raise AuthenticationFailed('ID de usuario no encontrado en el token')
-
-            usuario = Usuarios.objects.select_related('id_rol').get(id_usuario=id_usuario)
-            if usuario.id_rol.rol != 'Administrador':
-                return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
 
             motivos = MotivoOrdenMovilizacion.objects.all()
 
@@ -681,11 +681,30 @@ import os
 def generar_pdf(orden):
     try:
         template_path = 'ordenes_movilizacion_pdf.html'
-        context = {'orden': orden}
+
+        conductor_persona = orden.id_conductor.id_persona
+        empleado_persona = orden.id_empleado.id_persona
+
+         # Convertir la duración al formato "00:30hrs"
+        duracion = orden.duracion_movilizacion
+        horas = duracion.hour
+        minutos = duracion.minute
+        duracion_formateada = f"{horas:02}:{minutos:02}hrs"
+
+        fecha_actual = datetime.now().strftime('%d/%m/%Y')
+
+        context = {
+            'orden': orden,
+            'conductor': orden.id_conductor,
+            'conductor_persona': conductor_persona,
+            'vehiculo': orden.id_vehiculo,
+            'empleado': orden.id_empleado,
+            'empleado_persona': empleado_persona,
+            'duracion_formateada': duracion_formateada,
+            'fecha_actual': fecha_actual,  
+        }
+
         html = render_to_string(template_path, context)
-        
-        # Verifica el contexto
-        print(f'Contexto del PDF: {context}')
 
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="orden_{orden.id_orden_movilizacion}.pdf"'
