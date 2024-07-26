@@ -760,3 +760,40 @@ class GenerarPdfOrdenMovilizacionView(View):
         except Exception as e:
             print(f'Error al generar el PDF: {str(e)}')
             return JsonResponse({'error': str(e)}, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ListarOrdenesAprobadasView(View):
+    def get(self, request, id_usuario, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                return JsonResponse({'error': 'ID de usuario no encontrado en el token'}, status=403)
+
+            if token_id_usuario != id_usuario:
+                return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
+
+            # Filtra las órdenes de movilización con estado "Aprobado"
+            ordenes_aprobadas = OrdenesMovilizacion.objects.filter(estado_movilizacion='Aprobado').values(
+                'id_orden_movilizacion', 'secuencial_orden_movilizacion', 'fecha_hora_emision',
+                'motivo_movilizacion', 'lugar_origen_destino_movilizacion', 'duracion_movilizacion',
+                'id_conductor', 'id_vehiculo', 'fecha_viaje', 'hora_ida', 'hora_regreso', 'estado_movilizacion',
+                'id_empleado', 'habilitado'
+            )
+            ordenes_aprobadas_list = list(ordenes_aprobadas)
+
+            return JsonResponse({'ordenes_aprobadas': ordenes_aprobadas_list}, status=200)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)

@@ -14,4 +14,6 @@ urlpatterns = [
     path('listar-motivos/<int:id_usuario>/', ListarMotivoOrdenesMovilizacionView.as_view(), name='listar_motivos'),
     path('editar-motivo/<int:id_usuario>/<int:id_orden>/<int:id_motivo>/', EditarMotivoOrdenMovilizacionView.as_view(), name='editar_motivo'),
     path('generar_pdf/<int:id_usuario>/<int:id_orden>/pdf/', GenerarPdfOrdenMovilizacionView.as_view(), name='generar_pdf'),
+    path('listar-ordenes-aprobadas/<int:id_usuario>/', ListarOrdenesAprobadasView.as_view(), name='listar_ordenes_aprobadas'),
+
 ]
