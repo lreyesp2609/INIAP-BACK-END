@@ -12,4 +12,6 @@ urlpatterns = [
     path('previsualizar-codigo-solicitud/<int:id_usuario>/', PrevisualizarCodigoSolicitudView.as_view(), name='previsualizar_codigo_solicitud'),
     path('listar-empleados/', ListarEmpleadosView.as_view(), name='listar_empleados'),
     path('listar-empleado-sesion/<int:id_usuario>/', ListarEmpleadoSesionView.as_view(), name='listar-empleado-sesion'),
+    path('listar-vehiculos-habilitados/', ListarNombreVehiculosView.as_view(), name='listar_vehiculos_habilitados'),
+
  ]

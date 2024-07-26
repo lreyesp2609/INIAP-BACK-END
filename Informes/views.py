@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 import jwt
 
-from .models import Empleados, Personas, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades, TransporteSolicitudes
+from .models import Empleados, Personas, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades, TransporteSolicitudes, Vehiculo
 from datetime import datetime, date
 import json
 from django.utils.decorators import method_decorator
@@ -359,5 +359,25 @@ class ListarEmpleadoSesionView(View):
             return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
         except Empleados.DoesNotExist:
             return JsonResponse({'error': 'Empleado no encontrado'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+class ListarNombreVehiculosView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtener todos los vehículos habilitados (habilitado = 1)
+            vehiculos = Vehiculo.objects.filter(habilitado=1)
+
+            # Preparar la respuesta con los datos de los vehículos
+            data = [
+                {
+                    'placa': veh.placa,
+                    'habilitado': veh.habilitado,
+                }
+                for veh in vehiculos
+            ]
+
+            return JsonResponse({'vehiculos': data}, status=200)
+
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
