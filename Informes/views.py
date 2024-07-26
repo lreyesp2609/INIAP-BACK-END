@@ -32,6 +32,8 @@ from django.views import View
 from django.http import JsonResponse
 from .models import Solicitudes, Empleados, Unidades, Usuarios
 
+from django.db import transaction
+
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearSolicitudView(View):
     def incrementar_secuencia_solicitud(self, empleado):
@@ -62,6 +64,15 @@ class CrearSolicitudView(View):
             listado_empleado = data.get('listado_empleado', '')
             lugar_servicio = data.get('lugar_servicio', '')  # Nuevo campo lugar_servicio
 
+            # Datos para la solicitud de transporte
+            tipo_transporte_soli = data.get('tipo_transporte_soli', '')
+            nombre_transporte_soli = data.get('nombre_transporte_soli', '')
+            ruta_soli = data.get('ruta_soli', '')
+            fecha_salida_soli = data.get('fecha_salida_soli', '')
+            hora_salida_soli = data.get('hora_salida_soli', '')
+            fecha_llegada_soli = data.get('fecha_llegada_soli', '')
+            hora_llegada_soli = data.get('hora_llegada_soli', '')
+
             # Convertir las fechas de texto a objetos date si es necesario
             if fecha_salida_solicitud:
                 fecha_salida_solicitud = datetime.strptime(fecha_salida_solicitud, '%Y-%m-%d').date()
@@ -69,10 +80,16 @@ class CrearSolicitudView(View):
             if fecha_llegada_solicitud:
                 fecha_llegada_solicitud = datetime.strptime(fecha_llegada_solicitud, '%Y-%m-%d').date()
 
+            if fecha_salida_soli:
+                fecha_salida_soli = datetime.strptime(fecha_salida_soli, '%Y-%m-%d').date()
+
+            if fecha_llegada_soli:
+                fecha_llegada_soli = datetime.strptime(fecha_llegada_soli, '%Y-%m-%d').date()
+
             # Generar secuencia_solicitud
             secuencia_solicitud = self.incrementar_secuencia_solicitud(empleado)
 
-            # Crear la solicitud
+            # Crear la solicitud y la solicitud de transporte dentro de una transacción atómica
             with transaction.atomic():
                 solicitud = Solicitudes.objects.create(
                     secuencia_solicitud=secuencia_solicitud,
@@ -89,13 +106,29 @@ class CrearSolicitudView(View):
                     id_empleado=empleado
                 )
 
-            return JsonResponse({'mensaje': 'Solicitud creada exitosamente', 'id_solicitud': solicitud.id_solicitud}, status=201)
+                transporte_solicitud = TransporteSolicitudes.objects.create(
+                    id_solicitud=solicitud,
+                    tipo_transporte_soli=tipo_transporte_soli,
+                    nombre_transporte_soli=nombre_transporte_soli,
+                    ruta_soli=ruta_soli,
+                    fecha_salida_soli=fecha_salida_soli,
+                    hora_salida_soli=hora_salida_soli,
+                    fecha_llegada_soli=fecha_llegada_soli,
+                    hora_llegada_soli=hora_llegada_soli
+                )
+
+            return JsonResponse({
+                'mensaje': 'Solicitud y solicitud de transporte creadas exitosamente',
+                'id_solicitud': solicitud.id_solicitud,
+                'id_transporte_soli': transporte_solicitud.id_transporte_soli
+            }, status=201)
 
         except ObjectDoesNotExist:
             return JsonResponse({'error': 'El usuario o el empleado no existe'}, status=404)
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
 
         
 class ListarSolicitudesView(View):
@@ -326,58 +359,5 @@ class ListarEmpleadoSesionView(View):
             return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
         except Empleados.DoesNotExist:
             return JsonResponse({'error': 'Empleado no encontrado'}, status=404)
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-        
-@method_decorator(csrf_exempt, name='dispatch')
-class CrearTransporteSolicitudView(View):
-
-    def post(self, request, id_usuario, *args, **kwargs):
-        try:
-            # Obtener usuario y empleado basado en id_usuario
-            usuario = Usuarios.objects.get(id_usuario=id_usuario)
-            empleado = Empleados.objects.get(id_persona=usuario.id_persona)
-
-            # Obtener datos del formulario enviado en el cuerpo del request
-            id_solicitud = request.POST.get('id_solicitud', '')
-            tipo_transporte_soli = request.POST.get('tipo_transporte_soli', '')
-            nombre_transporte_soli = request.POST.get('nombre_transporte_soli', '')
-            ruta_soli = request.POST.get('ruta_soli', '')
-            fecha_salida_soli = request.POST.get('fecha_salida_soli', '')
-            hora_salida_soli = request.POST.get('hora_salida_soli', '')
-            fecha_llegada_soli = request.POST.get('fecha_llegada_soli', '')
-            hora_llegada_soli = request.POST.get('hora_llegada_soli', '')
-
-            # Convertir las fechas de texto a objetos date si es necesario
-            if fecha_salida_soli:
-                fecha_salida_soli = datetime.strptime(fecha_salida_soli, '%Y-%m-%d').date()
-
-            if fecha_llegada_soli:
-                fecha_llegada_soli = datetime.strptime(fecha_llegada_soli, '%Y-%m-%d').date()
-
-            # Crear la solicitud de transporte
-            with transaction.atomic():
-                transporte_solicitud = TransporteSolicitudes.objects.create(
-                    id_solicitud=Solicitudes.objects.get(id_solicitud=id_solicitud),
-                    tipo_transporte_soli=tipo_transporte_soli,
-                    nombre_transporte_soli=nombre_transporte_soli,
-                    ruta_soli=ruta_soli,
-                    fecha_salida_soli=fecha_salida_soli,
-                    hora_salida_soli=hora_salida_soli,
-                    fecha_llegada_soli=fecha_llegada_soli,
-                    hora_llegada_soli=hora_llegada_soli
-                )
-
-            return JsonResponse({'mensaje': 'Solicitud de transporte creada exitosamente', 'id_transporte_soli': transporte_solicitud.id_transporte_soli}, status=201)
-
-        except Solicitudes.DoesNotExist:
-            return JsonResponse({'error': 'La solicitud no existe'}, status=404)
-
-        except Usuarios.DoesNotExist:
-            return JsonResponse({'error': 'El usuario no existe'}, status=404)
-
-        except Empleados.DoesNotExist:
-            return JsonResponse({'error': 'El empleado no existe'}, status=404)
-
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
