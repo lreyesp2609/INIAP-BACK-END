@@ -186,7 +186,7 @@ class TransporteInforme(models.Model):
 
 class TransporteSolicitudes(models.Model):
     id_transporte_soli = models.AutoField(primary_key=True)
-    id_solicitud = models.ForeignKey('Solicitudes', models.DO_NOTHING, db_column='id_solicitud')
+    id_solicitud = models.ForeignKey(Solicitudes, models.DO_NOTHING, db_column='id_solicitud')
     tipo_transporte_soli = models.CharField(max_length=50, blank=True, null=True)
     nombre_transporte_soli = models.CharField(max_length=50, blank=True, null=True)  # Nuevo campo agregado
     ruta_soli = models.CharField(max_length=255, blank=True, null=True)
