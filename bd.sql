@@ -97,11 +97,13 @@ CREATE TABLE Cuentas_Bancarias (
     id_cuenta_bancaria SERIAL PRIMARY KEY,
     id_banco INT NOT NULL,
     id_empleado INT NOT NULL,
+    id_solicitud INT NOT NULL, -- Agregando la columna id_solicitud
     tipo_cuenta VARCHAR(50),
     numero_cuenta VARCHAR(50),
     habilitado SMALLINT DEFAULT 1,
     FOREIGN KEY (id_banco) REFERENCES Bancos(id_banco),
-    FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado)
+    FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado),
+    FOREIGN KEY (id_solicitud) REFERENCES Solicitudes(id_solicitud)
 );
 
 CREATE TABLE Empleados_Tipo_Licencias (
