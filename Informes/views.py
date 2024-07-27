@@ -31,6 +31,7 @@ from django.db.models import F, Func, Value, CharField
 from django.views import View
 from django.http import JsonResponse
 from .models import Solicitudes, Empleados, Unidades, Usuarios
+from django.utils.dateparse import parse_date, parse_time
 
 from django.db import transaction
 
@@ -39,63 +40,37 @@ class CrearSolicitudView(View):
     def incrementar_secuencia_solicitud(self, empleado):
         ultima_secuencia = Solicitudes.objects.filter(id_empleado=empleado).aggregate(Max('secuencia_solicitud'))
         ultima_secuencia_numero = ultima_secuencia['secuencia_solicitud__max']
-
-        if ultima_secuencia_numero is not None:
-            nueva_secuencia_numero = ultima_secuencia_numero + 1
-        else:
-            nueva_secuencia_numero = 1
-
-        return nueva_secuencia_numero
+        return (ultima_secuencia_numero or 0) + 1
 
     def post(self, request, id_usuario, *args, **kwargs):
         try:
-            # Simular usuario y empleado para pruebas
+            data = json.loads(request.body)
             usuario = Usuarios.objects.get(id_usuario=id_usuario)
             empleado = Empleados.objects.get(id_persona=usuario.id_persona)
 
-            # Obtener datos del JSON enviado en el cuerpo del request
-            data = json.loads(request.body)
+            # Obtener y validar los datos principales
             motivo_movilizacion = data.get('motivo_movilizacion', '')
-            fecha_salida_solicitud = data.get('fecha_salida_solicitud', '')
-            hora_salida_solicitud = data.get('hora_salida_solicitud', '')
-            fecha_llegada_solicitud = data.get('fecha_llegada_solicitud', '')
-            hora_llegada_solicitud = data.get('hora_llegada_solicitud', '')
+            fecha_salida_solicitud = parse_date(data.get('fecha_salida_solicitud'))
+            hora_salida_solicitud = parse_time(data.get('hora_salida_solicitud'))
+            fecha_llegada_solicitud = parse_date(data.get('fecha_llegada_solicitud'))
+            hora_llegada_solicitud = parse_time(data.get('hora_llegada_solicitud'))
             descripcion_actividades = data.get('descripcion_actividades', '')
             listado_empleado = data.get('listado_empleado', '')
-            lugar_servicio = data.get('lugar_servicio', '')  # Nuevo campo lugar_servicio
+            lugar_servicio = data.get('lugar_servicio', '')
 
-            # Datos para la solicitud de transporte
-            tipo_transporte_soli = data.get('tipo_transporte_soli', '')
-            nombre_transporte_soli = data.get('nombre_transporte_soli', '')
-            ruta_soli = data.get('ruta_soli', '')
-            fecha_salida_soli = data.get('fecha_salida_soli', '')
-            hora_salida_soli = data.get('hora_salida_soli', '')
-            fecha_llegada_soli = data.get('fecha_llegada_soli', '')
-            hora_llegada_soli = data.get('hora_llegada_soli', '')
-
-            # Convertir las fechas de texto a objetos date si es necesario
-            if fecha_salida_solicitud:
-                fecha_salida_solicitud = datetime.strptime(fecha_salida_solicitud, '%Y-%m-%d').date()
-
-            if fecha_llegada_solicitud:
-                fecha_llegada_solicitud = datetime.strptime(fecha_llegada_solicitud, '%Y-%m-%d').date()
-
-            if fecha_salida_soli:
-                fecha_salida_soli = datetime.strptime(fecha_salida_soli, '%Y-%m-%d').date()
-
-            if fecha_llegada_soli:
-                fecha_llegada_soli = datetime.strptime(fecha_llegada_soli, '%Y-%m-%d').date()
+            if not all([fecha_salida_solicitud, hora_salida_solicitud, fecha_llegada_solicitud, hora_llegada_solicitud]):
+                return JsonResponse({'error': 'Fechas y horas de solicitud son requeridas y deben ser válidas'}, status=400)
 
             # Generar secuencia_solicitud
             secuencia_solicitud = self.incrementar_secuencia_solicitud(empleado)
 
-            # Crear la solicitud y la solicitud de transporte dentro de una transacción atómica
+            # Crear la solicitud y las solicitudes de transporte dentro de una transacción atómica
             with transaction.atomic():
                 solicitud = Solicitudes.objects.create(
                     secuencia_solicitud=secuencia_solicitud,
                     fecha_solicitud=date.today(),
                     motivo_movilizacion=motivo_movilizacion,
-                    lugar_servicio=lugar_servicio,  # Agregar el lugar_servicio
+                    lugar_servicio=lugar_servicio,
                     fecha_salida_solicitud=fecha_salida_solicitud,
                     hora_salida_solicitud=hora_salida_solicitud,
                     fecha_llegada_solicitud=fecha_llegada_solicitud,
@@ -106,28 +81,38 @@ class CrearSolicitudView(View):
                     id_empleado=empleado
                 )
 
-                transporte_solicitud = TransporteSolicitudes.objects.create(
-                    id_solicitud=solicitud,
-                    tipo_transporte_soli=tipo_transporte_soli,
-                    nombre_transporte_soli=nombre_transporte_soli,
-                    ruta_soli=ruta_soli,
-                    fecha_salida_soli=fecha_salida_soli,
-                    hora_salida_soli=hora_salida_soli,
-                    fecha_llegada_soli=fecha_llegada_soli,
-                    hora_llegada_soli=hora_llegada_soli
-                )
+                rutas = data.get('rutas', [])
+                for ruta in rutas:
+                    fecha_salida_soli = parse_date(ruta.get('fecha_salida_soli'))
+                    hora_salida_soli = parse_time(ruta.get('hora_salida_soli'))
+                    fecha_llegada_soli = parse_date(ruta.get('fecha_llegada_soli'))
+                    hora_llegada_soli = parse_time(ruta.get('hora_llegada_soli'))
+
+                    if not all([fecha_salida_soli, hora_salida_soli, fecha_llegada_soli, hora_llegada_soli]):
+                        raise ValueError('Fechas y horas de ruta inválidas')
+
+                    TransporteSolicitudes.objects.create(
+                        id_solicitud=solicitud,
+                        tipo_transporte_soli=ruta.get('tipo_transporte_soli'),
+                        nombre_transporte_soli=ruta.get('nombre_transporte_soli'),
+                        ruta_soli=f"{ruta.get('ciudad_origen')} - {ruta.get('ciudad_destino')}",
+                        fecha_salida_soli=fecha_salida_soli,
+                        hora_salida_soli=hora_salida_soli,
+                        fecha_llegada_soli=fecha_llegada_soli,
+                        hora_llegada_soli=hora_llegada_soli
+                    )
 
             return JsonResponse({
-                'mensaje': 'Solicitud y solicitud de transporte creadas exitosamente',
-                'id_solicitud': solicitud.id_solicitud,
-                'id_transporte_soli': transporte_solicitud.id_transporte_soli
+                'mensaje': 'Solicitud y solicitudes de transporte creadas exitosamente',
+                'id_solicitud': solicitud.id_solicitud
             }, status=201)
 
         except ObjectDoesNotExist:
             return JsonResponse({'error': 'El usuario o el empleado no existe'}, status=404)
-
+        except ValueError as e:
+            return JsonResponse({'error': str(e)}, status=400)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({'error': f'Error al crear la solicitud: {str(e)}'}, status=500)
 
 
         
