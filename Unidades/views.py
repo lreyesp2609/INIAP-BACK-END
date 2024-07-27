@@ -7,6 +7,8 @@ from rest_framework.exceptions import AuthenticationFailed
 from django.conf import settings
 from Empleados.models import Usuarios
 from .models import *
+from django.db import transaction
+import re
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaUnidadesPorEstacionView(View):
@@ -41,6 +43,7 @@ class ListaUnidadesPorEstacionView(View):
         
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearUnidadView(View):
+    @transaction.atomic
     def post(self, request, id_usuario, id_estacion, *args, **kwargs):
         try:
             token = request.headers.get('Authorization')
@@ -67,6 +70,19 @@ class CrearUnidadView(View):
 
             nombre_unidad = request.POST.get('nombre_unidad')
 
+            if not nombre_unidad:
+                return JsonResponse({'error': 'Nombre de la unidad no proporcionado'}, status=400)
+
+            # Validación del nombre de la unidad permitiendo letras y acentos
+            if not re.match(r'^[A-Za-zÀ-ÿ\s,]+$', nombre_unidad):
+                return JsonResponse({'error': 'El nombre de la unidad debe contener solo letras y acentos.'}, status=400)
+            
+            nombre_unidad = nombre_unidad.upper()  # Convertir a mayúsculas
+
+            # Verificar si ya existe una unidad con el mismo nombre
+            if Unidades.objects.filter(nombre_unidad=nombre_unidad).exists():
+                return JsonResponse({'error': 'Ya existe una unidad con el mismo nombre.'}, status=400)
+
             # Función para generar siglas excluyendo palabras comunes
             def generar_siglas(nombre):
                 palabras_comunes = ['DE', 'LA', 'LAS', 'EL', 'LOS', 'DEL', 'Y', 'EN']
@@ -75,9 +91,6 @@ class CrearUnidadView(View):
                 return siglas[:3]  # Tomar solo las primeras tres letras
 
             siglas_unidad = generar_siglas(nombre_unidad)
-
-            if not nombre_unidad:
-                return JsonResponse({'error': 'Nombre de la unidad no proporcionado'}, status=400)
 
             # Verificar si la estación existe
             try:
@@ -110,4 +123,5 @@ class CrearUnidadView(View):
             return JsonResponse({'error': str(e)}, status=403)
 
         except Exception as e:
+            transaction.set_rollback(True)  # Asegura el rollback en caso de excepción
             return JsonResponse({'error': str(e)}, status=500)

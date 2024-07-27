@@ -245,9 +245,13 @@ class CrearVehiculoView(View):
             errores = {}
 
             # Validación de placa
-            if not re.match(r'^[A-Za-z0-9]+$', placa):
+            if not re.match(r'^[A-Za-z0-9\s-]+$', placa):
                 errores['placa'] = 'La placa debe contener solo letras y números.'
             placa = placa.upper()
+
+            # Verificar si ya existe un vehículo con la misma placa
+            if Vehiculo.objects.filter(placa=placa).exists():
+                return JsonResponse({'error': 'Ya existe un vehículo con esta placa'}, status=400)
 
             # Validación de modelo (no es obligatorio)
             if modelo and not re.match(r'^[A-Za-z0-9\s\-()]+$', modelo):
@@ -255,8 +259,8 @@ class CrearVehiculoView(View):
             modelo = modelo.upper()
 
             # Validación de marca
-            if not re.match(r'^[A-Za-z0-9\s]+$', marca):
-                errores['marca'] = 'La marca debe contener solo letras y espacios.'
+            if not re.match(r'^[A-Za-z0-9\s,./-]+$', marca):
+                errores['marca'] = 'La marca debe contener solo letras, números, espacios, comas, puntos, barras y guiones.'
             marca = marca.upper()
 
             # Validación de color primario
