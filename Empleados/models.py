@@ -63,7 +63,7 @@ class MotivoEmpleados(models.Model):
 
 class EmpleadosTipoLicencias(models.Model):
     id_empleado = models.OneToOneField(Empleados, models.DO_NOTHING, db_column='id_empleado', primary_key=True)
-    id_tipo_licencia = models.ForeignKey(TipoLicencias, null=True, blank=True, on_delete=models.SET_NULL)
+    id_tipo_licencia = models.ForeignKey(TipoLicencias, db_column='id_tipo_licencia', null=True, blank=True, on_delete=models.SET_NULL)
 
     class Meta:
         managed = False
