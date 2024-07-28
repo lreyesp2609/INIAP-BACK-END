@@ -286,6 +286,7 @@ class CuentasBancarias(models.Model):
     id_cuenta_bancaria = models.AutoField(primary_key=True)
     id_banco = models.ForeignKey(Bancos, models.DO_NOTHING, db_column='id_banco')
     id_empleado = models.ForeignKey('Empleados', models.DO_NOTHING, db_column='id_empleado')
+    id_solicitud = models.ForeignKey('Solicitudes', models.DO_NOTHING, db_column='id_solicitud', blank=True, null=True)
     tipo_cuenta = models.CharField(max_length=50, blank=True, null=True)
     numero_cuenta = models.CharField(max_length=50, blank=True, null=True)
     habilitado = models.SmallIntegerField(blank=True, null=True)
