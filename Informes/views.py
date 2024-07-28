@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 import jwt
 
-from .models import Empleados, Personas, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades, TransporteSolicitudes, Vehiculo
+from .models import Empleados, Personas, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades, TransporteSolicitudes, Vehiculo, CuentasBancarias
 from datetime import datetime, date
 import json
 from django.utils.decorators import method_decorator
@@ -101,9 +101,30 @@ class CrearSolicitudView(View):
                         fecha_llegada_soli=fecha_llegada_soli,
                         hora_llegada_soli=hora_llegada_soli
                     )
+                
+                # Crear la cuenta bancaria siempre
+                banco_id = data.get('id_banco')
+                tipo_cuenta = data.get('tipo_cuenta')
+                numero_cuenta = data.get('numero_cuenta')
+
+                if not all([banco_id, tipo_cuenta, numero_cuenta]):
+                    return JsonResponse({'error': 'Datos bancarios incompletos'}, status=400)
+
+                try:
+                    banco = Bancos.objects.get(id_banco=banco_id)
+                    CuentasBancarias.objects.create(
+                        id_banco=banco,
+                        id_empleado=empleado,
+                        id_solicitud=solicitud,
+                        tipo_cuenta=tipo_cuenta,
+                        numero_cuenta=numero_cuenta,
+                        habilitado=1
+                    )
+                except ObjectDoesNotExist:
+                    return JsonResponse({'error': 'El banco especificado no existe'}, status=400)
 
             return JsonResponse({
-                'mensaje': 'Solicitud y solicitudes de transporte creadas exitosamente',
+                'mensaje': 'Solicitud, solicitudes de transporte y cuenta bancaria creadas exitosamente',
                 'id_solicitud': solicitud.id_solicitud
             }, status=201)
 
@@ -147,20 +168,8 @@ class ListarSolicitudesView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+ 
         
-class ListarBancosView(View):
-    def get(self, request, *args, **kwargs):
-        try:
-            # Obtener todos los bancos
-            bancos = Bancos.objects.all()
-
-            # Preparar la respuesta con los nombres de los bancos
-            data = [banco.nombre_banco for banco in bancos]
-
-            return JsonResponse({'bancos': data}, status=200)
-
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
 
 class ListarMotivosView(View):
     def get(self, request, *args, **kwargs):
@@ -366,3 +375,61 @@ class ListarNombreVehiculosView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
+class ListarBancosView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtener todos los bancos
+            bancos = Bancos.objects.all()
+
+            # Preparar la respuesta con los nombres e IDs de los bancos
+            data = [{'id_banco': banco.id_banco, 'nombre_banco': banco.nombre_banco} for banco in bancos]
+
+            return JsonResponse({'bancos': data}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class CrearCuentaBancariaView(View):
+    def post(self, request, id_usuario, *args, **kwargs):
+        try:
+            # Obtener el usuario y el empleado asociado
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
+            empleado = Empleados.objects.get(id_persona=usuario.id_persona)
+
+            # Obtener datos de la solicitud desde form-data
+            id_banco = request.POST.get('id_banco')
+            tipo_cuenta = request.POST.get('tipo_cuenta')
+            numero_cuenta = request.POST.get('numero_cuenta')
+            habilitado = request.POST.get('habilitado', 1)  # Asignar 1 por defecto si no se proporciona
+            id_solicitud = request.POST.get('id_solicitud')
+
+            # Verificar que el banco y la solicitud existan
+            if not Bancos.objects.filter(id_banco=id_banco).exists():
+                return JsonResponse({'error': 'El banco no existe'}, status=404)
+            if id_solicitud and not Solicitudes.objects.filter(id_solicitud=id_solicitud).exists():
+                return JsonResponse({'error': 'La solicitud no existe'}, status=404)
+
+            # Crear la cuenta bancaria
+            with transaction.atomic():
+                cuenta_bancaria = CuentasBancarias.objects.create(
+                    id_banco_id=id_banco,
+                    id_empleado=empleado,
+                    id_solicitud_id=id_solicitud if id_solicitud else None,
+                    tipo_cuenta=tipo_cuenta,
+                    numero_cuenta=numero_cuenta,
+                    habilitado=habilitado
+                )
+
+            return JsonResponse({
+                'mensaje': 'Cuenta bancaria creada exitosamente',
+                'id_cuenta_bancaria': cuenta_bancaria.id_cuenta_bancaria
+            }, status=201)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': 'El usuario o el empleado no existe'}, status=404)
+        except ValueError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': f'Error al crear la cuenta bancaria: {str(e)}'}, status=500)
