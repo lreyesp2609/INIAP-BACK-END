@@ -144,8 +144,41 @@ class ListarSolicitudesView(View):
             usuario = Usuarios.objects.get(id_usuario=id_usuario)
             empleado = Empleados.objects.get(id_persona=usuario.id_persona)
 
-            # Obtener las solicitudes del empleado
-            solicitudes = Solicitudes.objects.filter(id_empleado=empleado)
+            # Obtener las solicitudes del empleado con estado pendiente
+            solicitudes = Solicitudes.objects.filter(id_empleado=empleado, estado_solicitud='pendiente')
+
+            # Preparar la respuesta con los datos requeridos
+            data = []
+            for solicitud in solicitudes:
+                codigo_solicitud = solicitud.generar_codigo_solicitud()
+                data.append({
+                    'Codigo de Solicitud': codigo_solicitud,
+                    'Fecha Solicitud': solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else '',
+                    'Motivo': solicitud.motivo_movilizacion if solicitud.motivo_movilizacion else '',
+                    'Estado': solicitud.estado_solicitud if solicitud.estado_solicitud else '',
+                })
+
+            return JsonResponse({'solicitudes': data}, status=200)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'El usuario no existe'}, status=404)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({'error': 'El empleado correspondiente al usuario no existe'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+class ListarSolicitudesAceptadasView(View):
+    def get(self, request, id_usuario, *args, **kwargs):
+        try:
+            # Obtener el usuario y el empleado asociado
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
+            empleado = Empleados.objects.get(id_persona=usuario.id_persona)
+
+            # Obtener las solicitudes del empleado con estado pendiente
+            solicitudes = Solicitudes.objects.filter(id_empleado=empleado, estado_solicitud='aceptado')
 
             # Preparar la respuesta con los datos requeridos
             data = []
@@ -170,6 +203,38 @@ class ListarSolicitudesView(View):
             return JsonResponse({'error': str(e)}, status=500)
  
         
+class ListarSolicitudesCanceladasView(View):
+    def get(self, request, id_usuario, *args, **kwargs):
+        try:
+            # Obtener el usuario y el empleado asociado
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
+            empleado = Empleados.objects.get(id_persona=usuario.id_persona)
+
+            # Obtener las solicitudes del empleado con estado pendiente
+            solicitudes = Solicitudes.objects.filter(id_empleado=empleado, estado_solicitud='cancelado')
+
+            # Preparar la respuesta con los datos requeridos
+            data = []
+            for solicitud in solicitudes:
+                codigo_solicitud = solicitud.generar_codigo_solicitud()
+                data.append({
+                    'Codigo de Solicitud': codigo_solicitud,
+                    'Fecha Solicitud': solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else '',
+                    'Motivo': solicitud.motivo_movilizacion if solicitud.motivo_movilizacion else '',
+                    'Estado': solicitud.estado_solicitud if solicitud.estado_solicitud else '',
+                })
+
+            return JsonResponse({'solicitudes': data}, status=200)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'El usuario no existe'}, status=404)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({'error': 'El empleado correspondiente al usuario no existe'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
 
 class ListarMotivosView(View):
     def get(self, request, *args, **kwargs):
