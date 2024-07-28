@@ -5,6 +5,8 @@ urlpatterns = [
    
     path('crear-solicitud/<int:id_usuario>/', CrearSolicitudView.as_view(), name='crear_solicitud'),
     path('listar-solicitudes/<int:id_usuario>/', ListarSolicitudesView.as_view(), name='listar_solicitudes'),
+    path('listar-solicitudes-aceptadas/<int:id_usuario>/', ListarSolicitudesAceptadasView.as_view(), name='listar_solicitudes'),
+    path('listar-solicitudes-canceladas/<int:id_usuario>/', ListarSolicitudesCanceladasView.as_view(), name='listar_solicitudes'),
     path('listar-motivos/', ListarMotivosView.as_view(), name='listar_motivos'),
     path('listar-provincias-ciudades/', ListarProvinciaCiudadesView.as_view(), name='listar_provincias_ciudades'),
     path('listar-datos-personales/<int:id_usuario>/', ListarDatosPersonalesView.as_view(), name='listar_datos_personales'),
