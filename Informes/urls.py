@@ -15,4 +15,6 @@ urlpatterns = [
     path('listar-empleado-sesion/<int:id_usuario>/', ListarEmpleadoSesionView.as_view(), name='listar-empleado-sesion'),
     path('listar-vehiculos-habilitados/', ListarNombreVehiculosView.as_view(), name='listar_vehiculos_habilitados'),
     path('listar-bancos/', ListarBancosView.as_view(), name='listar_bancos'),
+    path('listar-solicitudes-pedientes-admin/', ListarSolicitudesPendientesAdminView.as_view(), name='listar_solicitudes'),
+
  ]
