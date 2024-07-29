@@ -521,3 +521,50 @@ class ListarSolicitudesPendientesAdminView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class ListarSolicitudesCanceladasAdminView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtener todas las solicitudes con estado pendiente
+            solicitudes = Solicitudes.objects.filter(estado_solicitud='cancelado')
+
+            # Preparar la respuesta con los datos requeridos
+            data = []
+            for solicitud in solicitudes:
+                codigo_solicitud = solicitud.generar_codigo_solicitud()
+                data.append({
+                    'Codigo de Solicitud': codigo_solicitud,
+                    'Fecha Solicitud': solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else '',
+                    'Motivo': solicitud.motivo_movilizacion if solicitud.motivo_movilizacion else '',
+                    'Estado': solicitud.estado_solicitud if solicitud.estado_solicitud else '',
+                })
+
+            return JsonResponse({'solicitudes': data}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ListarSolicitudesAprobadasAdminView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtener todas las solicitudes con estado pendiente
+            solicitudes = Solicitudes.objects.filter(estado_solicitud='aceptado')
+
+            # Preparar la respuesta con los datos requeridos
+            data = []
+            for solicitud in solicitudes:
+                codigo_solicitud = solicitud.generar_codigo_solicitud()
+                data.append({
+                    'Codigo de Solicitud': codigo_solicitud,
+                    'Fecha Solicitud': solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else '',
+                    'Motivo': solicitud.motivo_movilizacion if solicitud.motivo_movilizacion else '',
+                    'Estado': solicitud.estado_solicitud if solicitud.estado_solicitud else '',
+                })
+
+            return JsonResponse({'solicitudes': data}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
