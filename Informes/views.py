@@ -547,7 +547,7 @@ class ListarSolicitudesCanceladasAdminView(View):
         
 
 @method_decorator(csrf_exempt, name='dispatch')
-class ListarSolicitudesAprobadasAdminView(View):
+class ListarSolicitudesAceptadasAdminView(View):
     def get(self, request, *args, **kwargs):
         try:
             # Obtener todas las solicitudes con estado pendiente
