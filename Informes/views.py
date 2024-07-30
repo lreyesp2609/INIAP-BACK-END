@@ -576,8 +576,20 @@ class ListarSolicitudesEmpleadoView(View):
             solicitud = Solicitudes.objects.get(id_solicitud=id_solicitud)
             empleado = solicitud.id_empleado
 
-            # Preparar la respuesta con los datos requeridos
-            data = {
+            # Obtener el usuario asociado al empleado
+            usuario = Usuarios.objects.get(id_persona=empleado.id_persona)
+
+            # Obtener la persona asociada al usuario
+            persona = usuario.id_persona
+
+            # Obtener el cargo del empleado
+            cargo = Cargos.objects.get(id_cargo=empleado.id_cargo_id)
+
+            # Obtener la unidad asociada al cargo
+            unidad = Unidades.objects.get(id_unidad=cargo.id_unidad_id)
+
+            # Preparar la respuesta con los datos de la solicitud
+            solicitud_data = {
                 'Codigo de Solicitud': solicitud.generar_codigo_solicitud(),
                 'Fecha Solicitud': solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else '',
                 'Motivo': solicitud.motivo_movilizacion if solicitud.motivo_movilizacion else '',
@@ -590,10 +602,29 @@ class ListarSolicitudesEmpleadoView(View):
                 'Listado de Empleados': solicitud.listado_empleado if solicitud.listado_empleado else ''
             }
 
-            return JsonResponse({'solicitud': data}, status=200)
+            # Preparar la respuesta con los datos personales
+            datos_personales = {
+                'Nombre': f"{empleado.distintivo} {persona.nombres} {persona.apellidos}",
+                'Cargo': cargo.cargo,
+                'Unidad': unidad.nombre_unidad,
+            }
+
+            return JsonResponse({'solicitud': solicitud_data, 'datos_personales': datos_personales}, status=200)
 
         except Solicitudes.DoesNotExist:
             return JsonResponse({'error': 'La solicitud no existe'}, status=404)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'El usuario no existe'}, status=404)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({'error': 'El empleado correspondiente al usuario no existe'}, status=404)
+
+        except Cargos.DoesNotExist:
+            return JsonResponse({'error': 'El cargo asociado al empleado no existe'}, status=404)
+
+        except Unidades.DoesNotExist:
+            return JsonResponse({'error': 'La unidad asociada al cargo no existe'}, status=404)
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
