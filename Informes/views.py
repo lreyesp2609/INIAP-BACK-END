@@ -588,6 +588,9 @@ class ListarSolicitudesEmpleadoView(View):
             # Obtener la unidad asociada al cargo
             unidad = Unidades.objects.get(id_unidad=cargo.id_unidad_id)
 
+            # Obtener todas las rutas asociadas a la solicitud
+            rutas = TransporteSolicitudes.objects.filter(id_solicitud=id_solicitud)
+
             # Preparar la respuesta con los datos de la solicitud
             solicitud_data = {
                 'Codigo de Solicitud': solicitud.generar_codigo_solicitud(),
@@ -609,7 +612,20 @@ class ListarSolicitudesEmpleadoView(View):
                 'Unidad': unidad.nombre_unidad,
             }
 
-            return JsonResponse({'solicitud': solicitud_data, 'datos_personales': datos_personales}, status=200)
+            # Preparar la respuesta con los datos de las rutas
+            rutas_data = []
+            for ruta in rutas:
+                rutas_data.append({
+                    'Tipo de Transporte': ruta.tipo_transporte_soli if ruta.tipo_transporte_soli else '',
+                    'Nombre del Transporte': ruta.nombre_transporte_soli if ruta.nombre_transporte_soli else '',
+                    'Ruta': ruta.ruta_soli if ruta.ruta_soli else '',
+                    'Fecha de Salida': ruta.fecha_salida_soli.strftime('%Y-%m-%d') if ruta.fecha_salida_soli else '',
+                    'Hora de Salida': ruta.hora_salida_soli.strftime('%H:%M:%S') if ruta.hora_salida_soli else '',
+                    'Fecha de Llegada': ruta.fecha_llegada_soli.strftime('%Y-%m-%d') if ruta.fecha_llegada_soli else '',
+                    'Hora de Llegada': ruta.hora_llegada_soli.strftime('%H:%M:%S') if ruta.hora_llegada_soli else ''
+                })
+
+            return JsonResponse({'solicitud': solicitud_data, 'datos_personales': datos_personales, 'rutas': rutas_data}, status=200)
 
         except Solicitudes.DoesNotExist:
             return JsonResponse({'error': 'La solicitud no existe'}, status=404)
