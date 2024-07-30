@@ -591,6 +591,10 @@ class ListarSolicitudesEmpleadoView(View):
             # Obtener todas las rutas asociadas a la solicitud
             rutas = TransporteSolicitudes.objects.filter(id_solicitud=id_solicitud)
 
+            # Obtener la cuenta bancaria asociada a la solicitud
+            cuenta_bancaria = CuentasBancarias.objects.filter(id_solicitud=id_solicitud).first()
+            banco = cuenta_bancaria.id_banco if cuenta_bancaria else None
+
             # Preparar la respuesta con los datos de la solicitud
             solicitud_data = {
                 'Codigo de Solicitud': solicitud.generar_codigo_solicitud(),
@@ -625,7 +629,14 @@ class ListarSolicitudesEmpleadoView(View):
                     'Hora de Llegada': ruta.hora_llegada_soli.strftime('%H:%M:%S') if ruta.hora_llegada_soli else ''
                 })
 
-            return JsonResponse({'solicitud': solicitud_data, 'datos_personales': datos_personales, 'rutas': rutas_data}, status=200)
+            # Preparar la respuesta con los datos de la cuenta bancaria
+            cuenta_bancaria_data = {
+                'Banco': banco.nombre_banco if banco else '',
+                'Tipo de Cuenta': cuenta_bancaria.tipo_cuenta if cuenta_bancaria else '',
+                'Número de Cuenta': cuenta_bancaria.numero_cuenta if cuenta_bancaria else ''
+            }
+
+            return JsonResponse({'solicitud': solicitud_data, 'datos_personales': datos_personales, 'rutas': rutas_data, 'cuenta_bancaria': cuenta_bancaria_data}, status=200)
 
         except Solicitudes.DoesNotExist:
             return JsonResponse({'error': 'La solicitud no existe'}, status=404)
