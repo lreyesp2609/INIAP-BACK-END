@@ -568,3 +568,32 @@ class ListarSolicitudesAceptadasAdminView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+        
+class ListarSolicitudesEmpleadoView(View):
+    def get(self, request, id_solicitud, *args, **kwargs):
+        try:
+            # Obtener la solicitud
+            solicitud = Solicitudes.objects.get(id_solicitud=id_solicitud)
+            empleado = solicitud.id_empleado
+
+            # Preparar la respuesta con los datos requeridos
+            data = {
+                'Codigo de Solicitud': solicitud.generar_codigo_solicitud(),
+                'Fecha Solicitud': solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else '',
+                'Motivo': solicitud.motivo_movilizacion if solicitud.motivo_movilizacion else '',
+                'Lugar de Servicio': solicitud.lugar_servicio if solicitud.lugar_servicio else '',
+                'Fecha de Salida': solicitud.fecha_salida_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_salida_solicitud else '',
+                'Hora de Salida': solicitud.hora_salida_solicitud.strftime('%H:%M:%S') if solicitud.hora_salida_solicitud else '',
+                'Fecha de Llegada': solicitud.fecha_llegada_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_llegada_solicitud else '',
+                'Hora de Llegada': solicitud.hora_llegada_solicitud.strftime('%H:%M:%S') if solicitud.hora_llegada_solicitud else '',
+                'Descripción de Actividades': solicitud.descripcion_actividades if solicitud.descripcion_actividades else '',
+                'Listado de Empleados': solicitud.listado_empleado if solicitud.listado_empleado else ''
+            }
+
+            return JsonResponse({'solicitud': data}, status=200)
+
+        except Solicitudes.DoesNotExist:
+            return JsonResponse({'error': 'La solicitud no existe'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
