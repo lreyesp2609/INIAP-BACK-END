@@ -152,6 +152,7 @@ class ListarSolicitudesView(View):
             for solicitud in solicitudes:
                 codigo_solicitud = solicitud.generar_codigo_solicitud()
                 data.append({
+                    'id':solicitud.id_solicitud,
                     'Codigo de Solicitud': codigo_solicitud,
                     'Fecha Solicitud': solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else '',
                     'Motivo': solicitud.motivo_movilizacion if solicitud.motivo_movilizacion else '',
