@@ -18,5 +18,5 @@ urlpatterns = [
     path('listar-solicitudes-pedientes-admin/', ListarSolicitudesPendientesAdminView.as_view(), name='listar_solicitudes'),
     path('listar-solicitudes-canceladas-admin/', ListarSolicitudesCanceladasAdminView.as_view(), name='listar_solicitudes'),
     path('listar-solicitudes-aceptadas-admin/', ListarSolicitudesAceptadasAdminView.as_view(), name='listar_solicitudes'),
-    path('listar-solicitud/<int:id_solicitud>/', ListarSolicitudesEmpleadoView.as_view(), name='listar_solicitud_empleado'),
+    path('listar-solicitud-empleado/<int:id_solicitud>/', ListarSolicitudesEmpleadoView.as_view(), name='listar_solicitud_empleado'),
  ]
