@@ -93,18 +93,7 @@ CREATE TABLE Bancos (
     nombre_banco VARCHAR(100) NOT NULL
 );
 
-CREATE TABLE Cuentas_Bancarias (
-    id_cuenta_bancaria SERIAL PRIMARY KEY,
-    id_banco INT NOT NULL,
-    id_empleado INT NOT NULL,
-    id_solicitud INT NOT NULL, -- Agregando la columna id_solicitud
-    tipo_cuenta VARCHAR(50),
-    numero_cuenta VARCHAR(50),
-    habilitado SMALLINT DEFAULT 1,
-    FOREIGN KEY (id_banco) REFERENCES Bancos(id_banco),
-    FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado),
-    FOREIGN KEY (id_solicitud) REFERENCES Solicitudes(id_solicitud)
-);
+
 
 CREATE TABLE Empleados_Tipo_Licencias (
     id_empleado INT NOT NULL,
@@ -119,7 +108,7 @@ CREATE TABLE Solicitudes (
     secuencia_solicitud INT,
     fecha_solicitud DATE NOT NULL,
     motivo_movilizacion VARCHAR(255),
-    lugar_servicio VARCHAR(255), -- Agregando el nuevo campo lugar_servicio
+    lugar_servicio VARCHAR(255),
     fecha_salida_solicitud DATE,
     hora_salida_solicitud TIME,
     fecha_llegada_solicitud DATE,
@@ -129,6 +118,19 @@ CREATE TABLE Solicitudes (
     estado_solicitud VARCHAR(50),
     id_empleado INT NOT NULL,
     FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado)
+);
+
+CREATE TABLE Cuentas_Bancarias (
+    id_cuenta_bancaria SERIAL PRIMARY KEY,
+    id_banco INT NOT NULL,
+    id_empleado INT NOT NULL,
+    id_solicitud INT NOT NULL,
+    tipo_cuenta VARCHAR(50),
+    numero_cuenta VARCHAR(50),
+    habilitado SMALLINT DEFAULT 1,
+    FOREIGN KEY (id_banco) REFERENCES Bancos(id_banco),
+    FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado),
+    FOREIGN KEY (id_solicitud) REFERENCES Solicitudes(id_solicitud)
 );
 
 
@@ -257,4 +259,3 @@ CREATE TABLE motivo_orden_movilizacion (
     FOREIGN KEY (id_empleado) REFERENCES empleados(id_empleado),
     FOREIGN KEY (id_orden_movilizacion) REFERENCES ordenes_movilizacion(id_orden_movilizacion)
 );
-
