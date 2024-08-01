@@ -136,7 +136,7 @@ class CrearSolicitudView(View):
             return JsonResponse({'error': f'Error al crear la solicitud: {str(e)}'}, status=500)
 
 
-        
+
 class ListarSolicitudesView(View):
     def get(self, request, id_usuario, *args, **kwargs):
         try:
@@ -186,6 +186,7 @@ class ListarSolicitudesAceptadasView(View):
             for solicitud in solicitudes:
                 codigo_solicitud = solicitud.generar_codigo_solicitud()
                 data.append({
+                    'id':solicitud.id_solicitud,
                     'Codigo de Solicitud': codigo_solicitud,
                     'Fecha Solicitud': solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else '',
                     'Motivo': solicitud.motivo_movilizacion if solicitud.motivo_movilizacion else '',
@@ -219,6 +220,7 @@ class ListarSolicitudesCanceladasView(View):
             for solicitud in solicitudes:
                 codigo_solicitud = solicitud.generar_codigo_solicitud()
                 data.append({
+                    'id':solicitud.id_solicitud,
                     'Codigo de Solicitud': codigo_solicitud,
                     'Fecha Solicitud': solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else '',
                     'Motivo': solicitud.motivo_movilizacion if solicitud.motivo_movilizacion else '',
@@ -512,6 +514,7 @@ class ListarSolicitudesPendientesAdminView(View):
             for solicitud in solicitudes:
                 codigo_solicitud = solicitud.generar_codigo_solicitud()
                 data.append({
+                    'id':solicitud.id_solicitud,
                     'Codigo de Solicitud': codigo_solicitud,
                     'Fecha Solicitud': solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else '',
                     'Motivo': solicitud.motivo_movilizacion if solicitud.motivo_movilizacion else '',
@@ -535,6 +538,7 @@ class ListarSolicitudesCanceladasAdminView(View):
             for solicitud in solicitudes:
                 codigo_solicitud = solicitud.generar_codigo_solicitud()
                 data.append({
+                    'id':solicitud.id_solicitud,
                     'Codigo de Solicitud': codigo_solicitud,
                     'Fecha Solicitud': solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else '',
                     'Motivo': solicitud.motivo_movilizacion if solicitud.motivo_movilizacion else '',
@@ -559,6 +563,7 @@ class ListarSolicitudesAceptadasAdminView(View):
             for solicitud in solicitudes:
                 codigo_solicitud = solicitud.generar_codigo_solicitud()
                 data.append({
+                    'id':solicitud.id_solicitud,
                     'Codigo de Solicitud': codigo_solicitud,
                     'Fecha Solicitud': solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else '',
                     'Motivo': solicitud.motivo_movilizacion if solicitud.motivo_movilizacion else '',
