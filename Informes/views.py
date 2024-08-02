@@ -661,3 +661,28 @@ class ListarSolicitudesEmpleadoView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class ActualizarSolicitudView(View):
+    def put(self, request, id_solicitud, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            nuevo_estado = data.get('estado_solicitud')
+
+            if nuevo_estado not in ['pendiente', 'aceptado', 'cancelado']:
+                return JsonResponse({'error': 'Estado de solicitud no válido'}, status=400)
+
+            try:
+                solicitud = Solicitudes.objects.get(id_solicitud=id_solicitud)
+                solicitud.estado_solicitud = nuevo_estado
+                solicitud.save()
+
+                return JsonResponse({'mensaje': f'Solicitud actualizada a {nuevo_estado} exitosamente'}, status=200)
+
+            except Solicitudes.DoesNotExist:
+                return JsonResponse({'error': 'Solicitud no encontrada'}, status=404)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Datos JSON inválidos'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': f'Error al actualizar la solicitud: {str(e)}'}, status=500)

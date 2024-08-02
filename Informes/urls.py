@@ -2,7 +2,6 @@ from django.urls import path
 from .views import *
 
 urlpatterns = [
-   
     path('crear-solicitud/<int:id_usuario>/', CrearSolicitudView.as_view(), name='crear_solicitud'),
     path('listar-solicitudes/<int:id_usuario>/', ListarSolicitudesView.as_view(), name='listar_solicitudes'),
     path('listar-solicitudes-aceptadas/<int:id_usuario>/', ListarSolicitudesAceptadasView.as_view(), name='listar_solicitudes'),
@@ -19,4 +18,5 @@ urlpatterns = [
     path('listar-solicitudes-canceladas-admin/', ListarSolicitudesCanceladasAdminView.as_view(), name='listar_solicitudes'),
     path('listar-solicitudes-aceptadas-admin/', ListarSolicitudesAceptadasAdminView.as_view(), name='listar_solicitudes'),
     path('listar-solicitud-empleado/<int:id_solicitud>/', ListarSolicitudesEmpleadoView.as_view(), name='listar_solicitud_empleado'),
+    path('actualizar-solicitud/<int:id_solicitud>/', ActualizarSolicitudView.as_view(), name='actualizar-solicitud'),
  ]
