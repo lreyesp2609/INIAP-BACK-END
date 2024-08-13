@@ -686,3 +686,73 @@ class ActualizarSolicitudView(View):
             return JsonResponse({'error': 'Datos JSON inválidos'}, status=400)
         except Exception as e:
             return JsonResponse({'error': f'Error al actualizar la solicitud: {str(e)}'}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class EditarSolicitudView(View):
+    def put(self, request, id_solicitud, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            solicitud = Solicitudes.objects.get(id_solicitud=id_solicitud)
+
+            # Actualizar los campos de la solicitud
+            solicitud.motivo_movilizacion = data.get('motivo_movilizacion', solicitud.motivo_movilizacion)
+            solicitud.lugar_servicio = data.get('lugar_servicio', solicitud.lugar_servicio)
+            solicitud.fecha_salida_solicitud = parse_date(data.get('fecha_salida_solicitud')) or solicitud.fecha_salida_solicitud
+            solicitud.hora_salida_solicitud = parse_time(data.get('hora_salida_solicitud')) or solicitud.hora_salida_solicitud
+            solicitud.fecha_llegada_solicitud = parse_date(data.get('fecha_llegada_solicitud')) or solicitud.fecha_llegada_solicitud
+            solicitud.hora_llegada_solicitud = parse_time(data.get('hora_llegada_solicitud')) or solicitud.hora_llegada_solicitud
+            solicitud.descripcion_actividades = data.get('descripcion_actividades', solicitud.descripcion_actividades)
+            solicitud.listado_empleado = data.get('listado_empleado', solicitud.listado_empleado)
+
+            with transaction.atomic():
+                solicitud.save()
+
+                # Actualizar o crear rutas de transporte
+                rutas = data.get('rutas', [])
+                TransporteSolicitudes.objects.filter(id_solicitud=solicitud).delete()
+                for ruta in rutas:
+                    TransporteSolicitudes.objects.create(
+                        id_solicitud=solicitud,
+                        tipo_transporte_soli=ruta.get('tipo_transporte_soli'),
+                        nombre_transporte_soli=ruta.get('nombre_transporte_soli'),
+                        ruta_soli=f"{ruta.get('ciudad_origen')} - {ruta.get('ciudad_destino')}",
+                        fecha_salida_soli=parse_date(ruta.get('fecha_salida_soli')),
+                        hora_salida_soli=parse_time(ruta.get('hora_salida_soli')),
+                        fecha_llegada_soli=parse_date(ruta.get('fecha_llegada_soli')),
+                        hora_llegada_soli=parse_time(ruta.get('hora_llegada_soli'))
+                    )
+
+                # Actualizar información de la cuenta bancaria
+                banco_id = data.get('id_banco')
+                tipo_cuenta = data.get('tipo_cuenta')
+                numero_cuenta = data.get('numero_cuenta')
+
+                if all([banco_id, tipo_cuenta, numero_cuenta]):
+                    cuenta_bancaria = CuentasBancarias.objects.filter(id_solicitud=solicitud).first()
+                    if cuenta_bancaria:
+                        cuenta_bancaria.id_banco = Bancos.objects.get(id_banco=banco_id)
+                        cuenta_bancaria.tipo_cuenta = tipo_cuenta
+                        cuenta_bancaria.numero_cuenta = numero_cuenta
+                        cuenta_bancaria.save()
+                    else:
+                        CuentasBancarias.objects.create(
+                            id_banco=Bancos.objects.get(id_banco=banco_id),
+                            id_empleado=solicitud.id_empleado,
+                            id_solicitud=solicitud,
+                            tipo_cuenta=tipo_cuenta,
+                            numero_cuenta=numero_cuenta,
+                            habilitado=1
+                        )
+
+            return JsonResponse({
+                'mensaje': 'Solicitud actualizada exitosamente',
+                'id_solicitud': solicitud.id_solicitud
+            }, status=200)
+
+        except Solicitudes.DoesNotExist:
+            return JsonResponse({'error': 'La solicitud no existe'}, status=404)
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': 'Uno o más objetos relacionados no existen'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': f'Error al actualizar la solicitud: {str(e)}'}, status=500)

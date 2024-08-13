@@ -19,4 +19,5 @@ urlpatterns = [
     path('listar-solicitudes-aceptadas-admin/', ListarSolicitudesAceptadasAdminView.as_view(), name='listar_solicitudes'),
     path('listar-solicitud-empleado/<int:id_solicitud>/', ListarSolicitudesEmpleadoView.as_view(), name='listar_solicitud_empleado'),
     path('actualizar-solicitud/<int:id_solicitud>/', ActualizarSolicitudView.as_view(), name='actualizar-solicitud'),
+    path('editar-solicitud/<int:id_solicitud>/', EditarSolicitudView.as_view(), name='editar_solicitud'),
  ]
