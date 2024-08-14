@@ -5,7 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.db import transaction
 import jwt
-from .models import OrdenesMovilizacion, MotivoOrdenMovilizacion
+from .models import *
 from datetime import datetime
 from Vehiculos.models import Vehiculo
 from Empleados.models import Empleados, Usuarios, Rol
@@ -794,6 +794,174 @@ class ListarOrdenesAprobadasView(View):
             ordenes_aprobadas_list = list(ordenes_aprobadas)
 
             return JsonResponse({'ordenes_aprobadas': ordenes_aprobadas_list}, status=200)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+
+@method_decorator(csrf_exempt, name='dispatch')
+class EditarHorarioView(View):
+    def post(self, request, id_usuario, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                return JsonResponse({'error': 'ID de usuario no encontrado en el token'}, status=403)
+
+            if token_id_usuario != id_usuario:
+                return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
+
+            data = request.POST
+            hora_ida_minima = data.get('hora_ida_minima')
+            hora_llegada_maxima = data.get('hora_llegada_maxima')
+
+            if not hora_ida_minima or not hora_llegada_maxima:
+                return JsonResponse({'error': 'Datos incompletos'}, status=400)
+
+            try:
+                horario = HorarioOrdenMovilizacion.objects.get()
+                horario.hora_ida_minima = hora_ida_minima
+                horario.hora_llegada_maxima = hora_llegada_maxima
+                horario.save()
+                message = 'Horario actualizado exitosamente'
+            except HorarioOrdenMovilizacion.DoesNotExist:
+                horario = HorarioOrdenMovilizacion(
+                    hora_ida_minima=hora_ida_minima,
+                    hora_llegada_maxima=hora_llegada_maxima
+                )
+                horario.save()
+                message = 'Horario creado exitosamente'
+
+            return JsonResponse({'message': message}, status=200)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class CrearRutaView(View):
+    def post(self, request, id_usuario, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                return JsonResponse({'error': 'ID de usuario no encontrado en el token'}, status=403)
+
+            if token_id_usuario != id_usuario:
+                return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
+
+            data = request.POST
+            ruta_origen = data.get('ruta_origen')
+            ruta_destino = data.get('ruta_destino')
+            ruta_descripcion = data.get('ruta_descripcion')
+            ruta_estado = data.get('ruta_estado')
+
+            if not ruta_origen or not ruta_destino or not ruta_descripcion or not ruta_estado:
+                return JsonResponse({'error': 'Datos incompletos'}, status=400)
+
+            RutasMovilizacion.objects.create(
+                ruta_origen=ruta_origen,
+                ruta_destino=ruta_destino,
+                ruta_descripcion=ruta_descripcion,
+                ruta_estado=ruta_estado
+            )
+            
+            return JsonResponse({'message': 'Ruta creada exitosamente'}, status=201)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class EditarRutaView(View):
+    def post(self, request, id_usuario, id_ruta_movilizacion, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                return JsonResponse({'error': 'ID de usuario no encontrado en el token'}, status=403)
+
+            if token_id_usuario != id_usuario:
+                return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
+
+            data = request.POST
+            ruta_origen = data.get('ruta_origen')
+            ruta_destino = data.get('ruta_destino')
+            ruta_descripcion = data.get('ruta_descripcion')
+            ruta_estado = data.get('ruta_estado')
+
+            if not ruta_origen or not ruta_destino or not ruta_descripcion or not ruta_estado:
+                return JsonResponse({'error': 'Datos incompletos'}, status=400)
+
+            try:
+                ruta = RutasMovilizacion.objects.get(id_ruta_movilizacion=id_ruta_movilizacion)
+                ruta.ruta_origen=ruta_origen
+                ruta.ruta_destino=ruta_destino
+                ruta.ruta_descripcion = ruta_descripcion
+                ruta.ruta_estado = ruta_estado
+                ruta.save()
+                return JsonResponse({'message': 'Ruta actualizada exitosamente'}, status=200)
+            except RutasMovilizacion.DoesNotExist:
+                return JsonResponse({'error': 'Ruta no encontrada'}, status=404)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ListarRutasView(View):
+    def get(self, request, id_usuario, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                return JsonResponse({'error': 'ID de usuario no encontrado en el token'}, status=403)
+
+            if token_id_usuario != id_usuario:
+                return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
+
+            rutas = RutasMovilizacion.objects.all().values('id_ruta_movilizacion', 'ruta_origen', 'ruta_destino', 'ruta_descripcion', 'ruta_estado')
+            rutas_list = list(rutas)
+
+            return JsonResponse({'rutas': rutas_list}, status=200)
 
         except jwt.ExpiredSignatureError:
             return JsonResponse({'error': 'Token expirado'}, status=401)
