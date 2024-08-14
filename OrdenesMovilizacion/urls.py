@@ -17,6 +17,7 @@ urlpatterns = [
     path('listar-ordenes-aprobadas/<int:id_usuario>/', ListarOrdenesAprobadasView.as_view(), name='listar_ordenes_aprobadas'),
     path('editar-horario/<int:id_usuario>/', EditarHorarioView.as_view(), name='editar_horario'),
     path('crear-ruta/<int:id_usuario>/', CrearRutaView.as_view(), name='editar_horario'),
+    path('ver-horario/<int:id_usuario>/', VerHorarioView.as_view(), name='ver_horario'),
     path('editar-ruta/<int:id_usuario>/<int:id_ruta_movilizacion>/', EditarRutaView.as_view(), name='editar_horario'),
     path('listar-rutas/<int:id_usuario>/', ListarRutasView.as_view(), name='listar_rutas'),
 ]

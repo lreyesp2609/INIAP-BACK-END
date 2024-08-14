@@ -107,6 +107,8 @@ class HorarioOrdenMovilizacion(models.Model):
     id_horario_movilizacion = models.AutoField(primary_key=True)
     hora_ida_minima = models.TimeField()
     hora_llegada_maxima = models.TimeField()
+    duracion_minima = models.IntegerField()
+    duracion_maxima = models.IntegerField()
 
     class Meta:
         managed = False

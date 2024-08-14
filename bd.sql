@@ -263,7 +263,9 @@ CREATE TABLE motivo_orden_movilizacion (
 CREATE TABLE horario_orden_movilizacion (
 	id_horario_movilizacion SERIAL PRIMARY KEY,
     hora_ida_minima TIME NOT NULL,
-    hora_llegada_maxima TIME NOT NULL
+    hora_llegada_maxima TIME NOT NULL,
+    duracion_minima INT NOT NULL,
+    duracion_maxima INT NOT NULL
 );
 
 CREATE TABLE rutas_movilizacion (

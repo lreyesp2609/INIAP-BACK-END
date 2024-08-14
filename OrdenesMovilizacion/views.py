@@ -12,6 +12,7 @@ from Empleados.models import Empleados, Usuarios, Rol
 from rest_framework.exceptions import AuthenticationFailed
 import logging
 
+
 logger = logging.getLogger(__name__)
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -824,25 +825,72 @@ class EditarHorarioView(View):
             data = request.POST
             hora_ida_minima = data.get('hora_ida_minima')
             hora_llegada_maxima = data.get('hora_llegada_maxima')
+            duracion_minima = data.get('duracion_minima')
+            duracion_maxima = data.get('duracion_maxima')
 
-            if not hora_ida_minima or not hora_llegada_maxima:
+            if not hora_ida_minima or not hora_llegada_maxima or not duracion_minima or not duracion_maxima:
                 return JsonResponse({'error': 'Datos incompletos'}, status=400)
 
-            try:
-                horario = HorarioOrdenMovilizacion.objects.get()
-                horario.hora_ida_minima = hora_ida_minima
-                horario.hora_llegada_maxima = hora_llegada_maxima
-                horario.save()
-                message = 'Horario actualizado exitosamente'
-            except HorarioOrdenMovilizacion.DoesNotExist:
-                horario = HorarioOrdenMovilizacion(
-                    hora_ida_minima=hora_ida_minima,
-                    hora_llegada_maxima=hora_llegada_maxima
-                )
-                horario.save()
-                message = 'Horario creado exitosamente'
+            with transaction.atomic():
+                try:
+                    horario = HorarioOrdenMovilizacion.objects.get()
+                    horario.hora_ida_minima = hora_ida_minima
+                    horario.hora_llegada_maxima = hora_llegada_maxima
+                    horario.duracion_minima = int(duracion_minima)
+                    horario.duracion_maxima = int(duracion_maxima)
+                    horario.save()
+                    message = 'Horario actualizado exitosamente'
+                except HorarioOrdenMovilizacion.DoesNotExist:
+                    horario = HorarioOrdenMovilizacion(
+                        hora_ida_minima=hora_ida_minima,
+                        hora_llegada_maxima=hora_llegada_maxima,
+                        duracion_minima=int(duracion_minima),
+                        duracion_maxima=int(duracion_maxima) 
+                    )
+                    horario.save()
+                    message = 'Horario creado exitosamente'
 
             return JsonResponse({'message': message}, status=200)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class VerHorarioView(View):
+    def get(self, request, id_usuario, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                return JsonResponse({'error': 'ID de usuario no encontrado en el token'}, status=403)
+
+            if token_id_usuario != id_usuario:
+                return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
+
+            horario = HorarioOrdenMovilizacion.objects.first()
+
+            if not horario:
+                return JsonResponse({'horario': {}}, status=200)  
+
+            horario_data = {
+                'hora_ida_minima': horario.hora_ida_minima,
+                'hora_llegada_maxima': horario.hora_llegada_maxima,
+                'duracion_minima': horario.duracion_minima,
+                'duracion_maxima': horario.duracion_maxima,
+            }
+
+            return JsonResponse({'horario': horario_data}, status=200)
 
         except jwt.ExpiredSignatureError:
             return JsonResponse({'error': 'Token expirado'}, status=401)
