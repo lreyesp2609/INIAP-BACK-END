@@ -48,6 +48,9 @@ class CrearOrdenMovilizacionView(View):
             hora_regreso = request.POST.get('hora_regreso')
             estado_movilizacion = request.POST.get('estado_movilizacion')
 
+            if len(motivo_movilizacion) > 30:
+                return JsonResponse({'error': 'El motivo de movilización no puede exceder los 30 caracteres'}, status=400)
+
             # Obtención de objetos relacionados por ID
             empleado = Empleados.objects.get(id_persona=usuario.id_persona)
             id_conductor = Empleados.objects.get(id_empleado=id_conductor_id)
@@ -168,6 +171,9 @@ class EditarOrdenMovilizacionView(View):
             orden.fecha_viaje = request.POST.get('fecha_viaje', orden.fecha_viaje)
             orden.hora_ida = request.POST.get('hora_ida', orden.hora_ida)
             orden.hora_regreso = request.POST.get('hora_regreso', orden.hora_regreso)
+
+            if len(orden.motivo_movilizacion) > 30:
+                return JsonResponse({'error': 'El motivo de movilización no puede exceder los 30 caracteres'}, status=400)
 
             # Buscar objetos relacionados por ID
             id_conductor = Empleados.objects.get(id_empleado=id_conductor_id)

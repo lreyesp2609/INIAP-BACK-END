@@ -16,5 +16,5 @@ urlpatterns = [
     path('OrdenesMovilizacion/', include('OrdenesMovilizacion.urls')),
     path('Licencias/', include('Licencias.urls')),
     path('MotivosOrdenes/', include('MotivosOrdenes.urls')),
-
+    path('Reportes/', include('Reportes.urls')),
 ]

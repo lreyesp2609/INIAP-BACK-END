@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reporte de Órdenes de Movilización</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>Reporte de Órdenes de Movilización</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Secuencial</th>
+                <th>Fecha y Hora de Emisión</th>
+                <th>Motivo</th>
+                <th>Lugar de Origen y Destino</th>
+                <th>Duración</th>
+                <th>Conductor</th>
+                <th>Vehículo</th>
+                <th>Fecha del Viaje</th>
+                <th>Hora de Ida</th>
+                <th>Hora de Regreso</th>
+                <th>Estado</th>
+                <th>Empleado</th>
+                <th>Habilitado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for orden in ordenes %}
+            <tr>
+                <td>{{ orden.id_orden_movilizacion }}</td>
+                <td>{{ orden.secuencial_orden_movilizacion }}</td>
+                <td>{{ orden.fecha_hora_emision }}</td>
+                <td>{{ orden.motivo_movilizacion }}</td>
+                <td>{{ orden.lugar_origen_destino_movilizacion }}</td>
+                <td>{{ orden.duracion_movilizacion }}</td>
+                <td>{{ orden.id_conductor }}</td>
+                <td>{{ orden.id_vehiculo }}</td>
+                <td>{{ orden.fecha_viaje }}</td>
+                <td>{{ orden.hora_ida }}</td>
+                <td>{{ orden.hora_regreso }}</td>
+                <td>{{ orden.estado_movilizacion }}</td>
+                <td>{{ orden.id_empleado }}</td>
+                <td>{{ orden.habilitado }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
