@@ -11,12 +11,13 @@ from io import BytesIO
 import jwt
 from django.conf import settings
 from OrdenesMovilizacion.urls import OrdenesMovilizacion
-from Empleados.urls import Empleados, Usuarios
+from Empleados.models import Empleados
+from Vehiculos.models import Vehiculo
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class GenerarReporteView(View):
-    def get(self, request, id_usuario):
+class GenerarReporteOrdenesView(View):
+    def post(self, request, id_usuario):
         try:
             token = request.headers.get('Authorization')
             if not token:
@@ -30,30 +31,30 @@ class GenerarReporteView(View):
             if int(token_id_usuario) != id_usuario:
                 return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
             
-            fecha_inicio = request.GET.get('fecha_inicio')
-            fecha_fin = request.GET.get('fecha_fin')
-            nombre_empleado = request.GET.get('nombre_empleado')
-            nombre_conductor = request.GET.get('nombre_conductor')
-            id_vehiculo = request.GET.get('id_vehiculo')
+            fecha_inicio = request.POST.get('fecha_inicio')
+            fecha_fin = request.POST.get('fecha_fin')
+            empleado = request.POST.get('empleado')
+            conductor = request.POST.get('conductor')
+            vehiculo = request.POST.get('vehiculo')
 
             filtros = {}
             if fecha_inicio and fecha_fin:
                 filtros['fecha_viaje__range'] = [fecha_inicio, fecha_fin]
-            if nombre_empleado:
-                empleado = Empleados.objects.filter(nombre__icontains=nombre_empleado).first()
-                if empleado:
-                    filtros['id_empleado'] = empleado
-            if nombre_conductor:
-                conductor = Empleados.objects.filter(nombre__icontains=nombre_conductor).first()
-                if conductor:
-                    filtros['id_conductor'] = conductor
-            if id_vehiculo:
-                filtros['id_vehiculo'] = id_vehiculo
+            if empleado:
+                filtros['id_empleado'] = empleado
+            if conductor:
+                filtros['id_conductor_id'] = conductor
+            if vehiculo:
+                filtros['id_vehiculo'] = vehiculo
 
             ordenes = OrdenesMovilizacion.objects.filter(**filtros)
 
             lista_ordenes = []
             for orden in ordenes:
+                empleado = orden.id_empleado.id_persona
+                conductor = orden.id_conductor.id_persona
+                vehiculo = orden.id_vehiculo
+
                 lista_ordenes.append({
                     'id_orden_movilizacion': orden.id_orden_movilizacion,
                     'secuencial_orden_movilizacion': orden.secuencial_orden_movilizacion,
@@ -61,13 +62,13 @@ class GenerarReporteView(View):
                     'motivo_movilizacion': orden.motivo_movilizacion,
                     'lugar_origen_destino_movilizacion': orden.lugar_origen_destino_movilizacion,
                     'duracion_movilizacion': str(orden.duracion_movilizacion),
-                    'id_conductor': orden.id_conductor.id_empleado,
-                    'id_vehiculo': orden.id_vehiculo.id_vehiculo,
+                    'conductor_nombre_completo': f"{conductor.nombres} {conductor.apellidos}",
+                    'vehiculo_placa': vehiculo.placa,
                     'fecha_viaje': orden.fecha_viaje.strftime('%Y-%m-%d'),
                     'hora_ida': orden.hora_ida.strftime('%H:%M:%S'),
                     'hora_regreso': orden.hora_regreso.strftime('%H:%M:%S'),
                     'estado_movilizacion': orden.estado_movilizacion,
-                    'id_empleado': orden.id_empleado.id_empleado,
+                    'empleado_nombre_completo': f"{empleado.nombres} {empleado.apellidos}",
                     'habilitado': orden.habilitado,
                 })
 
@@ -86,11 +87,12 @@ class GenerarReporteView(View):
             print(f'Error al generar el reporte: {str(e)}')
             return JsonResponse({'error': str(e)}, status=500)
 
+
 def generar_pdf(ordenes):
     template_path = 'reporte_ordenes.html'
     context = {'ordenes': ordenes}
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="reporte_ordenes.pdf"'
+    response['Content-Disposition'] = 'inline; filename="reporte_ordenes.pdf"'
     response['Content-Transfer-Encoding'] = 'binary'
 
     template = render_to_string(template_path, context)

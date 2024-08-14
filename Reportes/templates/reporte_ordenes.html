@@ -3,60 +3,107 @@
 <head>
     <title>Reporte de Órdenes de Movilización</title>
     <style>
+        @page {
+            size: A4;
+            margin: 1in;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        p {
+            margin: 0 0 10px;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 2px;
         }
+
         table, th, td {
             border: 1px solid black;
         }
+
         th, td {
-            padding: 8px;
+            padding: 1px;
             text-align: left;
+            font-size: 10px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .description {
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
-    <h1>Reporte de Órdenes de Movilización</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Secuencial</th>
-                <th>Fecha y Hora de Emisión</th>
-                <th>Motivo</th>
-                <th>Lugar de Origen y Destino</th>
-                <th>Duración</th>
-                <th>Conductor</th>
-                <th>Vehículo</th>
-                <th>Fecha del Viaje</th>
-                <th>Hora de Ida</th>
-                <th>Hora de Regreso</th>
-                <th>Estado</th>
-                <th>Empleado</th>
-                <th>Habilitado</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for orden in ordenes %}
-            <tr>
-                <td>{{ orden.id_orden_movilizacion }}</td>
-                <td>{{ orden.secuencial_orden_movilizacion }}</td>
-                <td>{{ orden.fecha_hora_emision }}</td>
-                <td>{{ orden.motivo_movilizacion }}</td>
-                <td>{{ orden.lugar_origen_destino_movilizacion }}</td>
-                <td>{{ orden.duracion_movilizacion }}</td>
-                <td>{{ orden.id_conductor }}</td>
-                <td>{{ orden.id_vehiculo }}</td>
-                <td>{{ orden.fecha_viaje }}</td>
-                <td>{{ orden.hora_ida }}</td>
-                <td>{{ orden.hora_regreso }}</td>
-                <td>{{ orden.estado_movilizacion }}</td>
-                <td>{{ orden.id_empleado }}</td>
-                <td>{{ orden.habilitado }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="container">
+        <h1>Reporte de Órdenes de Movilización</h1>
+
+        <p class="description">
+            Este informe proporciona un detalle completo sobre las órdenes de movilización registradas.
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Secuencial</th>
+                    <th>Motivo</th>
+                    <th>Lugar de Origen y Destino</th>
+                    <th>Fecha del Viaje</th>
+                    <th>Hora de Ida</th>
+                    <th>Duración</th>
+                    <th>Conductor</th>
+                    <th>Vehículo</th>
+                    <th>Estado</th>
+                    <th>Empleado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for orden in ordenes %}
+                <tr>
+                    <td>
+                        {% if orden.secuencial_orden_movilizacion == "0000" %}
+                            No asignado
+                        {% else %}
+                            {{ orden.secuencial_orden_movilizacion }}
+                        {% endif %}
+                    </td>
+                    <td>{{ orden.motivo_movilizacion }}</td>
+                    <td>{{ orden.lugar_origen_destino_movilizacion }}</td>
+                    <td>{{ orden.fecha_viaje }}</td>
+                    <td>{{ orden.hora_ida }}</td>
+                    <td>{{ orden.duracion_movilizacion }}</td>
+                    <td>{{ orden.conductor_nombre_completo }}</td>
+                    <td>{{ orden.vehiculo_placa }}</td>
+                    <td>{{ orden.estado_movilizacion }}</td>
+                    <td>{{ orden.empleado_nombre_completo }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <p class="description">
+            Para cualquier consulta adicional o detalles específicos, por favor contacte con el departamento correspondiente.
+        </p>
+    </div>
 </body>
 </html>
