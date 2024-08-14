@@ -259,3 +259,17 @@ CREATE TABLE motivo_orden_movilizacion (
     FOREIGN KEY (id_empleado) REFERENCES empleados(id_empleado),
     FOREIGN KEY (id_orden_movilizacion) REFERENCES ordenes_movilizacion(id_orden_movilizacion)
 );
+
+CREATE TABLE horario_orden_movilizacion (
+	id_horario_movilizacion SERIAL PRIMARY KEY,
+    hora_ida_minima TIME NOT NULL,
+    hora_llegada_maxima TIME NOT NULL
+);
+
+CREATE TABLE rutas_movilizacion (
+    id_ruta_movilizacion SERIAL PRIMARY KEY,
+    ruta_origen VARCHAR(250) NOT NULL,
+    ruta_destino VARCHAR(250) NOT NULL,
+    ruta_descripcion VARCHAR(250) NOT NULL,
+    ruta_estado VARCHAR(250) NOT NULL
+); 

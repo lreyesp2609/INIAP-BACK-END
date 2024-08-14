@@ -101,3 +101,24 @@ class MotivoOrdenMovilizacion(models.Model):
     class Meta:
         managed = False
         db_table = 'motivo_orden_movilizacion'
+
+
+class HorarioOrdenMovilizacion(models.Model):
+    id_horario_movilizacion = models.AutoField(primary_key=True)
+    hora_ida_minima = models.TimeField()
+    hora_llegada_maxima = models.TimeField()
+
+    class Meta:
+        managed = False
+        db_table = 'horario_orden_movilizacion'
+
+class RutasMovilizacion(models.Model):
+    id_ruta_movilizacion = models.AutoField(primary_key=True)
+    ruta_origen = models.CharField(max_length=250)
+    ruta_destino = models.CharField(max_length=250)
+    ruta_descripcion = models.CharField(max_length=250)
+    ruta_estado = models.CharField(max_length=250)
+
+    class Meta:
+        managed = False
+        db_table = 'rutas_movilizacion'
