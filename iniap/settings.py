@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'Licencias',
     'MotivosOrdenes',
     'Provincias',
-    'Reportes',
+    'Ciudades',
 ]
 
 MIDDLEWARE = [

@@ -18,4 +18,5 @@ urlpatterns = [
     path('MotivosOrdenes/', include('MotivosOrdenes.urls')),
     path('Reportes/', include('Reportes.urls')),
     path('Provincias/', include('Provincias.urls')),
+    path('Ciudades/', include('Ciudades.urls')),
 ]
