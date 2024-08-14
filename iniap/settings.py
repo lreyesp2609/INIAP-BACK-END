@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'OrdenesMovilizacion',
     'Licencias',
     'MotivosOrdenes',
+    'Provincias',
     'Reportes',
 ]
 
