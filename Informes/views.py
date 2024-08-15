@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 import jwt
 
-from .models import Empleados, Personas, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades, TransporteSolicitudes, Vehiculo, CuentasBancarias
+from .models import Empleados, Personas, ProductosAlcanzadosInformes, TransporteInforme, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades, TransporteSolicitudes, Vehiculo, CuentasBancarias
 from datetime import datetime, date
 import json
 from django.utils.decorators import method_decorator
@@ -32,6 +32,8 @@ from django.views import View
 from django.http import JsonResponse
 from .models import Solicitudes, Empleados, Unidades, Usuarios
 from django.utils.dateparse import parse_date, parse_time
+from django.utils import timezone
+
 
 from django.db import transaction
 
@@ -134,7 +136,6 @@ class CrearSolicitudView(View):
             return JsonResponse({'error': str(e)}, status=400)
         except Exception as e:
             return JsonResponse({'error': f'Error al crear la solicitud: {str(e)}'}, status=500)
-
 
 
 class ListarSolicitudesView(View):
@@ -756,3 +757,153 @@ class EditarSolicitudView(View):
             return JsonResponse({'error': 'Uno o más objetos relacionados no existen'}, status=404)
         except Exception as e:
             return JsonResponse({'error': f'Error al actualizar la solicitud: {str(e)}'}, status=500)
+        
+class ListarSolicitudesAceptadasSinInformeView(View):
+    def get(self, request, id_usuario, *args, **kwargs):
+        try:
+            # Obtener el usuario y el empleado asociado
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
+            empleado = Empleados.objects.get(id_persona=usuario.id_persona)
+
+            # Obtener las solicitudes del empleado con estado "aceptado" que no tienen un informe asociado
+            solicitudes = Solicitudes.objects.filter(
+                id_empleado=empleado,
+                estado_solicitud='aceptado'
+            ).exclude(
+                informes__isnull=False
+            )
+
+            # Preparar la respuesta con los datos requeridos
+            data = []
+            for solicitud in solicitudes:
+                codigo_solicitud = solicitud.generar_codigo_solicitud()
+                data.append({
+                    'id': solicitud.id_solicitud,
+                    'Codigo de Solicitud': codigo_solicitud,
+                    'Fecha Solicitud': solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else '',
+                    'Motivo': solicitud.motivo_movilizacion if solicitud.motivo_movilizacion else '',
+                    'Estado': solicitud.estado_solicitud if solicitud.estado_solicitud else '',
+                })
+
+            return JsonResponse({'solicitudes': data}, status=200)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'El usuario no existe'}, status=404)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({'error': 'El empleado correspondiente al usuario no existe'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+class ListarDatosInformeView(View):
+    def get(self, request, id_solicitud, *args, **kwargs):
+        try:
+            # Obtener la solicitud por id
+            solicitud = Solicitudes.objects.get(id_solicitud=id_solicitud)
+            empleado = solicitud.id_empleado
+            persona = empleado.id_persona
+            cargo = empleado.id_cargo
+            unidad = cargo.id_unidad
+
+            # Combinar Distintivo, Apellidos y Nombres en una sola línea
+            nombre_completo = f"{empleado.distintivo if empleado.distintivo else ''} {persona.apellidos if persona.apellidos else ''} {persona.nombres if persona.nombres else ''}".strip()
+
+            # Formatear la fecha actual en el formato día-mes-año
+            fecha_actual = timezone.now().strftime('%d-%m-%Y')
+
+            # Preparar la respuesta con los datos requeridos
+            data = {
+                'Codigo de Solicitud': solicitud.generar_codigo_solicitud(),
+                'Fecha Actual': fecha_actual,
+                'Nombre Completo': nombre_completo,
+                'Cargo': cargo.cargo if cargo.cargo else '',
+                'Lugar de Servicio': solicitud.lugar_servicio if solicitud.lugar_servicio else '',
+                'Nombre de Unidad': unidad.nombre_unidad if unidad.nombre_unidad else '',
+                'Listado de Empleados': solicitud.listado_empleado if solicitud.listado_empleado else '',
+            }
+
+            return JsonResponse({'informe': data}, status=200)
+
+        except Solicitudes.DoesNotExist:
+            return JsonResponse({'error': 'La solicitud no existe'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CrearInformeView(View):
+    def post(self, request, id_solicitud, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+
+            # Obtener y validar los datos principales del informe
+            fecha_informe = parse_date(data.get('fecha_informe'))
+            fecha_salida_informe = parse_date(data.get('fecha_salida_informe'))
+            hora_salida_informe = parse_time(data.get('hora_salida_informe'))
+            fecha_llegada_informe = parse_date(data.get('fecha_llegada_informe'))
+            hora_llegada_informe = parse_time(data.get('hora_llegada_informe'))
+            evento = data.get('evento', '')
+            observacion = data.get('observacion', '')
+
+            if not all([fecha_informe, fecha_salida_informe, hora_salida_informe, fecha_llegada_informe, hora_llegada_informe]):
+                return JsonResponse({'error': 'Fechas y horas del informe son requeridas y deben ser válidas'}, status=400)
+
+            # Crear el informe y los datos relacionados dentro de una transacción atómica
+            with transaction.atomic():
+                # Verificar que la solicitud exista
+                solicitud = Solicitudes.objects.get(id_solicitud=id_solicitud)
+
+                informe = Informes.objects.create(
+                    id_solicitud=solicitud,
+                    fecha_informe=fecha_informe,
+                    fecha_salida_informe=fecha_salida_informe,
+                    hora_salida_informe=hora_salida_informe,
+                    fecha_llegada_informe=fecha_llegada_informe,
+                    hora_llegada_informe=hora_llegada_informe,
+                    evento=evento,
+                    observacion=observacion
+                )
+
+                # Crear los registros de transporte asociados al informe
+                transportes = data.get('transportes', [])
+                for transporte in transportes:
+                    fecha_salida_info = parse_date(transporte.get('fecha_salida_info'))
+                    hora_salida_info = parse_time(transporte.get('hora_salida_info'))
+                    fecha_llegada_info = parse_date(transporte.get('fecha_llegada_info'))
+                    hora_llegada_info = parse_time(transporte.get('hora_llegada_info'))
+
+                    if not all([fecha_salida_info, hora_salida_info, fecha_llegada_info, hora_llegada_info]):
+                        raise ValueError('Fechas y horas de transporte inválidas')
+
+                    TransporteInforme.objects.create(
+                        id_informe=informe,
+                        tipo_transporte_info=transporte.get('tipo_transporte_info'),
+                        nombre_transporte_info=transporte.get('nombre_transporte_info'),
+                        ruta_info=transporte.get('ruta_info'),
+                        fecha_salida_info=fecha_salida_info,
+                        hora_salida_info=hora_salida_info,
+                        fecha_llegada_info=fecha_llegada_info,
+                        hora_llegada_info=hora_llegada_info
+                    )
+
+                # Crear los productos alcanzados asociados al informe
+                productos = data.get('productos', [])
+                for producto in productos:
+                    ProductosAlcanzadosInformes.objects.create(
+                        id_informe=informe,
+                        descripcion=producto.get('descripcion', '')
+                    )
+
+            return JsonResponse({
+                'mensaje': 'Informe creado exitosamente',
+                'id_informe': informe.id_informes
+            }, status=201)
+
+        except Solicitudes.DoesNotExist:
+            return JsonResponse({'error': 'La solicitud especificada no existe'}, status=404)
+        except ValueError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': f'Error al crear el informe: {str(e)}'}, status=500)
