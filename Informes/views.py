@@ -838,30 +838,30 @@ class CrearInformeView(View):
         try:
             data = json.loads(request.body)
 
-            # Obtener y validar los datos principales del informe
-            fecha_informe = parse_date(data.get('fecha_informe'))
-            fecha_salida_informe = parse_date(data.get('fecha_salida_informe'))
-            hora_salida_informe = parse_time(data.get('hora_salida_informe'))
-            fecha_llegada_informe = parse_date(data.get('fecha_llegada_informe'))
-            hora_llegada_informe = parse_time(data.get('hora_llegada_informe'))
+            # Validar y parsear las fechas y horas
+            required_fields = ['fecha_informe', 'fecha_salida_informe', 'hora_salida_informe', 'fecha_llegada_informe', 'hora_llegada_informe']
+            fechas_horas = {field: parse_date(data.get(field)) if 'fecha' in field else parse_time(data.get(field)) for field in required_fields}
+
+            if not all(fechas_horas.values()):
+                return JsonResponse({'error': 'Fechas y horas del informe son requeridas y deben ser válidas'}, status=400)
+
+            # Obtener los datos restantes
             evento = data.get('evento', '')
             observacion = data.get('observacion', '')
-
-            if not all([fecha_informe, fecha_salida_informe, hora_salida_informe, fecha_llegada_informe, hora_llegada_informe]):
-                return JsonResponse({'error': 'Fechas y horas del informe son requeridas y deben ser válidas'}, status=400)
 
             # Crear el informe y los datos relacionados dentro de una transacción atómica
             with transaction.atomic():
                 # Verificar que la solicitud exista
                 solicitud = Solicitudes.objects.get(id_solicitud=id_solicitud)
 
+                # Crear el informe
                 informe = Informes.objects.create(
                     id_solicitud=solicitud,
-                    fecha_informe=fecha_informe,
-                    fecha_salida_informe=fecha_salida_informe,
-                    hora_salida_informe=hora_salida_informe,
-                    fecha_llegada_informe=fecha_llegada_informe,
-                    hora_llegada_informe=hora_llegada_informe,
+                    fecha_informe=fechas_horas['fecha_informe'],
+                    fecha_salida_informe=fechas_horas['fecha_salida_informe'],
+                    hora_salida_informe=fechas_horas['hora_salida_informe'],
+                    fecha_llegada_informe=fechas_horas['fecha_llegada_informe'],
+                    hora_llegada_informe=fechas_horas['hora_llegada_informe'],
                     evento=evento,
                     observacion=observacion
                 )
@@ -869,12 +869,14 @@ class CrearInformeView(View):
                 # Crear los registros de transporte asociados al informe
                 transportes = data.get('transportes', [])
                 for transporte in transportes:
-                    fecha_salida_info = parse_date(transporte.get('fecha_salida_info'))
-                    hora_salida_info = parse_time(transporte.get('hora_salida_info'))
-                    fecha_llegada_info = parse_date(transporte.get('fecha_llegada_info'))
-                    hora_llegada_info = parse_time(transporte.get('hora_llegada_info'))
+                    fechas_horas_transporte = {
+                        'fecha_salida_info': parse_date(transporte.get('fecha_salida_info')),
+                        'hora_salida_info': parse_time(transporte.get('hora_salida_info')),
+                        'fecha_llegada_info': parse_date(transporte.get('fecha_llegada_info')),
+                        'hora_llegada_info': parse_time(transporte.get('hora_llegada_info'))
+                    }
 
-                    if not all([fecha_salida_info, hora_salida_info, fecha_llegada_info, hora_llegada_info]):
+                    if not all(fechas_horas_transporte.values()):
                         raise ValueError('Fechas y horas de transporte inválidas')
 
                     TransporteInforme.objects.create(
@@ -882,10 +884,10 @@ class CrearInformeView(View):
                         tipo_transporte_info=transporte.get('tipo_transporte_info'),
                         nombre_transporte_info=transporte.get('nombre_transporte_info'),
                         ruta_info=transporte.get('ruta_info'),
-                        fecha_salida_info=fecha_salida_info,
-                        hora_salida_info=hora_salida_info,
-                        fecha_llegada_info=fecha_llegada_info,
-                        hora_llegada_info=hora_llegada_info
+                        fecha_salida_info=fechas_horas_transporte['fecha_salida_info'],
+                        hora_salida_info=fechas_horas_transporte['hora_salida_info'],
+                        fecha_llegada_info=fechas_horas_transporte['fecha_llegada_info'],
+                        hora_llegada_info=fechas_horas_transporte['hora_llegada_info']
                     )
 
                 # Crear los productos alcanzados asociados al informe
