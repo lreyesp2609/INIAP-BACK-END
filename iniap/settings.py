@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'MotivosOrdenes',
     'Provincias',
     'Ciudades',
+    'Encabezados'
 ]
 
 MIDDLEWARE = [
