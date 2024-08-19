@@ -147,6 +147,12 @@ CREATE TABLE Transporte_Solicitudes (
     FOREIGN KEY (id_solicitud) REFERENCES Solicitudes(id_solicitud)
 );
 
+CREATE TABLE Encabezados (
+    id_encabezado SERIAL PRIMARY KEY,
+    encabezado_superior TEXT NULL,
+    encabezado_inferior TEXT NULL,
+);
+
 CREATE TABLE Informes (
     id_informes SERIAL PRIMARY KEY,
     id_solicitud INT NOT NULL,
@@ -157,8 +163,11 @@ CREATE TABLE Informes (
     hora_llegada_informe TIME,
     evento VARCHAR(255),
     observacion TEXT,
-    FOREIGN KEY (id_solicitud) REFERENCES Solicitudes(id_solicitud)
+    id_encabezado INT NULL,
+    FOREIGN KEY (id_solicitud) REFERENCES Solicitudes(id_solicitud),
+    FOREIGN KEY (id_encabezado) REFERENCES Encabezados(id_encabezado)
 );
+
 
 CREATE TABLE Actividades_Informes (
     id_informe INT NOT NULL,

@@ -19,4 +19,6 @@ urlpatterns = [
     path('Reportes/', include('Reportes.urls')),
     path('Provincias/', include('Provincias.urls')),
     path('Ciudades/', include('Ciudades.urls')),
+    path('Encabezados/', include('Encabezados.urls')),
+
 ]
