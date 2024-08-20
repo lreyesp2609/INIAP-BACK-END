@@ -837,16 +837,21 @@ class CrearInformeView(View):
     def post(self, request, id_solicitud, *args, **kwargs):
         try:
             data = json.loads(request.body)
+            print("Datos recibidos:", data)
 
-            # Validar y parsear las fechas y horas
-            required_fields = ['fecha_informe', 'fecha_salida_informe', 'hora_salida_informe', 'fecha_llegada_informe', 'hora_llegada_informe']
+            # Obtener la fecha y hora actual del sistema
+            fecha_informe = date.today()
+            hora_informe = datetime.now().time()
+
+            # Validar y parsear las fechas y horas recibidas
+            required_fields = ['fecha_salida_informe', 'hora_salida_informe', 'fecha_llegada_informe', 'hora_llegada_informe']
             fechas_horas = {field: parse_date(data.get(field)) if 'fecha' in field else parse_time(data.get(field)) for field in required_fields}
+            print("Fechas y horas parseadas:", fechas_horas)
 
             if not all(fechas_horas.values()):
                 return JsonResponse({'error': 'Fechas y horas del informe son requeridas y deben ser válidas'}, status=400)
 
             # Obtener los datos restantes
-            evento = data.get('evento', '')
             observacion = data.get('observacion', '')
 
             # Crear el informe y los datos relacionados dentro de una transacción atómica
@@ -854,15 +859,14 @@ class CrearInformeView(View):
                 # Verificar que la solicitud exista
                 solicitud = Solicitudes.objects.get(id_solicitud=id_solicitud)
 
-                # Crear el informe
+                # Crear el informe con la fecha y hora actual
                 informe = Informes.objects.create(
                     id_solicitud=solicitud,
-                    fecha_informe=fechas_horas['fecha_informe'],
+                    fecha_informe=fecha_informe,
                     fecha_salida_informe=fechas_horas['fecha_salida_informe'],
                     hora_salida_informe=fechas_horas['hora_salida_informe'],
                     fecha_llegada_informe=fechas_horas['fecha_llegada_informe'],
                     hora_llegada_informe=fechas_horas['hora_llegada_informe'],
-                    evento=evento,
                     observacion=observacion
                 )
 
@@ -909,3 +913,4 @@ class CrearInformeView(View):
             return JsonResponse({'error': str(e)}, status=400)
         except Exception as e:
             return JsonResponse({'error': f'Error al crear el informe: {str(e)}'}, status=500)
+
