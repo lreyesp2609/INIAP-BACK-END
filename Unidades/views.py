@@ -20,12 +20,10 @@ class ListaUnidadesPorEstacionView(View):
 
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
 
-            estacion_id = request.POST.get('estacion_id')
-            if not estacion_id:
-                return JsonResponse({'error': 'ID de estación no proporcionado'}, status=400)
+  
 
             # Obtener las unidades con las siglas incluidas
-            unidades = Unidades.objects.filter(id_estacion=estacion_id).values('id_unidad', 'nombre_unidad', 'siglas_unidad', 'id_estacion_id')
+            unidades = Unidades.objects.values('id_unidad', 'nombre_unidad', 'siglas_unidad', 'id_estacion_id')
 
             return JsonResponse(list(unidades), safe=False)
 

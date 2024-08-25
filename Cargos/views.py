@@ -19,12 +19,9 @@ class ListaCargosView(View):
 
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
 
-            estacion_id = request.POST.get('estacion_id')
-            unidad_id = request.POST.get('unidad_id')
+            
 
-            cargos = Cargos.objects.filter(
-                id_unidad__id_estacion=estacion_id, id_unidad=unidad_id
-            ).values('id_cargo', 'cargo')
+            cargos = Cargos.objects.values('id_cargo', 'cargo')
 
             return JsonResponse(list(cargos), safe=False)
 
