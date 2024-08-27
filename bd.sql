@@ -163,7 +163,8 @@ CREATE TABLE Informes (
     hora_llegada_informe TIME,
     evento VARCHAR(255),
     observacion TEXT,
-    id_encabezado INT NULL,
+    id_encabezado INT,
+    estado INTEGER CHECK (estado IN (0, 1)),
     FOREIGN KEY (id_solicitud) REFERENCES Solicitudes(id_solicitud),
     FOREIGN KEY (id_encabezado) REFERENCES Encabezados(id_encabezado)
 );
@@ -180,9 +181,11 @@ CREATE TABLE Actividades_Informes (
 CREATE TABLE Facturas_Informes (
     id_informe INT NOT NULL,
     tipo_documento VARCHAR(50),
+    numero_factura VARCHAR(50),
     fecha_emision DATE,
     detalle_documento VARCHAR(255),
     valor DECIMAL(10, 2),
+    estado INTEGER CHECK (estado IN (0, 1)),
     PRIMARY KEY (id_informe, tipo_documento),
     FOREIGN KEY (id_informe) REFERENCES Informes(id_informes)
 );
