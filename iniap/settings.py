@@ -92,9 +92,9 @@ WSGI_APPLICATION = 'iniap.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'DB_Gestion_Viajes_EETP',
+        'NAME': 'iniap',
         'USER': 'postgres',
-        'PASSWORD': '12345',
+        'PASSWORD': '1234',
         'HOST': 'localhost',
         'PORT': '5432',
         'OPTIONS': {
