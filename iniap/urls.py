@@ -20,5 +20,6 @@ urlpatterns = [
     path('Provincias/', include('Provincias.urls')),
     path('Ciudades/', include('Ciudades.urls')),
     path('Encabezados/', include('Encabezados.urls')),
+    path('Bancos/', include('Bancos.urls')),
 
 ]

@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'MotivosOrdenes',
     'Provincias',
     'Ciudades',
-    'Encabezados'
+    'Encabezados',
+    'Bancos'
 ]
 
 MIDDLEWARE = [
@@ -92,9 +93,9 @@ WSGI_APPLICATION = 'iniap.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'iniap',
+        'NAME': 'DB_Gestion_Viajes_EETP',
         'USER': 'postgres',
-        'PASSWORD': '1234',
+        'PASSWORD': '12345',
         'HOST': 'localhost',
         'PORT': '5432',
         'OPTIONS': {
