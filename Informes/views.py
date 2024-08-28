@@ -448,8 +448,8 @@ class ListarNombreVehiculosView(View):
 class ListarBancosView(View):
     def get(self, request, *args, **kwargs):
         try:
-            # Obtener todos los bancos
-            bancos = Bancos.objects.all()
+            # Obtener todos los bancos ordenados por ID en orden ascendente
+            bancos = Bancos.objects.all().order_by('id_banco')
 
             # Preparar la respuesta con los nombres e IDs de los bancos
             data = [{'id_banco': banco.id_banco, 'nombre_banco': banco.nombre_banco} for banco in bancos]

@@ -200,6 +200,13 @@ class ListaEmpleadosView(View):
                 persona = empleado.id_persona
                 cargo = empleado.id_cargo
 
+                # Obtener la licencia del empleado, si existe
+                try:
+                    empleado_licencia = EmpleadosTipoLicencias.objects.get(id_empleado=empleado)
+                    tipo_licencia = empleado_licencia.id_tipo_licencia.tipo_licencia
+                except EmpleadosTipoLicencias.DoesNotExist:
+                    tipo_licencia = None
+
                 try:
                     usuario_empleado = Usuarios.objects.get(id_persona=persona)
                 except Usuarios.DoesNotExist:
@@ -221,7 +228,8 @@ class ListaEmpleadosView(View):
                     'usuario': usuario_empleado.usuario if usuario_empleado else None,
                     'habilitado': empleado.habilitado,
                     'genero': persona.genero,
-                    'distintivo': empleado.distintivo
+                    'distintivo': empleado.distintivo,
+                    'Licencia': tipo_licencia
                 }
                 empleados_list.append(empleado_data)
 
@@ -244,6 +252,7 @@ class ListaEmpleadosView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
         
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaEmpleadosDeshabilitadosView(View):
@@ -376,7 +385,6 @@ class EditarEmpleadoView(View):
             fecha_nacimiento_str = request.POST.get('fecha_nacimiento', persona.fecha_nacimiento)
             if fecha_nacimiento_str:
                 try:
-                    # Asegúrate de que fecha_nacimiento_str sea una cadena antes de parsear
                     if isinstance(fecha_nacimiento_str, str):
                         def parse_date(date_str):
                             for fmt in ('%d/%m/%Y', '%Y-%m-%d'):
@@ -424,6 +432,20 @@ class EditarEmpleadoView(View):
                 return JsonResponse({'error': 'Los apellidos deben contener solo letras, tildes y espacios'}, status=400)
 
             persona.save()
+
+            # Actualización del tipo de licencia
+            tipo_licencia_id = request.POST.get('id_licencia')
+            if tipo_licencia_id:
+                try:
+                    tipo_licencia_obj = TipoLicencias.objects.get(id_tipo_licencia=tipo_licencia_id)
+                    empleados_tipo_licencias, created = EmpleadosTipoLicencias.objects.get_or_create(
+                        id_empleado=empleado, defaults={'id_tipo_licencia': tipo_licencia_obj})
+                    if not created:
+                        empleados_tipo_licencias.id_tipo_licencia = tipo_licencia_obj
+                        empleados_tipo_licencias.save()
+                except TipoLicencias.DoesNotExist:
+                    return JsonResponse({'error': 'El tipo de licencia no es válido'}, status=400)
+
 
             cargo_id = request.POST.get('id_cargo')
             if cargo_id:
@@ -476,6 +498,9 @@ class EditarEmpleadoView(View):
         except Exception as e:
             transaction.set_rollback(True)
             return JsonResponse({'error': str(e)}, status=500)
+        
+
+
         
 @method_decorator(csrf_exempt, name='dispatch')
 class DetalleEmpleadoView(View):
