@@ -859,7 +859,7 @@ class CrearInformeView(View):
                 # Verificar que la solicitud exista
                 solicitud = Solicitudes.objects.get(id_solicitud=id_solicitud)
 
-                # Crear el informe con la fecha y hora actual
+                # Crear el informe con la fecha y hora actual y estado 0
                 informe = Informes.objects.create(
                     id_solicitud=solicitud,
                     fecha_informe=fecha_informe,
@@ -867,7 +867,8 @@ class CrearInformeView(View):
                     hora_salida_informe=fechas_horas['hora_salida_informe'],
                     fecha_llegada_informe=fechas_horas['fecha_llegada_informe'],
                     hora_llegada_informe=fechas_horas['hora_llegada_informe'],
-                    observacion=observacion
+                    observacion=observacion,
+                    estado=0  # Asignar el estado como 0
                 )
 
                 # Crear los registros de transporte asociados al informe
@@ -914,3 +915,35 @@ class CrearInformeView(View):
         except Exception as e:
             return JsonResponse({'error': f'Error al crear el informe: {str(e)}'}, status=500)
 
+
+class ListarInformesView(View):
+    def get(self, request, id_usuario, *args, **kwargs):
+        try:
+            # Obtener el usuario y el empleado asociado
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
+            empleado = Empleados.objects.get(id_persona=usuario.id_persona)
+
+            # Obtener los informes asociados a las solicitudes del empleado
+            informes = Informes.objects.filter(id_solicitud__id_empleado=empleado)
+
+            # Preparar la respuesta con los datos requeridos
+            data = []
+            for informe in informes:
+                codigo_solicitud = informe.id_solicitud.generar_codigo_solicitud()  # Asumiendo que el método existe en Solicitudes
+                data.append({
+                    'id_informes': informe.id_informes,
+                    'codigo_solicitud': codigo_solicitud,
+                    'fecha_informe': informe.fecha_informe.strftime('%Y-%m-%d') if informe.fecha_informe else '',
+                    'estado':informe.estado,
+                })
+
+            return JsonResponse({'informes': data}, status=200)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'El usuario no existe'}, status=404)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({'error': 'El empleado no existe'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)

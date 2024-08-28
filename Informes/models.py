@@ -149,6 +149,8 @@ class Informes(models.Model):
     hora_llegada_informe = models.TimeField(blank=True, null=True)
     evento = models.CharField(max_length=255, blank=True, null=True)
     observacion = models.TextField(blank=True, null=True)
+    estado = models.IntegerField(choices=[(0, 'incompleto'), (1, 'completo')])
+
 
     class Meta:
         managed = False
@@ -156,11 +158,13 @@ class Informes(models.Model):
 
 
 class FacturasInformes(models.Model):
-    id_informe = models.OneToOneField('Informes', models.DO_NOTHING, db_column='id_informe', primary_key=True)  # The composite primary key (id_informe, tipo_documento) found, that is not supported. The first column is selected.
+    id_informe = models.OneToOneField('Informes', models.DO_NOTHING, db_column='id_informe', primary_key=True)
     tipo_documento = models.CharField(max_length=50)
+    numero_factura = models.CharField(max_length=50)
     fecha_emision = models.DateField(blank=True, null=True)
     detalle_documento = models.CharField(max_length=255, blank=True, null=True)
     valor = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    estado = models.IntegerField(choices=[(0, 'incompleto'), (1, 'completo')])
 
     class Meta:
         managed = False
