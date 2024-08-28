@@ -24,4 +24,6 @@ urlpatterns = [
     path('datos-informe/<int:id_solicitud>/', ListarDatosInformeView.as_view(), name='listar_informe'),
     path('crear-informe/<int:id_solicitud>/', CrearInformeView.as_view(), name='crear_informe'),
     path('listar-informes/<int:id_usuario>/', ListarInformesView.as_view(), name='listar_informes'),
+    path('detalle-informe/<int:id_informes>/', DetalleInformeView.as_view(), name='detalle_informe'),
+    path('editar-informe/<int:id_informes>/', EditarInformeView.as_view(), name='editar_informe')
  ]

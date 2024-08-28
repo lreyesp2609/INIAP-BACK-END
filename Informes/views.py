@@ -947,3 +947,126 @@ class ListarInformesView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+        
+class DetalleInformeView(View):
+    def get(self, request, id_informes, *args, **kwargs):
+        try:
+            # Obtener el informe por id
+            informe = Informes.objects.get(id_informes=id_informes)
+            solicitud = informe.id_solicitud
+            empleado = solicitud.id_empleado
+            persona = empleado.id_persona
+            cargo = empleado.id_cargo
+            unidad = cargo.id_unidad
+
+            # Combinar Distintivo, Apellidos y Nombres en una sola línea
+            nombre_completo = f"{empleado.distintivo if empleado.distintivo else ''} {persona.apellidos if persona.apellidos else ''} {persona.nombres if persona.nombres else ''}".strip()
+
+            # Formatear la fecha del informe en el formato día-mes-año
+            fecha_informe = informe.fecha_informe.strftime('%d-%m-%Y')
+
+            # Obtener transportes asociados al informe
+            transportes = TransporteInforme.objects.filter(id_informe=informe).values(
+                'tipo_transporte_info',
+                'nombre_transporte_info',
+                'ruta_info',
+                'fecha_salida_info',
+                'hora_salida_info',
+                'fecha_llegada_info',
+                'hora_llegada_info'
+            )
+
+            transportes_list = []
+            for transporte in transportes:
+                transportes_list.append({
+                    'Tipo de Transporte': transporte['tipo_transporte_info'],
+                    'Nombre del Transporte': transporte['nombre_transporte_info'],
+                    'Ruta': transporte['ruta_info'],
+                    'Fecha de Salida': transporte['fecha_salida_info'].strftime('%d-%m-%Y') if transporte['fecha_salida_info'] else '',
+                    'Hora de Salida': transporte['hora_salida_info'].strftime('%H:%M') if transporte['hora_salida_info'] else '',
+                    'Fecha de Llegada': transporte['fecha_llegada_info'].strftime('%d-%m-%Y') if transporte['fecha_llegada_info'] else '',
+                    'Hora de Llegada': transporte['hora_llegada_info'].strftime('%H:%M') if transporte['hora_llegada_info'] else '',
+                })
+
+            # Obtener productos alcanzados asociados al informe
+            productos = ProductosAlcanzadosInformes.objects.filter(id_informe=informe).values('descripcion')
+
+            productos_list = [producto['descripcion'] for producto in productos]
+
+            # Preparar la respuesta con todos los detalles del informe
+            data = {
+                'Codigo de Solicitud': solicitud.generar_codigo_solicitud(),
+                'Fecha del Informe': fecha_informe,
+                'Nombre Completo': nombre_completo,
+                'Cargo': cargo.cargo if cargo.cargo else '',
+                'Lugar de Servicio': solicitud.lugar_servicio if solicitud.lugar_servicio else '',
+                'Nombre de Unidad': unidad.nombre_unidad if unidad.nombre_unidad else '',
+                'Listado de Empleados': solicitud.listado_empleado if solicitud.listado_empleado else '',
+                'Fecha Salida Informe': informe.fecha_salida_informe.strftime('%d-%m-%Y') if informe.fecha_salida_informe else '',
+                'Hora Salida Informe': informe.hora_salida_informe.strftime('%H:%M') if informe.hora_salida_informe else '',
+                'Fecha Llegada Informe': informe.fecha_llegada_informe.strftime('%d-%m-%Y') if informe.fecha_llegada_informe else '',
+                'Hora Llegada Informe': informe.hora_llegada_informe.strftime('%H:%M') if informe.hora_llegada_informe else '',
+                'Observacion': informe.observacion if informe.observacion else '',
+                'Transportes': transportes_list,
+                'Productos Alcanzados': productos_list,
+            }
+
+            return JsonResponse({'detalle_informe': data}, status=200)
+
+        except Informes.DoesNotExist:
+            return JsonResponse({'error': 'El informe no existe'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class EditarInformeView(View):
+    def post(self, request, id_informes, *args, **kwargs):
+        try:
+            informe = Informes.objects.get(id_informes=id_informes)
+            data = json.loads(request.body.decode('utf-8'))
+
+            with transaction.atomic():
+                # Actualizar campos básicos del informe
+                informe.fecha_salida_informe = datetime.strptime(data['fecha_salida_informe'], '%Y-%m-%d').date()
+                informe.hora_salida_informe = datetime.strptime(data['hora_salida_informe'], '%H:%M').time()
+                informe.fecha_llegada_informe = datetime.strptime(data['fecha_llegada_informe'], '%Y-%m-%d').date()
+                informe.hora_llegada_informe = datetime.strptime(data['hora_llegada_informe'], '%H:%M').time()
+                informe.observacion = data.get('observacion', informe.observacion)
+                informe.save()
+
+                # Actualizar transportes
+                TransporteInforme.objects.filter(id_informe=informe).delete()
+                for transporte in data.get('transportes', []):
+                    TransporteInforme.objects.create(
+                        id_informe=informe,
+                        tipo_transporte_info=transporte['tipo_transporte_info'],
+                        nombre_transporte_info=transporte['nombre_transporte_info'],
+                        ruta_info=transporte['ruta_info'],
+                        fecha_salida_info=datetime.strptime(transporte['fecha_salida_info'], '%Y-%m-%d').date(),
+                        hora_salida_info=datetime.strptime(transporte['hora_salida_info'], '%H:%M').time(),
+                        fecha_llegada_info=datetime.strptime(transporte['fecha_llegada_info'], '%Y-%m-%d').date(),
+                        hora_llegada_info=datetime.strptime(transporte['hora_llegada_info'], '%H:%M').time()
+                    )
+
+                # Actualizar productos alcanzados
+                ProductosAlcanzadosInformes.objects.filter(id_informe=informe).delete()
+                for producto in data.get('productos', []):
+                    ProductosAlcanzadosInformes.objects.create(
+                        id_informe=informe,
+                        descripcion=producto['descripcion']
+                    )
+
+            return JsonResponse({
+                'mensaje': 'Informe actualizado exitosamente',
+                'id_informe': informe.id_informes
+            }, status=200)
+
+        except Informes.DoesNotExist:
+            return JsonResponse({'error': 'El informe especificado no existe'}, status=404)
+        except KeyError as e:
+            return JsonResponse({'error': f'Falta el campo requerido: {str(e)}'}, status=400)
+        except ValueError as e:
+            return JsonResponse({'error': f'Error de formato: {str(e)}'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': f'Error al actualizar el informe: {str(e)}'}, status=500)
