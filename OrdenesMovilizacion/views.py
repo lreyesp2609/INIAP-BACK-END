@@ -24,12 +24,10 @@ class CrearOrdenMovilizacionView(View):
                 return JsonResponse({'error': 'Token no proporcionado'}, status=400)
 
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-
             token_id_usuario = payload.get('id_usuario')
             if not token_id_usuario:
                 raise AuthenticationFailed('ID de usuario no encontrado en el token')
 
-            # Validación de permisos y coincidencia de ID de usuario en la URL
             if token_id_usuario != id_usuario:
                 return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
 
@@ -45,12 +43,30 @@ class CrearOrdenMovilizacionView(View):
             id_conductor_id = request.POST.get('id_conductor')
             id_vehiculo_id = request.POST.get('id_vehiculo')
             fecha_viaje = request.POST.get('fecha_viaje')
-            hora_ida = request.POST.get('hora_ida')
-            hora_regreso = request.POST.get('hora_regreso')
+            hora_ida_str = request.POST.get('hora_ida')
+            hora_regreso_str = request.POST.get('hora_regreso')
             estado_movilizacion = request.POST.get('estado_movilizacion')
 
             if len(motivo_movilizacion) > 30:
                 return JsonResponse({'error': 'El motivo de movilización no puede exceder los 30 caracteres'}, status=400)
+
+            # Convertir strings de hora a objetos datetime.time
+            hora_ida = datetime.strptime(hora_ida_str, '%H:%M').time()
+            hora_regreso = datetime.strptime(hora_regreso_str, '%H:%M').time()
+
+            # Validación de horas y duraciones con el modelo HorarioOrdenMovilizacion
+            horario = HorarioOrdenMovilizacion.objects.first()  # Obtener los límites de horario
+            if not horario.hora_ida_minima <= hora_ida <= horario.hora_llegada_maxima:
+                return JsonResponse({'error': 'La hora de ida o regreso no está dentro del rango permitido'}, status=400)
+
+            duracion_calculada = (datetime.combine(datetime.today(), hora_regreso) - datetime.combine(datetime.today(), hora_ida)).total_seconds() / 60
+            if not horario.duracion_minima <= duracion_calculada <= horario.duracion_maxima:
+                return JsonResponse({'error': 'La duración no está dentro del rango permitido'}, status=400)
+
+            # Validación de la ruta
+            ruta = RutasMovilizacion.objects.filter(ruta_descripcion=lugar_origen_destino_movilizacion, ruta_estado='1').first()
+            if not ruta:
+                return JsonResponse({'error': 'La ruta no coincide con ninguna ruta activa registrada'}, status=400)
 
             # Obtención de objetos relacionados por ID
             empleado = Empleados.objects.get(id_persona=usuario.id_persona)
