@@ -8,7 +8,7 @@ import jwt
 from .models import *
 from datetime import datetime
 from Vehiculos.models import Vehiculo
-from Empleados.models import Empleados, Usuarios, Rol
+from Empleados.models import Empleados, Usuarios
 from rest_framework.exceptions import AuthenticationFailed
 import logging
 
