@@ -11,6 +11,10 @@ from Vehiculos.models import Vehiculo
 from Empleados.models import Empleados, Usuarios
 from rest_framework.exceptions import AuthenticationFailed
 import logging
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from xhtml2pdf import pisa
+from io import BytesIO
 
 
 logger = logging.getLogger(__name__)
@@ -163,7 +167,6 @@ class ListarOrdenMovilizacionView(View):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
         
-
 @method_decorator(csrf_exempt, name='dispatch')
 class EditarOrdenMovilizacionView(View):
     def post(self, request, id_usuario, id_orden):
@@ -395,8 +398,6 @@ class HabilitarOrdenMovilizacionView(View):
         
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-        
-
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListarTodasOrdenMovilizacionView(View):
@@ -452,7 +453,6 @@ class ListarTodasOrdenMovilizacionView(View):
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-
 
 @method_decorator(csrf_exempt, name='dispatch')
 class RechazarOrdenMovilizacionView(View):
@@ -601,7 +601,6 @@ class AprobarOrdenMovilizacionView(View):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
-
 @method_decorator(csrf_exempt, name='dispatch')
 class ListarMotivoOrdenesMovilizacionView(View):
     def get(self, request, id_usuario):
@@ -643,8 +642,6 @@ class ListarMotivoOrdenesMovilizacionView(View):
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-
-
 
 @method_decorator(csrf_exempt, name='dispatch')
 class EditarMotivoOrdenMovilizacionView(View):
@@ -715,11 +712,6 @@ class EditarMotivoOrdenMovilizacionView(View):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-from django.http import HttpResponse
-from django.template.loader import render_to_string
-from xhtml2pdf import pisa
-import os
-
 def generar_pdf(orden):
     try:
         template_path = 'ordenes_movilizacion_pdf.html'
@@ -727,7 +719,7 @@ def generar_pdf(orden):
         conductor_persona = orden.id_conductor.id_persona
         empleado_persona = orden.id_empleado.id_persona
 
-         # Convertir la duración al formato "00:30hrs"
+        # Convertir la duración al formato "00:30hrs"
         duracion = orden.duracion_movilizacion
         horas = duracion.hour
         minutos = duracion.minute
@@ -737,6 +729,7 @@ def generar_pdf(orden):
 
         context = {
             'orden': orden,
+            'secuencial': orden.secuencial_orden_movilizacion,
             'conductor': orden.id_conductor,
             'conductor_persona': conductor_persona,
             'vehiculo': orden.id_vehiculo,
@@ -748,13 +741,15 @@ def generar_pdf(orden):
 
         html = render_to_string(template_path, context)
 
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="orden_{orden.id_orden_movilizacion}.pdf"'
+        result = BytesIO()
+        pdf = pisa.CreatePDF(BytesIO(html.encode("UTF-8")), dest=result)
 
-        pisa_status = pisa.CreatePDF(html, dest=response)
-        if pisa_status.err:
-            logger.error(f'Error al generar el PDF: {pisa_status.err}')
+        if pdf.err:
+            logger.error(f'Error al generar el PDF: {pdf.err}')
             return HttpResponse('Error al generar el PDF', status=500)
+
+        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="orden_{orden.id_orden_movilizacion}.pdf"'
         return response
 
     except Exception as e:
@@ -840,7 +835,6 @@ class ListarOrdenesAprobadasView(View):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
         
-
 @method_decorator(csrf_exempt, name='dispatch')
 class EditarHorarioView(View):
     def post(self, request, id_usuario, *args, **kwargs):
@@ -895,7 +889,6 @@ class EditarHorarioView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
 
 @method_decorator(csrf_exempt, name='dispatch')
 class VerHorarioView(View):
@@ -1023,7 +1016,6 @@ class EditarRutaView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListarRutasView(View):

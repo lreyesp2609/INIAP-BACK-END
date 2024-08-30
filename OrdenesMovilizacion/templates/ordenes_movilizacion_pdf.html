@@ -6,7 +6,7 @@
     <style>
         @page {
             size: 15.7cm 10cm;
-            margin: 0cm;
+            margin: 1cm;
         }
         body {
             font-family: Arial, sans-serif;
@@ -16,94 +16,107 @@
             height: 10cm;
         }
         .content {
-            padding: 0;
-            margin: 0;
+            padding: 5px;
+            text-align: center;
         }
         table {
+            margin: 0 auto;
+            table-layout: fixed;
+            font-size: 10px;
+        }
+        th, td {
+            padding: 3px;
+            text-align: left;
+            vertical-align: top;
+            border: 1px solid black;
+            font-size: 10px;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .tr1 td {
+            height: 0.7cm;
+        }
+        .tr2 td {
+            height: 0.7cm;
+        }
+        .tr3 td {
+            height: 0.7cm;
+        }
+        .tr4 td {
+            height: 0.7cm;
+        }
+        .tr5 td {
+            height: 1.3cm;
+        }
+        .tr6 td {
+            height: 1.3cm;
+        }
+        .col1 {
+            width: 8cm;
+        }
+        .col2 {
+            width: 5.2cm;
+        }
+        .title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 10px; 
+            padding: 5px 0;
+        }
+        .info-table {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
         }
-        table, th, td {
-            border: 0px solid white;
-        }
-        th, td {
-            padding: 0;
-            text-align: right;
-            word-wrap: break-word;
-        }
-        .row-1 {
-            height: 3cm;
-        }
-        .row-2 {
-            height: 0.6cm;
-        }
-        .row-3 {
-            height: 0.5cm;
-        }
-        .row-4 {
-            height: 1.3cm;
-        }
-        .row-5 {
-            height: 0.5cm;
-        }
-        .row-6 {
-            height: 1.3cm;
-        }
-        .row-7 {
-            height: 2.3cm;
-        }
-        .col-1 {
-            width: 1.3cm;
-        }
-        .col-2 {
-            width: 7.9cm;
-        }
-        .col-3 {
-            width: 5.2cm;
+        .info-table td {
+            padding: 5px;
+            vertical-align: top;
+            border: 1px solid black;
+            white-space: nowrap;
+            font-size: 10px; 
         }
     </style>
 </head>
 <body>
     <div class="content">
-        <table>
-            <tr class="row-1">
-                <td colspan="3"></td>
+        <div class="title">ORDEN DE MOVILIZACIÓN</div>
+        <div class="title">ESTACIÓN EXPERIMENTAL TROPICAL PICHILINGUE</div>
+        <div class="title">{{ orden.secuencial_orden_movilizacion }}</div>
+
+        <table class="info-table">
+            <tr class="tr1">
+                <td class="col1"><strong>Lugar, fecha y hora de emisión de la orden:</strong> Mocache, {{ fecha_actual }}</td>
+                <td class="col2"><strong>Marca/Tipo:</strong> {{ vehiculo.marca }} / {{ vehiculo.modelo }}</td>
             </tr>
-            <tr>
-                <td rowspan="7" class="col-1"></td>
-                <td class="row-2 col-2">{{ fecha_actual }}</td>
-                <td class="row-2 col-3">{{ vehiculo.marca }} / {{ vehiculo.modelo }}</td>
-                <td rowspan="7" class="col-1"></td>
+            <tr class="tr2">
+                <td class="col1"><strong>Motivo de Movilización:</strong> {{ orden.motivo_movilizacion }}</td>
+                <td class="col2"><strong>Color:</strong> {{ vehiculo.color_primario }}</td>
             </tr>
-            <tr>
-                <td class="row-3 col-2">{{ orden.motivo_movilizacion }}</td>
-                <td class="row-3 col-3">{{ vehiculo.color_primario }}</td>
+            <tr class="tr3">
+                <td class="col1"><strong>Lugar y origen de destino:</strong> {{ orden.lugar_origen_destino_movilizacion }}</td>
+                <td class="col2"><strong>Placa N°:</strong> {{ vehiculo.placa }}</td>
             </tr>
-            <tr>
-                <td class="row-3 col-2">{{ orden.lugar_origen_destino_movilizacion }}</td>
-                <td class="row-3 col-3">{{ vehiculo.placa }}</td>
+            <tr class="tr4">
+                <td class="col1"><strong>Tiempo de duración de la comisión:</strong> {{ duracion_formateada }}</td>
+                <td class="col2"><strong>Matrícula:</strong> {{ vehiculo.numero_matricula }}</td>
             </tr>
-            <tr>
-                <td class="row-3 col-2">{{ duracion_formateada }}</td>
-                <td class="row-3 col-3">{{ vehiculo.numero_matricula }}</td>
-            </tr>
-            <tr>
-                <td class="row-4 col-2">
-                    {{ conductor.distintivo }} {{ conductor_persona.nombres }} {{ conductor_persona.apellidos }}
-                <br> {{ conductor_persona.numero_cedula }}
+            <tr class="tr5">
+                <td class="col1">
+                    <strong>Nombres y apellidos del conductor:</strong> <br>
+                    {{ conductor.distintivo }} {{ conductor_persona.nombres }} {{ conductor_persona.apellidos }}<br>
+                    <strong>N° de cédula de ciudadanía:</strong> {{ conductor_persona.numero_cedula }}
                 </td>
-                <td class="row-4 col-3">{{ vehiculo.numero_motor }}</td>
+                <td class="col2"><strong>Motor:</strong> {{ vehiculo.numero_motor }}</td>
             </tr>
-            <tr>
-                <td class="row-6 col-2">
-                    {{ empleado.distintivo }} {{ empleado_persona.nombres }} {{ empleado_persona.apellidos }}
-                <br> {{ empleado_persona.numero_cedula }}
+            <tr class="tr6">
+                <td class="col1">
+                    <strong>Nombres y apellidos del funcionario:</strong> <br>
+                    {{ empleado.distintivo }} {{ empleado_persona.nombres }} {{ empleado_persona.apellidos }}<br>
+                    <strong>N° de cédula de ciudadanía:</strong> {{ empleado_persona.numero_cedula }}
                 </td>
-                <td class="row-6 col-3">{{ vehiculo.anio_fabricacion }}</td>
-            </tr>
-            <tr>
-                <td class="row-7 col-2" colspan="2"></td>
+                <td class="col2"><strong>Año:</strong> {{ vehiculo.anio_fabricacion }}</td>
             </tr>
         </table>
     </div>
