@@ -176,31 +176,51 @@ class EditarOrdenMovilizacionView(View):
 
             orden = OrdenesMovilizacion.objects.get(id_orden_movilizacion=id_orden)
 
-            # Verificar que el usuario tenga permiso para editar esta orden
             if payload.get('id_usuario') != id_usuario:
                 return JsonResponse({'error': 'No tienes permiso para editar esta orden'}, status=403)
 
-            # Obtener datos del formulario
             orden.motivo_movilizacion = request.POST.get('motivo_movilizacion', orden.motivo_movilizacion)
             orden.duracion_movilizacion = request.POST.get('duracion_movilizacion', orden.duracion_movilizacion)
             id_conductor_id = request.POST.get('id_conductor', orden.id_conductor.id_empleado if orden.id_conductor else '')
             id_vehiculo_id = request.POST.get('id_vehiculo', orden.id_vehiculo.id_vehiculo if orden.id_vehiculo else '')
             orden.fecha_viaje = request.POST.get('fecha_viaje', orden.fecha_viaje)
-            orden.hora_ida = request.POST.get('hora_ida', orden.hora_ida)
-            orden.hora_regreso = request.POST.get('hora_regreso', orden.hora_regreso)
 
             if len(orden.motivo_movilizacion) > 30:
                 return JsonResponse({'error': 'El motivo de movilización no puede exceder los 30 caracteres'}, status=400)
 
-            # Buscar objetos relacionados por ID
+            hora_ida_str = request.POST.get('hora_ida', orden.hora_ida)
+            hora_regreso_str = request.POST.get('hora_regreso', orden.hora_regreso)
+
+            if hora_ida_str and hora_regreso_str:
+                # Ajustar el formato de hora para manejar 'HH:MM' o 'HH:MM:SS'
+                try:
+                    hora_ida = datetime.strptime(hora_ida_str, '%H:%M').time()
+                except ValueError:
+                    hora_ida = datetime.strptime(hora_ida_str, '%H:%M:%S').time()
+                
+                try:
+                    hora_regreso = datetime.strptime(hora_regreso_str, '%H:%M').time()
+                except ValueError:
+                    hora_regreso = datetime.strptime(hora_regreso_str, '%H:%M:%S').time()
+
+                horario = HorarioOrdenMovilizacion.objects.first()
+                if not horario.hora_ida_minima <= hora_ida <= horario.hora_llegada_maxima:
+                    return JsonResponse({'error': 'La hora de ida o regreso no está dentro del rango permitido'}, status=400)
+
+                duracion_calculada = (datetime.combine(datetime.today(), hora_regreso) - datetime.combine(datetime.today(), hora_ida)).total_seconds() / 60
+                if not horario.duracion_minima <= duracion_calculada <= horario.duracion_maxima:
+                    return JsonResponse({'error': 'La duración no está dentro del rango permitido'}, status=400)
+
+            ruta = RutasMovilizacion.objects.filter(ruta_descripcion=orden.lugar_origen_destino_movilizacion, ruta_estado='1').first()
+            if not ruta:
+                return JsonResponse({'error': 'La ruta no coincide con ninguna ruta activa registrada'}, status=400)
+
             id_conductor = Empleados.objects.get(id_empleado=id_conductor_id)
             id_vehiculo = Vehiculo.objects.get(id_vehiculo=id_vehiculo_id)
 
-            # Asignar nuevos valores
             orden.id_conductor = id_conductor
             orden.id_vehiculo = id_vehiculo
 
-            # Guardar la orden actualizada
             orden.save()
 
             return JsonResponse({
@@ -225,7 +245,6 @@ class EditarOrdenMovilizacionView(View):
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-
         
 @method_decorator(csrf_exempt, name='dispatch')
 class DetalleOrdenMovilizacion(View):
