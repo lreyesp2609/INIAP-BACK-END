@@ -3,7 +3,7 @@ from django.conf import settings
 from django.shortcuts import render
 from django.http import JsonResponse
 import jwt
-
+from dateutil import parser  # Añadimos esta importación
 from .models import Empleados, Personas, ProductosAlcanzadosInformes, TransporteInforme, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades, TransporteSolicitudes, Vehiculo, CuentasBancarias
 from datetime import datetime, date
 import json
@@ -23,7 +23,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from .models import Solicitudes, Usuarios, Empleados
 from django.db.models import Max
-
 from django.conf import settings
 import jwt
 from django.core.exceptions import ObjectDoesNotExist
@@ -915,7 +914,6 @@ class CrearInformeView(View):
         except Exception as e:
             return JsonResponse({'error': f'Error al crear el informe: {str(e)}'}, status=500)
 
-
 class ListarInformesView(View):
     def get(self, request, id_usuario, *args, **kwargs):
         try:
@@ -1026,13 +1024,28 @@ class EditarInformeView(View):
             informe = Informes.objects.get(id_informes=id_informes)
             data = json.loads(request.body.decode('utf-8'))
 
+            print(f"Received data: {data}")  # Log received data
+
+            def parse_date(date_string):
+                try:
+                    return parser.parse(date_string).date()
+                except ValueError:
+                    raise ValueError(f"Invalid date format: {date_string}")
+
+            def parse_time(time_string):
+                try:
+                    return datetime.strptime(time_string, '%H:%M').time()
+                except ValueError:
+                    raise ValueError(f"Invalid time format: {time_string}")
+
             with transaction.atomic():
                 # Actualizar campos básicos del informe
-                informe.fecha_salida_informe = datetime.strptime(data['fecha_salida_informe'], '%Y-%m-%d').date()
-                informe.hora_salida_informe = datetime.strptime(data['hora_salida_informe'], '%H:%M').time()
-                informe.fecha_llegada_informe = datetime.strptime(data['fecha_llegada_informe'], '%Y-%m-%d').date()
-                informe.hora_llegada_informe = datetime.strptime(data['hora_llegada_informe'], '%H:%M').time()
+                informe.fecha_salida_informe = parse_date(data['fecha_salida_informe'])
+                informe.hora_salida_informe = parse_time(data['hora_salida_informe'])
+                informe.fecha_llegada_informe = parse_date(data['fecha_llegada_informe'])
+                informe.hora_llegada_informe = parse_time(data['hora_llegada_informe'])
                 informe.observacion = data.get('observacion', informe.observacion)
+                informe.estado=1
                 informe.save()
 
                 # Actualizar transportes
@@ -1043,10 +1056,10 @@ class EditarInformeView(View):
                         tipo_transporte_info=transporte['tipo_transporte_info'],
                         nombre_transporte_info=transporte['nombre_transporte_info'],
                         ruta_info=transporte['ruta_info'],
-                        fecha_salida_info=datetime.strptime(transporte['fecha_salida_info'], '%Y-%m-%d').date(),
-                        hora_salida_info=datetime.strptime(transporte['hora_salida_info'], '%H:%M').time(),
-                        fecha_llegada_info=datetime.strptime(transporte['fecha_llegada_info'], '%Y-%m-%d').date(),
-                        hora_llegada_info=datetime.strptime(transporte['hora_llegada_info'], '%H:%M').time()
+                        fecha_salida_info=parse_date(transporte['fecha_salida_info']),
+                        hora_salida_info=parse_time(transporte['hora_salida_info']),
+                        fecha_llegada_info=parse_date(transporte['fecha_llegada_info']),
+                        hora_llegada_info=parse_time(transporte['hora_llegada_info'])
                     )
 
                 # Actualizar productos alcanzados
@@ -1065,8 +1078,14 @@ class EditarInformeView(View):
         except Informes.DoesNotExist:
             return JsonResponse({'error': 'El informe especificado no existe'}, status=404)
         except KeyError as e:
+            print(f"KeyError: {str(e)}")
+            print(f"Received data: {data}")
             return JsonResponse({'error': f'Falta el campo requerido: {str(e)}'}, status=400)
         except ValueError as e:
+            print(f"ValueError: {str(e)}")
+            print(f"Received data: {data}")
             return JsonResponse({'error': f'Error de formato: {str(e)}'}, status=400)
         except Exception as e:
+            print(f"Unexpected error: {str(e)}")
+            print(f"Received data: {data}")
             return JsonResponse({'error': f'Error al actualizar el informe: {str(e)}'}, status=500)
