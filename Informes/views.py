@@ -914,7 +914,6 @@ class CrearInformeView(View):
         except Exception as e:
             return JsonResponse({'error': f'Error al crear el informe: {str(e)}'}, status=500)
 
-
 class ListarInformesView(View):
     def get(self, request, id_usuario, *args, **kwargs):
         try:
@@ -1018,7 +1017,6 @@ class DetalleInformeView(View):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-
 @method_decorator(csrf_exempt, name='dispatch')
 class EditarInformeView(View):
     def post(self, request, id_informes, *args, **kwargs):
@@ -1047,6 +1045,7 @@ class EditarInformeView(View):
                 informe.fecha_llegada_informe = parse_date(data['fecha_llegada_informe'])
                 informe.hora_llegada_informe = parse_time(data['hora_llegada_informe'])
                 informe.observacion = data.get('observacion', informe.observacion)
+                informe.estado=1
                 informe.save()
 
                 # Actualizar transportes
