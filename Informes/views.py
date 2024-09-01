@@ -1110,7 +1110,7 @@ class ListarInformesSinFacturasView(View):
             ).exclude(
                 id_informes__in=FacturasInformes.objects.values_list('id_informe', flat=True)
             ).filter(
-                estado=0  # Filtrar por estado "incompleto"
+                estado=1  # Filtrar por estado "completo"
             )
 
             # Preparar la respuesta con los datos requeridos
