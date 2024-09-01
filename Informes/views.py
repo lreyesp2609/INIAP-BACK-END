@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 import jwt
 from dateutil import parser  # Añadimos esta importación
-from .models import Empleados, Personas, ProductosAlcanzadosInformes, TransporteInforme, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades, TransporteSolicitudes, Vehiculo, CuentasBancarias
+from .models import Empleados, Personas, ProductosAlcanzadosInformes, TransporteInforme, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades, TransporteSolicitudes, Vehiculo, CuentasBancarias,FacturasInformes
 from datetime import datetime, date
 import json
 from django.utils.decorators import method_decorator
@@ -1089,3 +1089,47 @@ class EditarInformeView(View):
             print(f"Unexpected error: {str(e)}")
             print(f"Received data: {data}")
             return JsonResponse({'error': f'Error al actualizar el informe: {str(e)}'}, status=500)
+        
+
+class ListarInformesSinFacturasView(View):
+    def get(self, request, id_usuario, *args, **kwargs):
+        try:
+            # Obtener el usuario y el empleado asociado
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
+            empleado = Empleados.objects.get(id_persona=usuario.id_persona)
+
+            # Obtener las solicitudes del empleado con motivo de movilización específico
+            solicitudes = Solicitudes.objects.filter(
+                id_empleado=empleado,
+                motivo_movilizacion__in=['Movilizaciones', 'Viáticos']
+            )
+
+            # Obtener los informes asociados a las solicitudes filtradas y que no tienen facturas asociadas
+            informes = Informes.objects.filter(
+                id_solicitud__in=solicitudes
+            ).exclude(
+                id_informes__in=FacturasInformes.objects.values_list('id_informe', flat=True)
+            ).filter(
+                estado=0  # Filtrar por estado "incompleto"
+            )
+
+            # Preparar la respuesta con los datos requeridos
+            data = []
+            for informe in informes:
+                codigo_solicitud = informe.id_solicitud.generar_codigo_solicitud()
+                data.append({
+                    'id_informes': informe.id_informes,
+                    'Codigo de Solicitud': codigo_solicitud,
+                    'Fecha Solicitud': informe.id_solicitud.fecha_solicitud.strftime('%Y-%m-%d') if informe.id_solicitud.fecha_solicitud else '',
+                })
+
+            return JsonResponse({'informes': data}, status=200)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'El usuario no existe'}, status=404)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({'error': 'El empleado correspondiente al usuario no existe'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
