@@ -1,10 +1,11 @@
 
 from django.conf import settings
+from django.forms import ValidationError
 from django.shortcuts import render
 from django.http import JsonResponse
 import jwt
 from dateutil import parser  # Añadimos esta importación
-from .models import Empleados, Personas, ProductosAlcanzadosInformes, TransporteInforme, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades, TransporteSolicitudes, Vehiculo, CuentasBancarias,FacturasInformes
+from .models import Empleados, Personas, ProductosAlcanzadosInformes, TransporteInforme, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades, TransporteSolicitudes, Vehiculo, CuentasBancarias,FacturasInformes, TotalFactura
 from datetime import datetime, date
 import json
 from django.utils.decorators import method_decorator
@@ -1133,3 +1134,75 @@ class ListarInformesSinFacturasView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class CrearJustificacionView(View):
+    def post(self, request, id_informe, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            print("Datos recibidos:", data)
+
+            facturas = data.get('facturas', [])
+
+            if not facturas:
+                return JsonResponse({'error': 'Debe proporcionar al menos una factura.'}, status=400)
+
+            with transaction.atomic():
+                informe = Informes.objects.get(id_informes=id_informe)
+
+                justificaciones_creadas = []
+                total_factura = 0.0  # Inicializar como float
+
+                for factura in facturas:
+                    tipo_documento = factura.get('tipo_documento')
+                    numero_factura = factura.get('numero_factura')
+                    fecha_emision_str = factura.get('fecha_emision')
+                    detalle_documento = factura.get('detalle_documento', '')
+                    valor = factura.get('valor')
+
+                    if not all([tipo_documento, numero_factura, fecha_emision_str, valor is not None]):
+                        raise ValidationError('Todos los campos requeridos deben ser proporcionados para cada factura')
+
+                    try:
+                        fecha_emision = datetime.strptime(fecha_emision_str, '%Y-%m-%d').date()
+                    except ValueError:
+                        raise ValidationError('Formato de fecha inválido. Use YYYY-MM-DD.')
+
+                    try:
+                        valor = float(valor)
+                    except ValueError:
+                        raise ValidationError('El valor debe ser un número válido.')
+
+                    justificacion = FacturasInformes.objects.create(
+                        id_informe=informe,
+                        tipo_documento=tipo_documento,
+                        numero_factura=numero_factura,
+                        fecha_emision=fecha_emision,
+                        detalle_documento=detalle_documento,
+                        valor=valor,
+                        estado=0
+                    )
+
+                    justificaciones_creadas.append(justificacion.id_factura)
+                    total_factura += valor
+
+                total_factura_record, created = TotalFactura.objects.get_or_create(
+                    id_factura__id_informe=informe,
+                    defaults={'id_factura': justificacion, 'total': total_factura}
+                )
+
+                if not created:
+                    total_factura_record.total = total_factura
+                    total_factura_record.save()
+
+            return JsonResponse({
+                'mensaje': 'Justificaciones creadas exitosamente',
+                'justificaciones': justificaciones_creadas
+            }, status=201)
+
+        except Informes.DoesNotExist:
+            return JsonResponse({'error': 'El informe especificado no existe'}, status=404)
+        except ValidationError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': f'Error al crear las justificaciones: {str(e)}'}, status=500)

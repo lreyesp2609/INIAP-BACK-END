@@ -179,6 +179,7 @@ CREATE TABLE Actividades_Informes (
 );
 
 CREATE TABLE Facturas_Informes (
+    id_factura SERIAL PRIMARY KEY,
     id_informe INT NOT NULL,
     tipo_documento VARCHAR(50),
     numero_factura VARCHAR(50),
@@ -186,8 +187,14 @@ CREATE TABLE Facturas_Informes (
     detalle_documento VARCHAR(255),
     valor DECIMAL(10, 2),
     estado INTEGER CHECK (estado IN (0, 1)),
-    PRIMARY KEY (id_informe, tipo_documento),
     FOREIGN KEY (id_informe) REFERENCES Informes(id_informes)
+);
+
+CREATE TABLE Total_Factura (
+    id_total SERIAL PRIMARY KEY,
+    id_factura INT NOT NULL,
+    total DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (id_factura) REFERENCES Facturas_Informes(id_factura)
 );
 
 CREATE TABLE Productos_Alcanzados_Informes (

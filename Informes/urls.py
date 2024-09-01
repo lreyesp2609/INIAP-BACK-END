@@ -27,5 +27,5 @@ urlpatterns = [
     path('detalle-informe/<int:id_informes>/', DetalleInformeView.as_view(), name='detalle_informe'),
     path('editar-informe/<int:id_informes>/', EditarInformeView.as_view(), name='editar_informe'),
     path('informes-sin-facturas/<int:id_usuario>/', ListarInformesSinFacturasView.as_view(), name='listar_informes_sin_facturas'),
-
+    path('crear-justificacion/<int:id_informe>/', CrearJustificacionView.as_view(), name='crear_justificacion')
  ]
