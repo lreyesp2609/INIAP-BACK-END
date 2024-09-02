@@ -1206,3 +1206,102 @@ class CrearJustificacionView(View):
             return JsonResponse({'error': str(e)}, status=400)
         except Exception as e:
             return JsonResponse({'error': f'Error al crear las justificaciones: {str(e)}'}, status=500)
+
+class ListarFacturasView(View):
+    def get(self, request, id_usuario, *args, **kwargs):
+        try:
+            # Obtener el usuario y el empleado asociado
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
+            empleado = Empleados.objects.get(id_persona=usuario.id_persona)
+
+            # Obtener las facturas asociadas a los informes del empleado
+            facturas = FacturasInformes.objects.filter(id_informe__id_solicitud__id_empleado=empleado)
+
+            # Preparar la respuesta con los datos requeridos
+            data = []
+            for factura in facturas:
+                codigo_solicitud = factura.id_informe.id_solicitud.generar_codigo_solicitud()  # Asumiendo que el método existe en Solicitudes
+                data.append({
+                    'id_factura': factura.id_factura,
+                    'codigo_solicitud': codigo_solicitud,
+                    'fecha_informe': factura.id_informe.fecha_informe.strftime('%Y-%m-%d') if factura.id_informe.fecha_informe else '',
+                    'estado':factura.estado
+                })
+
+            return JsonResponse({'facturas': data}, status=200)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'El usuario no existe'}, status=404)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({'error': 'El empleado no existe'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class EditarJustificacionView(View):
+    def post(self, request, id_factura, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            print("Datos recibidos:", data)
+
+            tipo_documento = data.get('tipo_documento')
+            numero_factura = data.get('numero_factura')
+            fecha_emision_str = data.get('fecha_emision')
+            detalle_documento = data.get('detalle_documento', '')
+            valor = data.get('valor')
+            estado = data.get('estado')
+
+            if estado is None:
+                estado = 1  # Asignar estado 0 si no se proporciona
+
+            if not all([tipo_documento, numero_factura, fecha_emision_str, valor is not None]):
+                raise ValidationError('Todos los campos requeridos deben ser proporcionados.')
+
+            try:
+                fecha_emision = datetime.strptime(fecha_emision_str, '%d-%m-%Y').date()
+            except ValueError:
+                raise ValidationError('Formato de fecha inválido. Use DD-MM-YYYY.')
+
+            try:
+                valor = float(valor)
+            except ValueError:
+                raise ValidationError('El valor debe ser un número válido.')
+
+            with transaction.atomic():
+                justificacion = FacturasInformes.objects.get(id_factura=id_factura)
+                informe = justificacion.id_informe
+
+                justificacion.tipo_documento = tipo_documento
+                justificacion.numero_factura = numero_factura
+                justificacion.fecha_emision = fecha_emision
+                justificacion.detalle_documento = detalle_documento
+                justificacion.valor = valor
+                justificacion.estado = estado
+                justificacion.save()
+
+                # Calcular el total utilizando `sum`
+                facturas = FacturasInformes.objects.filter(id_informe=informe)
+                total_factura = sum(factura.valor or 0 for factura in facturas)
+
+                total_factura_record, created = TotalFactura.objects.get_or_create(
+                    id_factura=justificacion,
+                    defaults={'total': total_factura}
+                )
+
+                if not created:
+                    total_factura_record.total = total_factura
+                    total_factura_record.save()
+
+            return JsonResponse({
+                'mensaje': 'Justificación actualizada exitosamente',
+                'id_factura': id_factura
+            }, status=200)
+
+        except FacturasInformes.DoesNotExist:
+            return JsonResponse({'error': 'La justificación especificada no existe'}, status=404)
+        except ValidationError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': f'Error al actualizar la justificación: {str(e)}'}, status=500)
