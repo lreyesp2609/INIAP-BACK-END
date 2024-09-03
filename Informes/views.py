@@ -1412,4 +1412,3 @@ class ListarDetalleFacturasView(View):
             return JsonResponse({'error': 'No se encontró el estado para alguna de las facturas.'}, status=404)
         except Exception as e:
             return JsonResponse({'error': f'Error al listar las facturas: {str(e)}'}, status=500)
-
