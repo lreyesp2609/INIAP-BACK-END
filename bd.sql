@@ -186,7 +186,6 @@ CREATE TABLE Facturas_Informes (
     fecha_emision DATE,
     detalle_documento VARCHAR(255),
     valor DECIMAL(10, 2),
-    estado INTEGER CHECK (estado IN (0, 1)),
     FOREIGN KEY (id_informe) REFERENCES Informes(id_informes)
 );
 
@@ -194,6 +193,13 @@ CREATE TABLE Total_Factura (
     id_total SERIAL PRIMARY KEY,
     id_factura INT NOT NULL,
     total DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (id_factura) REFERENCES Facturas_Informes(id_factura)
+);
+
+CREATE TABLE Estado_Factura (
+    id_estadofactura SERIAL PRIMARY KEY,  -- Campo 'id_estadofactura' como clave primaria
+    id_factura INT NOT NULL,
+    estado INTEGER CHECK (estado IN (0, 1)),  -- Estado de la factura
     FOREIGN KEY (id_factura) REFERENCES Facturas_Informes(id_factura)
 );
 

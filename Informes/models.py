@@ -165,11 +165,19 @@ class FacturasInformes(models.Model):
     fecha_emision = models.DateField(blank=True, null=True)
     detalle_documento = models.CharField(max_length=255, blank=True, null=True)
     valor = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    estado = models.IntegerField(choices=[(0, 'incompleto'), (1, 'completo')])
 
     class Meta:
         managed = False
         db_table = 'facturas_informes'
+
+class EstadoFactura(models.Model):
+    id_estadofactura = models.AutoField(primary_key=True)  # Clave primaria autoincremental
+    id_factura = models.ForeignKey(FacturasInformes, on_delete=models.CASCADE, db_column='id_factura')
+    estado = models.IntegerField(choices=[(0, 'incompleto'), (1, 'completo')])
+
+    class Meta:
+        managed = False
+        db_table = 'estado_factura'
 
 
 class TotalFactura(models.Model):
