@@ -1234,14 +1234,14 @@ class ListarFacturaInformesView(View):
                 estado_facturas = EstadoFactura.objects.filter(id_factura__in=facturas).values_list('estado', flat=True)
 
                 # Obtener el estado de la primera factura si existe, o 0 si no hay facturas
-                estado = estado_facturas[0] if estado_facturas else 0
+                estado_factura = estado_facturas[0] if estado_facturas else 0
 
                 codigo_solicitud = informe.id_solicitud.generar_codigo_solicitud()  # Asumiendo que el método existe en Solicitudes
                 data.append({
                     'id_informe': informe.id_informes,  # id_informes para mostrar el id del informe
                     'codigo_solicitud': codigo_solicitud,
                     'fecha_informe': informe.fecha_informe.strftime('%Y-%m-%d') if informe.fecha_informe else '',
-                    'estado': estado
+                    'estado_factura': estado_factura
                 })
 
             return JsonResponse({'informes': data}, status=200)
@@ -1254,8 +1254,6 @@ class ListarFacturaInformesView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
-
 
 
 @method_decorator(csrf_exempt, name='dispatch')
