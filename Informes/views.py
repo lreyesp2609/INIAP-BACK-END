@@ -1217,28 +1217,23 @@ class CrearJustificacionView(View):
 class ListarFacturaInformesView(View):
     def get(self, request, id_usuario, *args, **kwargs):
         try:
-            # Obtener el usuario y el empleado asociado
             usuario = Usuarios.objects.get(id_usuario=id_usuario)
             empleado = Empleados.objects.get(id_persona=usuario.id_persona)
-
-            # Obtener los informes asociados al empleado
+            
             informes = Informes.objects.filter(id_solicitud__id_empleado=empleado)
-
-            # Preparar la respuesta con los datos requeridos
+            print(f"Informes encontrados: {informes}")  # Debugging
+             
             data = []
             for informe in informes:
-                # Obtener las facturas asociadas al informe
                 facturas = FacturasInformes.objects.filter(id_informe=informe)
+                print(f"Facturas encontradas para el informe {informe.id_informes}: {facturas}")  # Debugging
                 
-                # Determinar el estado basado en las facturas asociadas a través de EstadoFactura
                 estado_facturas = EstadoFactura.objects.filter(id_factura__in=facturas).values_list('estado', flat=True)
-
-                # Obtener el estado de la primera factura si existe, o 0 si no hay facturas
                 estado_factura = estado_facturas[0] if estado_facturas else 0
-
-                codigo_solicitud = informe.id_solicitud.generar_codigo_solicitud()  # Asumiendo que el método existe en Solicitudes
+                
+                codigo_solicitud = informe.id_solicitud.generar_codigo_solicitud()
                 data.append({
-                    'id_informe': informe.id_informes,  # id_informes para mostrar el id del informe
+                    'id_informe': informe.id_informes,
                     'codigo_solicitud': codigo_solicitud,
                     'fecha_informe': informe.fecha_informe.strftime('%Y-%m-%d') if informe.fecha_informe else '',
                     'estado_factura': estado_factura
@@ -1369,11 +1364,12 @@ class EditarJustificacionView(View):
             return JsonResponse({'error': f'Error al actualizar las justificaciones: {str(e)}'}, status=500)
 
 
-
 @method_decorator(csrf_exempt, name='dispatch')
 class ListarDetalleFacturasView(View):
     def get(self, request, id_informe, *args, **kwargs):
         try:
+            print(f"ID Informe recibido: {id_informe}")  # Verifica que el ID se recibe correctamente
+            
             facturas = FacturasInformes.objects.filter(id_informe=id_informe).values(
                 'id_factura',
                 'tipo_documento',
@@ -1386,20 +1382,15 @@ class ListarDetalleFacturasView(View):
             if not facturas:
                 return JsonResponse({'error': 'No se encontraron facturas para el informe especificado.'}, status=404)
 
-            # Convertir los datos de las facturas a un formato más manejable
             facturas_list = []
             for factura in facturas:
-                # Obtener el estado de la factura desde la tabla EstadoFactura
-                estado_factura = EstadoFactura.objects.get(id_factura=factura['id_factura']).estado
-
                 factura_data = {
                     'id_factura': factura['id_factura'],
                     'tipo_documento': factura['tipo_documento'],
                     'numero_factura': factura['numero_factura'],
-                    'fecha_emision': factura['fecha_emision'].strftime('%d-%m-%Y'),  # Convertir a formato DD-MM-YYYY
+                    'fecha_emision': factura['fecha_emision'].strftime('%d-%m-%Y'),
                     'detalle_documento': factura['detalle_documento'],
-                    'valor': str(factura['valor']),  # Asegúrate de que el valor sea una cadena si es necesario
-                    'estado': estado_factura  # Añadir el estado desde la tabla EstadoFactura
+                    'valor': str(factura['valor']) if factura['valor'] is not None else '0.00'
                 }
                 facturas_list.append(factura_data)
 
@@ -1408,7 +1399,6 @@ class ListarDetalleFacturasView(View):
                 'facturas': facturas_list
             }, status=200, safe=False)
 
-        except EstadoFactura.DoesNotExist:
-            return JsonResponse({'error': 'No se encontró el estado para alguna de las facturas.'}, status=404)
         except Exception as e:
+            print(f"Error al listar las facturas: {str(e)}")  # Agrega un log para errores
             return JsonResponse({'error': f'Error al listar las facturas: {str(e)}'}, status=500)
