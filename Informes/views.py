@@ -34,6 +34,8 @@ from django.http import JsonResponse
 from .models import Solicitudes, Empleados, Unidades, Usuarios
 from django.utils.dateparse import parse_date, parse_time
 from django.utils import timezone
+from django.db.models import Sum
+
 
 
 from django.db import transaction
@@ -1402,3 +1404,90 @@ class ListarDetalleFacturasView(View):
         except Exception as e:
             print(f"Error al listar las facturas: {str(e)}")  # Agrega un log para errores
             return JsonResponse({'error': f'Error al listar las facturas: {str(e)}'}, status=500)
+        
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ListarDetalleJustificacionesView(View):
+    def get(self, request, id_informe, *args, **kwargs):
+        try:
+            print(f"ID Informe recibido: {id_informe}")
+
+            # Diccionario para convertir nombres de meses en inglés a español
+            meses_espanol = {
+                'January': 'enero', 'February': 'febrero', 'March': 'marzo',
+                'April': 'abril', 'May': 'mayo', 'June': 'junio',
+                'July': 'julio', 'August': 'agosto', 'September': 'septiembre',
+                'October': 'octubre', 'November': 'noviembre', 'December': 'diciembre'
+            }
+
+            # Obtener el informe
+            informe = Informes.objects.get(pk=id_informe)
+
+            # Obtener la solicitud asociada y generar el código
+            solicitud = informe.id_solicitud
+            codigo_solicitud = solicitud.generar_codigo_solicitud()
+
+            # Formatear las fechas de salida y llegada
+            fecha_salida = informe.fecha_salida_informe
+            fecha_llegada = informe.fecha_llegada_informe
+
+            if fecha_salida and fecha_llegada:
+                mes_salida = fecha_salida.strftime('%B')
+                mes_llegada = fecha_llegada.strftime('%B')
+                
+                mes_salida_es = meses_espanol.get(mes_salida, mes_salida)
+                mes_llegada_es = meses_espanol.get(mes_llegada, mes_llegada)
+
+                if fecha_salida.month == fecha_llegada.month:
+                    rango_fechas = f"del {fecha_salida.day} al {fecha_llegada.day} de {mes_salida_es} del {fecha_salida.year}"
+                else:
+                    rango_fechas = f"del {fecha_salida.day} de {mes_salida_es} al {fecha_llegada.day} de {mes_llegada_es} del {fecha_llegada.year}"
+            else:
+                rango_fechas = 'Fechas no disponibles'
+
+            # Obtener las facturas asociadas
+            facturas = FacturasInformes.objects.filter(id_informe=id_informe).values(
+                'id_factura',
+                'tipo_documento',
+                'numero_factura',
+                'fecha_emision',
+                'detalle_documento',
+                'valor'
+            )
+
+            if not facturas:
+                return JsonResponse({'error': 'No se encontraron facturas para el informe especificado.'}, status=404)
+
+            # Preparar la lista de facturas
+            facturas_list = []
+            for factura in facturas:
+                valor_factura = float(factura['valor']) if factura['valor'] is not None else 0.00
+                factura_data = {
+                    'id_factura': factura['id_factura'],
+                    'tipo_documento': factura['tipo_documento'],
+                    'numero_factura': factura['numero_factura'],
+                    'fecha_emision': factura['fecha_emision'].strftime('%d-%m-%Y'),
+                    'detalle_documento': factura['detalle_documento'],
+                    'valor': valor_factura
+                }
+                facturas_list.append(factura_data)
+
+            # Calcular el total asociado a las facturas
+            total_factura = TotalFactura.objects.filter(id_factura__in=[factura['id_factura'] for factura in facturas]).aggregate(total_sum=Sum('total'))['total_sum'] or 0.00
+
+            # Convertir total_factura a cadena para evitar errores de tipo
+            total_factura_str = f"{total_factura:.2f}"
+
+            return JsonResponse({
+                'codigo_solicitud': codigo_solicitud,
+                'rango_fechas': rango_fechas,
+                'facturas': facturas_list,
+                'total_factura': total_factura_str
+            }, status=200, safe=False)
+
+        except Informes.DoesNotExist:
+            return JsonResponse({'error': 'Informe no encontrado.'}, status=404)
+
+        except Exception as e:
+            print(f"Error al listar el detalle de las justificaciones: {str(e)}")
+            return JsonResponse({'error': f'Error al listar el detalle de las justificaciones: {str(e)}'}, status=500)
