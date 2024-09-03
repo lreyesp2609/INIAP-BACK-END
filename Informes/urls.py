@@ -28,7 +28,7 @@ urlpatterns = [
     path('editar-informe/<int:id_informes>/', EditarInformeView.as_view(), name='editar_informe'),
     path('informes-sin-facturas/<int:id_usuario>/', ListarInformesSinFacturasView.as_view(), name='listar_informes_sin_facturas'),
     path('crear-justificacion/<int:id_informe>/', CrearJustificacionView.as_view(), name='crear_justificacion'),
-    path('listar-facturas/<int:id_usuario>/', ListarFacturasView.as_view(), name='listar_facturas'),
-    path('editar-justificacion/<int:id_factura>/', EditarJustificacionView.as_view(), name='editar_justificacion'),
-    
+    path('listar-facturas/<int:id_usuario>/', ListarFacturaInformesView.as_view(), name='listar_facturas'),
+    path('editar-justificacion/<int:id_informe>/', EditarJustificacionView.as_view(), name='editar_justificacion'),
+    path('listar-detalle-facturas/<int:id_informe>/', ListarDetalleFacturasView.as_view(), name='listar_detalle_facturas'),
  ]
