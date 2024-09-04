@@ -298,5 +298,5 @@ CREATE TABLE rutas_movilizacion (
     ruta_origen VARCHAR(250) NOT NULL,
     ruta_destino VARCHAR(250) NOT NULL,
     ruta_descripcion VARCHAR(250) NOT NULL,
-    ruta_estado VARCHAR(250) NOT NULL
+    ruta_estado SMALLINT NOT NULL DEFAULT 1
 ); 

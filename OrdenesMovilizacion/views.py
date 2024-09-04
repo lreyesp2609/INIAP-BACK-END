@@ -68,7 +68,7 @@ class CrearOrdenMovilizacionView(View):
                 return JsonResponse({'error': 'La duración no está dentro del rango permitido'}, status=400)
 
             # Validación de la ruta
-            ruta = RutasMovilizacion.objects.filter(ruta_descripcion=lugar_origen_destino_movilizacion, ruta_estado='1').first()
+            ruta = RutasMovilizacion.objects.filter(ruta_descripcion=lugar_origen_destino_movilizacion, ruta_estado=1).first()
             if not ruta:
                 return JsonResponse({'error': 'La ruta no coincide con ninguna ruta activa registrada'}, status=400)
 
@@ -214,7 +214,7 @@ class EditarOrdenMovilizacionView(View):
                 if not horario.duracion_minima <= duracion_calculada <= horario.duracion_maxima:
                     return JsonResponse({'error': 'La duración no está dentro del rango permitido'}, status=400)
 
-            ruta = RutasMovilizacion.objects.filter(ruta_descripcion=orden.lugar_origen_destino_movilizacion, ruta_estado='1').first()
+            ruta = RutasMovilizacion.objects.filter(ruta_descripcion=orden.lugar_origen_destino_movilizacion, ruta_estado=1).first()
             if not ruta:
                 return JsonResponse({'error': 'La ruta no coincide con ninguna ruta activa registrada'}, status=400)
 

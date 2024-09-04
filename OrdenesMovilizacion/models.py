@@ -119,7 +119,7 @@ class RutasMovilizacion(models.Model):
     ruta_origen = models.CharField(max_length=250)
     ruta_destino = models.CharField(max_length=250)
     ruta_descripcion = models.CharField(max_length=250)
-    ruta_estado = models.CharField(max_length=1)
+    ruta_estado = models.BigIntegerField(default=1)
 
     class Meta:
         managed = False
