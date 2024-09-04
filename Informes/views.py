@@ -1445,6 +1445,20 @@ class ListarDetalleJustificacionesView(View):
             else:
                 rango_fechas = 'Fechas no disponibles'
 
+            # Obtener el empleado asociado a la solicitud
+            empleado = solicitud.id_empleado
+            persona = empleado.id_persona
+
+            # Preparar los datos del empleado
+            distintivo = empleado.distintivo or ''
+            nombres = persona.nombres or ''
+            apellidos = persona.apellidos or ''
+            numero_cedula = persona.numero_cedula or ''
+
+            # Formato para el campo deseado
+            nombre_completo = f"{distintivo} {nombres} {apellidos}"
+            cedula = f"CI. {numero_cedula}"
+
             # Obtener las facturas asociadas
             facturas = FacturasInformes.objects.filter(id_informe=id_informe).values(
                 'id_factura',
@@ -1481,6 +1495,8 @@ class ListarDetalleJustificacionesView(View):
             return JsonResponse({
                 'codigo_solicitud': codigo_solicitud,
                 'rango_fechas': rango_fechas,
+                'nombre_completo': nombre_completo,
+                'cedula': cedula,
                 'facturas': facturas_list,
                 'total_factura': total_factura_str
             }, status=200, safe=False)
