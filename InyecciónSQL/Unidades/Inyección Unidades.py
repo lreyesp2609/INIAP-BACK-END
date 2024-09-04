@@ -1,9 +1,10 @@
 import pandas as pd
 import requests
 import jwt
+import os
 
 # Ruta al archivo Excel
-file_path = r'C:\Users\Luis\Desktop\INIAP-SOFTWARE\INIAP-BACK-END\Inyección SQL\Unidades\Listado personal SP.xlsx'
+file_path = os.path.join(os.getcwd(), 'inyecciónSQL/Unidades/Listado personal SP.xlsx')
 df = pd.read_excel(file_path, engine='openpyxl')
 
 # URL de la API
