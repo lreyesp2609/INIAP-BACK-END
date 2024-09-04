@@ -150,7 +150,7 @@ CREATE TABLE Transporte_Solicitudes (
 CREATE TABLE Encabezados (
     id_encabezado SERIAL PRIMARY KEY,
     encabezado_superior TEXT NULL,
-    encabezado_inferior TEXT NULL,
+    encabezado_inferior TEXT NULL
 );
 
 CREATE TABLE Informes (
