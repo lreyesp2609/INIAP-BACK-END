@@ -151,25 +151,42 @@ class Informes(models.Model):
     observacion = models.TextField(blank=True, null=True)
     estado = models.IntegerField(choices=[(0, 'incompleto'), (1, 'completo')])
 
-
     class Meta:
         managed = False
         db_table = 'informes'
 
 
 class FacturasInformes(models.Model):
-    id_informe = models.OneToOneField('Informes', models.DO_NOTHING, db_column='id_informe', primary_key=True)
+    id_factura = models.AutoField(primary_key=True)  # Clave primaria autoincremental
+    id_informe = models.ForeignKey('Informes', on_delete=models.DO_NOTHING, db_column='id_informe')
     tipo_documento = models.CharField(max_length=50)
     numero_factura = models.CharField(max_length=50)
     fecha_emision = models.DateField(blank=True, null=True)
     detalle_documento = models.CharField(max_length=255, blank=True, null=True)
     valor = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    estado = models.IntegerField(choices=[(0, 'incompleto'), (1, 'completo')])
 
     class Meta:
         managed = False
         db_table = 'facturas_informes'
-        unique_together = (('id_informe', 'tipo_documento'),)
+
+class EstadoFactura(models.Model):
+    id_estadofactura = models.AutoField(primary_key=True)  # Clave primaria autoincremental
+    id_factura = models.ForeignKey(FacturasInformes, on_delete=models.CASCADE, db_column='id_factura')
+    estado = models.IntegerField(choices=[(0, 'incompleto'), (1, 'completo')])
+
+    class Meta:
+        managed = False
+        db_table = 'estado_factura'
+
+
+class TotalFactura(models.Model):
+    id_total = models.AutoField(primary_key=True)  # Clave primaria autoincremental
+    id_factura = models.ForeignKey('FacturasInformes', on_delete=models.CASCADE, db_column='id_factura')
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        managed = False
+        db_table = 'total_factura'
 
 
 class TransporteInforme(models.Model):

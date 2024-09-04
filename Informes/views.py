@@ -1,10 +1,12 @@
 
 from django.conf import settings
+from django.forms import ValidationError
 from django.shortcuts import render
 from django.http import JsonResponse
 import jwt
-from dateutil import parser  # Añadimos esta importación
-from .models import Empleados, Personas, ProductosAlcanzadosInformes, TransporteInforme, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades, TransporteSolicitudes, Vehiculo, CuentasBancarias,FacturasInformes
+from dateutil import parser
+
+from .models import Empleados, Personas, ProductosAlcanzadosInformes, TransporteInforme, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades, TransporteSolicitudes, Vehiculo, CuentasBancarias,FacturasInformes, TotalFactura,EstadoFactura
 from datetime import datetime, date
 import json
 from django.utils.decorators import method_decorator
@@ -32,6 +34,8 @@ from django.http import JsonResponse
 from .models import Solicitudes, Empleados, Unidades, Usuarios
 from django.utils.dateparse import parse_date, parse_time
 from django.utils import timezone
+from django.db.models import Sum
+
 
 
 from django.db import transaction
@@ -1133,3 +1137,357 @@ class ListarInformesSinFacturasView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class CrearJustificacionView(View):
+    def post(self, request, id_informe, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            print("Datos recibidos:", data)
+
+            facturas = data.get('facturas', [])
+
+            if not facturas:
+                return JsonResponse({'error': 'Debe proporcionar al menos una factura.'}, status=400)
+
+            with transaction.atomic():
+                informe = Informes.objects.get(id_informes=id_informe)
+
+                justificaciones_creadas = []
+                total_factura = 0.0  # Inicializar como float
+
+                for factura in facturas:
+                    tipo_documento = factura.get('tipo_documento')
+                    numero_factura = factura.get('numero_factura')
+                    fecha_emision_str = factura.get('fecha_emision')
+                    detalle_documento = factura.get('detalle_documento', '')
+                    valor = factura.get('valor')
+
+                    if not all([tipo_documento, numero_factura, fecha_emision_str, valor is not None]):
+                        raise ValidationError('Todos los campos requeridos deben ser proporcionados para cada factura')
+
+                    try:
+                        fecha_emision = datetime.strptime(fecha_emision_str, '%Y-%m-%d').date()
+                    except ValueError:
+                        raise ValidationError('Formato de fecha inválido. Use YYYY-MM-DD.')
+
+                    try:
+                        valor = float(valor)
+                    except ValueError:
+                        raise ValidationError('El valor debe ser un número válido.')
+
+                    justificacion = FacturasInformes.objects.create(
+                        id_informe=informe,
+                        tipo_documento=tipo_documento,
+                        numero_factura=numero_factura,
+                        fecha_emision=fecha_emision,
+                        detalle_documento=detalle_documento,
+                        valor=valor
+                    )
+
+                    # Crear registro en la tabla EstadoFactura
+                    EstadoFactura.objects.create(
+                        id_factura=justificacion,
+                        estado=0  # Estado inicial como 'incompleto'
+                    )
+
+                    justificaciones_creadas.append(justificacion.id_factura)
+                    total_factura += valor
+
+                total_factura_record, created = TotalFactura.objects.get_or_create(
+                    id_factura__id_informe=informe,
+                    defaults={'id_factura': justificacion, 'total': total_factura}
+                )
+
+                if not created:
+                    total_factura_record.total = total_factura
+                    total_factura_record.save()
+
+            return JsonResponse({
+                'mensaje': 'Justificaciones creadas exitosamente',
+                'justificaciones': justificaciones_creadas
+            }, status=201)
+
+        except Informes.DoesNotExist:
+            return JsonResponse({'error': 'El informe especificado no existe'}, status=404)
+        except ValidationError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': f'Error al crear las justificaciones: {str(e)}'}, status=500)
+
+
+class ListarFacturaInformesView(View):
+    def get(self, request, id_usuario, *args, **kwargs):
+        try:
+            usuario = Usuarios.objects.get(id_usuario=id_usuario)
+            empleado = Empleados.objects.get(id_persona=usuario.id_persona)
+            
+            informes = Informes.objects.filter(id_solicitud__id_empleado=empleado)
+            print(f"Informes encontrados: {informes}")  # Debugging
+             
+            data = []
+            for informe in informes:
+                facturas = FacturasInformes.objects.filter(id_informe=informe)
+                print(f"Facturas encontradas para el informe {informe.id_informes}: {facturas}")  # Debugging
+                
+                estado_facturas = EstadoFactura.objects.filter(id_factura__in=facturas).values_list('estado', flat=True)
+                estado_factura = estado_facturas[0] if estado_facturas else 0
+                
+                codigo_solicitud = informe.id_solicitud.generar_codigo_solicitud()
+                data.append({
+                    'id_informe': informe.id_informes,
+                    'codigo_solicitud': codigo_solicitud,
+                    'fecha_informe': informe.fecha_informe.strftime('%Y-%m-%d') if informe.fecha_informe else '',
+                    'estado_factura': estado_factura
+                })
+
+            return JsonResponse({'informes': data}, status=200)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({'error': 'El usuario no existe'}, status=404)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({'error': 'El empleado no existe'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class EditarJustificacionView(View):
+    def post(self, request, id_informe, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            print("Datos recibidos:", data)
+
+            facturas = data.get('facturas', [])
+            if not facturas:
+                return JsonResponse({'error': 'Debe proporcionar al menos una factura.'}, status=400)
+
+            justificaciones_actualizadas = []
+            ids_facturas_existentes = set()
+
+            with transaction.atomic():
+                informe = Informes.objects.get(id_informes=id_informe)
+                
+                # Obtener todas las facturas actuales asociadas al informe
+                facturas_existentes = FacturasInformes.objects.filter(id_informe=informe)
+
+                total_factura = 0.0  # Inicializar el total como float
+
+                for factura in facturas:
+                    tipo_documento = factura.get('tipo_documento')
+                    numero_factura = factura.get('numero_factura')
+                    fecha_emision_str = factura.get('fecha_emision')
+                    detalle_documento = factura.get('detalle_documento', '')
+                    valor = factura.get('valor')
+
+                    if not all([tipo_documento, numero_factura, fecha_emision_str, valor is not None]):
+                        raise ValidationError('Todos los campos requeridos deben ser proporcionados para cada factura.')
+
+                    try:
+                        fecha_emision = datetime.strptime(fecha_emision_str, '%d-%m-%Y').date()
+                    except ValueError:
+                        raise ValidationError('Formato de fecha inválido. Use DD-MM-YYYY.')
+
+                    try:
+                        valor = float(valor)
+                    except ValueError:
+                        raise ValidationError('El valor debe ser un número válido.')
+
+                    # Intentar encontrar una factura existente con el mismo número
+                    justificacion = facturas_existentes.filter(numero_factura=numero_factura).first()
+
+                    if justificacion:
+                        # Si la factura existe, actualizarla
+                        justificacion.tipo_documento = tipo_documento
+                        justificacion.fecha_emision = fecha_emision
+                        justificacion.detalle_documento = detalle_documento
+                        justificacion.valor = valor
+                        justificacion.save()
+
+                        # Actualizar o crear el estado de la factura en la tabla EstadoFactura
+                        estado_factura, created = EstadoFactura.objects.get_or_create(
+                            id_factura=justificacion,
+                            defaults={'estado': 1}  # Asumir que la factura editada está 'completa'
+                        )
+                        if not created:
+                            estado_factura.estado = 1  # Actualizar el estado si ya existía
+                            estado_factura.save()
+
+                        # Añadir el id de la factura existente
+                        ids_facturas_existentes.add(justificacion.id_factura)
+                    else:
+                        # Si la factura no existe, crear una nueva
+                        justificacion = FacturasInformes.objects.create(
+                            id_informe=informe,
+                            tipo_documento=tipo_documento,
+                            numero_factura=numero_factura,
+                            fecha_emision=fecha_emision,
+                            detalle_documento=detalle_documento,
+                            valor=valor
+                        )
+
+                        # Crear un nuevo registro en EstadoFactura para la nueva factura
+                        EstadoFactura.objects.create(
+                            id_factura=justificacion,
+                            estado=1  # Estado inicial como 'completo'
+                        )
+
+                        # Añadir el id de la nueva factura
+                        ids_facturas_existentes.add(justificacion.id_factura)
+
+                    justificaciones_actualizadas.append(justificacion.id_factura)
+                    total_factura += valor
+
+                # Actualizar o crear el total de la factura
+                total_factura_record, created = TotalFactura.objects.get_or_create(
+                    id_factura__id_informe=informe,
+                    defaults={'total': total_factura}
+                )
+
+                if not created:
+                    total_factura_record.total = total_factura
+                    total_factura_record.save()
+
+                # Eliminar facturas que ya no están en la solicitud
+                facturas_existentes.exclude(id_factura__in=ids_facturas_existentes).delete()
+
+            return JsonResponse({
+                'mensaje': 'Justificaciones actualizadas exitosamente',
+                'justificaciones': justificaciones_actualizadas
+            }, status=200)
+
+        except Informes.DoesNotExist:
+            return JsonResponse({'error': 'El informe especificado no existe.'}, status=404)
+        except ValidationError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': f'Error al actualizar las justificaciones: {str(e)}'}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ListarDetalleFacturasView(View):
+    def get(self, request, id_informe, *args, **kwargs):
+        try:
+            print(f"ID Informe recibido: {id_informe}")  # Verifica que el ID se recibe correctamente
+            
+            facturas = FacturasInformes.objects.filter(id_informe=id_informe).values(
+                'id_factura',
+                'tipo_documento',
+                'numero_factura',
+                'fecha_emision',
+                'detalle_documento',
+                'valor'
+            )
+
+            if not facturas:
+                return JsonResponse({'error': 'No se encontraron facturas para el informe especificado.'}, status=404)
+
+            facturas_list = []
+            for factura in facturas:
+                factura_data = {
+                    'id_factura': factura['id_factura'],
+                    'tipo_documento': factura['tipo_documento'],
+                    'numero_factura': factura['numero_factura'],
+                    'fecha_emision': factura['fecha_emision'].strftime('%d-%m-%Y'),
+                    'detalle_documento': factura['detalle_documento'],
+                    'valor': str(factura['valor']) if factura['valor'] is not None else '0.00'
+                }
+                facturas_list.append(factura_data)
+
+            return JsonResponse({
+                'mensaje': 'Facturas listadas exitosamente',
+                'facturas': facturas_list
+            }, status=200, safe=False)
+
+        except Exception as e:
+            print(f"Error al listar las facturas: {str(e)}")  # Agrega un log para errores
+            return JsonResponse({'error': f'Error al listar las facturas: {str(e)}'}, status=500)
+        
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ListarDetalleJustificacionesView(View):
+    def get(self, request, id_informe, *args, **kwargs):
+        try:
+            print(f"ID Informe recibido: {id_informe}")
+
+            # Diccionario para convertir nombres de meses en inglés a español
+            meses_espanol = {
+                'January': 'enero', 'February': 'febrero', 'March': 'marzo',
+                'April': 'abril', 'May': 'mayo', 'June': 'junio',
+                'July': 'julio', 'August': 'agosto', 'September': 'septiembre',
+                'October': 'octubre', 'November': 'noviembre', 'December': 'diciembre'
+            }
+
+            # Obtener el informe
+            informe = Informes.objects.get(pk=id_informe)
+
+            # Obtener la solicitud asociada y generar el código
+            solicitud = informe.id_solicitud
+            codigo_solicitud = solicitud.generar_codigo_solicitud()
+
+            # Formatear las fechas de salida y llegada
+            fecha_salida = informe.fecha_salida_informe
+            fecha_llegada = informe.fecha_llegada_informe
+
+            if fecha_salida and fecha_llegada:
+                mes_salida = fecha_salida.strftime('%B')
+                mes_llegada = fecha_llegada.strftime('%B')
+                
+                mes_salida_es = meses_espanol.get(mes_salida, mes_salida)
+                mes_llegada_es = meses_espanol.get(mes_llegada, mes_llegada)
+
+                if fecha_salida.month == fecha_llegada.month:
+                    rango_fechas = f"del {fecha_salida.day} al {fecha_llegada.day} de {mes_salida_es} del {fecha_salida.year}"
+                else:
+                    rango_fechas = f"del {fecha_salida.day} de {mes_salida_es} al {fecha_llegada.day} de {mes_llegada_es} del {fecha_llegada.year}"
+            else:
+                rango_fechas = 'Fechas no disponibles'
+
+            # Obtener las facturas asociadas
+            facturas = FacturasInformes.objects.filter(id_informe=id_informe).values(
+                'id_factura',
+                'tipo_documento',
+                'numero_factura',
+                'fecha_emision',
+                'detalle_documento',
+                'valor'
+            )
+
+            if not facturas:
+                return JsonResponse({'error': 'No se encontraron facturas para el informe especificado.'}, status=404)
+
+            # Preparar la lista de facturas
+            facturas_list = []
+            for factura in facturas:
+                valor_factura = float(factura['valor']) if factura['valor'] is not None else 0.00
+                factura_data = {
+                    'id_factura': factura['id_factura'],
+                    'tipo_documento': factura['tipo_documento'],
+                    'numero_factura': factura['numero_factura'],
+                    'fecha_emision': factura['fecha_emision'].strftime('%d-%m-%Y'),
+                    'detalle_documento': factura['detalle_documento'],
+                    'valor': valor_factura
+                }
+                facturas_list.append(factura_data)
+
+            # Calcular el total asociado a las facturas
+            total_factura = TotalFactura.objects.filter(id_factura__in=[factura['id_factura'] for factura in facturas]).aggregate(total_sum=Sum('total'))['total_sum'] or 0.00
+
+            # Convertir total_factura a cadena para evitar errores de tipo
+            total_factura_str = f"{total_factura:.2f}"
+
+            return JsonResponse({
+                'codigo_solicitud': codigo_solicitud,
+                'rango_fechas': rango_fechas,
+                'facturas': facturas_list,
+                'total_factura': total_factura_str
+            }, status=200, safe=False)
+
+        except Informes.DoesNotExist:
+            return JsonResponse({'error': 'Informe no encontrado.'}, status=404)
+
+        except Exception as e:
+            print(f"Error al listar el detalle de las justificaciones: {str(e)}")
+            return JsonResponse({'error': f'Error al listar el detalle de las justificaciones: {str(e)}'}, status=500)
