@@ -151,7 +151,6 @@ class Informes(models.Model):
     observacion = models.TextField(blank=True, null=True)
     estado = models.IntegerField(choices=[(0, 'incompleto'), (1, 'completo')])
 
-
     class Meta:
         managed = False
         db_table = 'informes'
