@@ -1449,6 +1449,10 @@ class ListarDetalleJustificacionesView(View):
             empleado = solicitud.id_empleado
             persona = empleado.id_persona
 
+            # Obtener el cargo del empleado
+            cargo_obj = Cargos.objects.get(id_cargo=empleado.id_cargo.id_cargo)  # Asegúrate que `id_cargo` esté relacionado con empleado
+            nombre_cargo = cargo_obj.cargo
+
             # Preparar los datos del empleado
             distintivo = empleado.distintivo or ''
             nombres = persona.nombres or ''
@@ -1497,6 +1501,7 @@ class ListarDetalleJustificacionesView(View):
                 'rango_fechas': rango_fechas,
                 'nombre_completo': nombre_completo,
                 'cedula': cedula,
+                'cargo': nombre_cargo,  # Añadir el cargo al JSON de respuesta
                 'facturas': facturas_list,
                 'total_factura': total_factura_str
             }, status=200, safe=False)
