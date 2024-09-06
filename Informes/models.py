@@ -138,6 +138,14 @@ class Solicitudes(models.Model):
 
         return codigo_solicitud
 
+class MotivoCancelado(models.Model):
+    id_motivo_cancelado = models.AutoField(primary_key=True)
+    id_solicitud = models.ForeignKey(Solicitudes, models.DO_NOTHING, db_column='id_solicitud')
+    motivo_cancelado = models.TextField()
+
+    class Meta:
+        managed = False
+        db_table = 'motivo_cancelado'
 
 class Informes(models.Model):
     id_informes = models.AutoField(primary_key=True)
