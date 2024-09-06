@@ -1,4 +1,3 @@
-
 from django.conf import settings
 from django.forms import ValidationError
 from django.shortcuts import render
@@ -36,9 +35,17 @@ from django.utils.dateparse import parse_date, parse_time
 from django.utils import timezone
 from django.db.models import Sum
 
-
-
 from django.db import transaction
+
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework.exceptions import AuthenticationFailed
+from django.conf import settings
+import logging
+logger = logging.getLogger(__name__)
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from xhtml2pdf import pisa
+from io import BytesIO
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearSolicitudView(View):
@@ -1512,3 +1519,119 @@ class ListarDetalleJustificacionesView(View):
         except Exception as e:
             print(f"Error al listar el detalle de las justificaciones: {str(e)}")
             return JsonResponse({'error': f'Error al listar el detalle de las justificaciones: {str(e)}'}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class GenerarPdfInformeView(View):
+    def get(self, request, id_usuario, id_informe):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
+            informe = Informes.objects.get(id_informes=id_informe)
+            if not informe:
+                return JsonResponse({"error": "Informe no encontrado"}, status=404)
+
+            return generar_pdf(informe)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except AuthenticationFailed as e:
+            return JsonResponse({'error': str(e)}, status=403)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({"error": "Usuario no encontrado"}, status=404)
+
+        except Solicitudes.DoesNotExist:
+            return JsonResponse({"error": "Orden de movilización no encontrada"}, status=404)
+
+        except Exception as e:
+            print(f'Error al generar el PDF: {str(e)}')
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+def generar_pdf(informe):
+    try:
+        template_path = 'informe_viaje_pdf.html'
+        
+        solicitud = informe.id_solicitud
+        empleado = solicitud.id_empleado
+        persona = empleado.id_persona
+        cargo = empleado.id_cargo
+        unidad = cargo.id_unidad
+        
+        nombre_completo = f"{empleado.distintivo if empleado.distintivo else ''} {persona.apellidos if persona.apellidos else ''} {persona.nombres if persona.nombres else ''}".strip()
+        
+        fecha_informe = informe.fecha_informe.strftime('%d-%m-%Y')
+        
+        transportes = TransporteInforme.objects.filter(id_informe=informe).values(
+            'tipo_transporte_info',
+            'nombre_transporte_info',
+            'ruta_info',
+            'fecha_salida_info',
+            'hora_salida_info',
+            'fecha_llegada_info',
+            'hora_llegada_info'
+        )
+        
+        transportes_list = []
+        for transporte in transportes:
+            transportes_list.append({
+                'Tipo de Transporte': transporte['tipo_transporte_info'],
+                'Nombre del Transporte': transporte['nombre_transporte_info'],
+                'Ruta': transporte['ruta_info'],
+                'Fecha de Salida': transporte['fecha_salida_info'].strftime('%d-%m-%Y') if transporte['fecha_salida_info'] else '',
+                'Hora de Salida': transporte['hora_salida_info'].strftime('%H:%M') if transporte['hora_salida_info'] else '',
+                'Fecha de Llegada': transporte['fecha_llegada_info'].strftime('%d-%m-%Y') if transporte['fecha_llegada_info'] else '',
+                'Hora de Llegada': transporte['hora_llegada_info'].strftime('%H:%M') if transporte['hora_llegada_info'] else '',
+            })
+        
+        productos = ProductosAlcanzadosInformes.objects.filter(id_informe=informe).values('descripcion')
+        productos_list = [producto['descripcion'] for producto in productos]
+        
+        context = {
+            'codigo_solicitud': solicitud.generar_codigo_solicitud(),
+            'fecha_informe': fecha_informe,
+            'nombre_completo': nombre_completo,
+            'cargo': cargo.cargo if cargo.cargo else '',
+            'lugar_servicio': solicitud.lugar_servicio if solicitud.lugar_servicio else '',
+            'nombre_unidad': unidad.nombre_unidad if unidad.nombre_unidad else '',
+            'listado_empleados': solicitud.listado_empleado if solicitud.listado_empleado else '',
+            'fecha_salida_informe': informe.fecha_salida_informe.strftime('%d-%m-%Y') if informe.fecha_salida_informe else '',
+            'hora_salida_informe': informe.hora_salida_informe.strftime('%H:%M') if informe.hora_salida_informe else '',
+            'fecha_llegada_informe': informe.fecha_llegada_informe.strftime('%d-%m-%Y') if informe.fecha_llegada_informe else '',
+            'hora_llegada_informe': informe.hora_llegada_informe.strftime('%H:%M') if informe.hora_llegada_informe else '',
+            'observacion': informe.observacion if informe.observacion else '',
+            'transportes': transportes_list,
+            'productos_alcanzados': productos_list,
+        }
+
+        html = render_to_string(template_path, context)
+
+        result = BytesIO()
+        pdf = pisa.CreatePDF(BytesIO(html.encode("UTF-8")), dest=result)
+
+        if pdf.err:
+            logger.error(f'Error al generar el PDF: {pdf.err}')
+            return HttpResponse('Error al generar el PDF', status=500)
+
+        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="informe_{informe.id_informes}.pdf"'
+        return response
+
+    except Exception as e:
+        logger.error(f'Error en generar_pdf: {str(e)}')
+        return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)

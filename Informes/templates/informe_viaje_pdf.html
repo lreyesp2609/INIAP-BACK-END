@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Solicitud de Autorización</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid #000;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        .section-title {
+            font-weight: bold;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <table>
+        <tr>
+            <td colspan="4" class="section-title">SOLICITUD DE AUTORIZACIÓN PARA CUMPLIMIENTO DE SERVICIOS INSTITUCIONALES</td>
+        </tr>
+        <tr>
+            <td>Nro. SOLICITUD DE AUTORIZACIÓN PARA CUMPLIMIENTO DE SERVICIOS INSTITUCIONALES</td>
+            <td>FECHA DE SOLICITUD (dd-mm-aaaa)</td>
+            <td colspan="2">Código Solicitud: {{ codigo_solicitud }}<br>Fecha Informe: {{ fecha_informe }}</td>
+        </tr>
+        <tr>
+            <td>Código Solicitud</td>
+            <td>Fecha Informe</td>
+            <td>{{ codigo_solicitud }}</td>
+            <td>{{ fecha_informe }}</td>
+        </tr>
+        <tr>
+            <td>Motivos</td>
+            <td colspan="3">{{ motivos }}</td>
+        </tr>
+        <tr>
+            <td colspan="4" class="section-title">DATOS GENERALES</td>
+        </tr>
+        <tr>
+            <td>APELLIDOS - NOMBRES DE LA O EL SERVIDOR</td>
+            <td>PUESTO QUE OCUPA</td>
+            <td>{{ nombre_completo }}</td>
+            <td>{{ cargo }}</td>
+        </tr>
+        <tr>
+            <td>CIUDAD - PROVINCIA DEL SERVICIO INSTITUCIONAL</td>
+            <td>NOMBRE DE LA UNIDAD A LA QUE PERTENECE LA O EL SERVIDOR</td>
+            <td>{{ lugar_servicio }}</td>
+            <td>{{ nombre_unidad }}</td>
+        </tr>
+        <tr>
+            <td>FECHA SALIDA (dd-mm-aaaa)</td>
+            <td>HORA SALIDA (hh:mm)</td>
+            <td>FECHA LLEGADA (dd-mm-aaaa)</td>
+            <td>HORA LLEGADA (hh:mm)</td>
+        </tr>
+        <tr>
+            <td>{{ fecha_salida_informe }}</td>
+            <td>{{ hora_salida_informe }}</td>
+            <td>{{ fecha_llegada_informe }}</td>
+            <td>{{ hora_llegada_informe }}</td>
+        </tr>
+        <tr>
+            <td colspan="4" class="section-title">SERVIDORES QUE INTEGRAN LOS SERVICIOS INSTITUCIONALES</td>
+        </tr>
+        <tr>
+            <td colspan="4">{{ nombre_completo }}</td>
+        </tr>
+        <tr>
+            <td colspan="4" class="section-title">DESCRIPCIÓN DE LAS ACTIVIDADES A EJECUTARSE</td>
+        </tr>
+        <tr>
+            <td colspan="4">{{ observacion }}</td>
+        </tr>
+        <tr>
+            <td colspan="4" class="section-title">TRANSPORTE</td>
+        </tr>
+        <tr>
+            <td>TIPO DE TRANSPORTE</td>
+            <td>NOMBRE DE TRANSPORTE</td>
+            <td>RUTA</td>
+            <td>SALIDA</td>
+            <td>FECHA SALIDA</td>
+            <td>HORA SALIDA</td>
+            <td>LLEGADA</td>
+            <td>FECHA LLEGADA</td>
+            <td>HORA LLEGADA</td>
+        </tr>
+        {% for transporte in transportes %}
+        <tr>
+            <td>{{ transporte.Tipo_de_Transporte }}</td>
+            <td>{{ transporte.Nombre_del_Transporte }}</td>
+            <td>{{ transporte.Ruta }}</td>
+            <td>{{ transporte.Fecha_de_Salida }}</td>
+            <td>{{ transporte.Hora_de_Salida }}</td>
+            <td>{{ transporte.Fecha_de_Llegada }}</td>
+            <td>{{ transporte.Hora_de_Llegada }}</td>
+        </tr>
+        {% endfor %}
+        <tr>
+            <td colspan="4" class="section-title">DATOS PARA LA TRANSFERENCIA</td>
+        </tr>
+        <tr>
+            <td>NOMBRE DEL BANCO</td>
+            <td>TIPO DE CUENTA</td>
+            <td>No. DE CUENTA</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td colspan="3">{{ nombre_banco }}</td>
+            <td>{{ tipo_cuenta }}</td>
+            <td>{{ num_cuenta }}</td>
+        </tr>
+        <tr>
+            <td colspan="2" class="section-title">FIRMA DE LA O EL SERVIDOR SOLICITANTE</td>
+            <td colspan="2" class="section-title">FIRMA DE LA O EL RESPONSABLE DE LA UNIDAD SOLICITANTE</td>
+        </tr>
+        <tr>
+            <td>(ESPACIO EN BLANCO PARA FIRMA)</td>
+            <td>(ESPACIO EN BLANCO PARA FIRMA)</td>
+        </tr>
+        <tr>
+            <td colspan="2">{{ nombre_completo }}<br>CC: {{ cedula }}</td>
+            <td colspan="2"></td>
+        </tr>
+        <tr>
+            <td colspan="2" class="section-title">FIRMA DE LA AUTORIDAD NOMINADORA O SU DELEGADO</td>
+            <td colspan="2" class="section-title">NOTA</td>
+        </tr>
+        <tr>
+            <td colspan="2">(ESPACIO EN BLANCO PARA FIRMA)</td>
+            <td colspan="2">Las solicitudes de autorización deben ser ingresadas con al menos 72 horas antes del viaje.<br>
+                En caso de no estar disponible el transporte oficial, se autoriza a la o el servidor a utilizar transporte público.<br>
+                La autorización de servicios institucionales deberá aprobarse según disponibilidad presupuestaria.</td>
+        </tr>
+    </table>
+
+</body>
+</html>

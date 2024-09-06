@@ -32,4 +32,5 @@ urlpatterns = [
     path('editar-justificacion/<int:id_informe>/', EditarJustificacionView.as_view(), name='editar_justificacion'),
     path('listar-detalle-facturas/<int:id_informe>/', ListarDetalleFacturasView.as_view(), name='listar_detalle_facturas'),
     path('listar-detalle-justificaciones/<int:id_informe>/', ListarDetalleJustificacionesView.as_view(), name='listar_detalle_justificaciones'),
+    path('generar_pdf/<int:id_usuario>/<int:id_informe>/pdf/', GenerarPdfInformeView.as_view(), name='generar_informe_pdf'),
  ]
