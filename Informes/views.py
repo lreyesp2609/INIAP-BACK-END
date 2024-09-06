@@ -6,7 +6,7 @@ from django.http import JsonResponse
 import jwt
 from dateutil import parser
 
-from .models import Empleados, Personas, ProductosAlcanzadosInformes, TransporteInforme, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades, TransporteSolicitudes, Vehiculo, CuentasBancarias,FacturasInformes, TotalFactura,EstadoFactura
+from .models import Empleados, Personas, ProductosAlcanzadosInformes, TransporteInforme, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades, TransporteSolicitudes, Vehiculo, CuentasBancarias,FacturasInformes, TotalFactura,EstadoFactura,MotivoCancelado
 from datetime import datetime, date
 import json
 from django.utils.decorators import method_decorator
@@ -1512,3 +1512,60 @@ class ListarDetalleJustificacionesView(View):
         except Exception as e:
             print(f"Error al listar el detalle de las justificaciones: {str(e)}")
             return JsonResponse({'error': f'Error al listar el detalle de las justificaciones: {str(e)}'}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class CrearMotivoCanceladoView(View):
+    def post(self, request, id_solicitud, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            motivo_cancelado = data.get('motivo_cancelado')
+
+            if not motivo_cancelado:
+                return JsonResponse({'error': 'Debe proporcionar el motivo de cancelación.'}, status=400)
+
+            with transaction.atomic():
+                solicitud = Solicitudes.objects.get(id_solicitud=id_solicitud)
+
+                # Crear el motivo cancelado
+                motivo = MotivoCancelado.objects.create(
+                    id_solicitud=solicitud,
+                    motivo_cancelado=motivo_cancelado
+                )
+
+            return JsonResponse({
+                'mensaje': 'Motivo de cancelación creado exitosamente',
+                'id_motivo_cancelado': motivo.id_motivo_cancelado
+            }, status=201)
+
+        except Solicitudes.DoesNotExist:
+            return JsonResponse({'error': 'La solicitud especificada no existe'}, status=404)
+        except ValidationError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': f'Error al crear el motivo de cancelación: {str(e)}'}, status=500)
+        
+
+class ListarMotivosCanceladosView(View):
+    def get(self, request, id_solicitud, *args, **kwargs):
+        try:
+            # Verificar que la solicitud exista
+            solicitud = Solicitudes.objects.get(id_solicitud=id_solicitud)
+
+            # Obtener los motivos de cancelación asociados a la solicitud
+            motivos_cancelados = MotivoCancelado.objects.filter(id_solicitud=solicitud)
+
+            # Formatear la respuesta
+            motivos_list = [{
+                'id_motivo_cancelado': motivo.id_motivo_cancelado,
+                'motivo_cancelado': motivo.motivo_cancelado
+            } for motivo in motivos_cancelados]
+
+            return JsonResponse({
+                'solicitud': id_solicitud,
+                'motivos_cancelados': motivos_list
+            }, status=200)
+
+        except Solicitudes.DoesNotExist:
+            return JsonResponse({'error': 'La solicitud especificada no existe'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': f'Error al obtener los motivos de cancelación: {str(e)}'}, status=500)
