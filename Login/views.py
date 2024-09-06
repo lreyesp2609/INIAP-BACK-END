@@ -24,15 +24,20 @@ class IniciarSesionView(View):
             nombre_usuario = request.POST.get('usuario')
             contrasenia = request.POST.get('contrasenia')
 
+            # Buscar el usuario por nombre de usuario
             user = Usuarios.objects.select_related('id_rol').filter(usuario=nombre_usuario).first()
 
             if user is not None:
+                # Verificar si el usuario está deshabilitado
+                empleado = Empleados.objects.filter(id_persona=user.id_persona, habilitado=1).first()
+                if empleado is None:
+                    return JsonResponse({'mensaje': 'Usuario deshabilitado'}, status=403)
+ 
+                # Verificar la contraseña
                 if check_password(contrasenia, user.contrasenia):
-
                     request.user = user
-
                     token = self.generate_token(user)
-                    
+
                     needs_password_change = False
                     if check_password(user.id_persona.numero_cedula, user.contrasenia):
                         needs_password_change = True
@@ -45,6 +50,7 @@ class IniciarSesionView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
         
 @method_decorator(csrf_exempt, name='dispatch')
 class CerrarSesionView(View):

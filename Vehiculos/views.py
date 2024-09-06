@@ -33,7 +33,10 @@ class VehiculosListView(View):
             if usuario.id_rol.rol not in ['SuperUsuario', 'Empleado', 'Administrador']:
                 return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
 
-            vehiculos = Vehiculo.objects.filter(habilitado=1).select_related('id_subcategoria_bien', 'id_subcategoria_bien__id_categorias_bien')
+            # Ordena los vehículos por id_vehiculo de menor a mayor
+            vehiculos = Vehiculo.objects.filter(habilitado=1)\
+                .select_related('id_subcategoria_bien', 'id_subcategoria_bien__id_categorias_bien')\
+                .order_by('id_vehiculo')
 
             vehiculos_data = []
             for vehiculo in vehiculos:
