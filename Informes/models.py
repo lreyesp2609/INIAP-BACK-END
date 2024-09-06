@@ -79,8 +79,6 @@ class Cargos(models.Model):
         db_table = 'cargos'
 
 
-
-
 class Empleados(models.Model):
     id_empleado = models.AutoField(primary_key=True)
     id_persona = models.ForeignKey('Personas', models.DO_NOTHING, db_column='id_persona')
@@ -137,6 +135,16 @@ class Solicitudes(models.Model):
         codigo_solicitud = f'{self.secuencia_solicitud:03}-{primer_apellido[0]}{segundo_apellido[0]}{primer_nombre[0]}{segundo_nombre[0]}-{siglas_unidad}-INIAP-{siglas_estacion}-{year_solicitud}'
 
         return codigo_solicitud
+
+
+class MotivoCancelado(models.Model):
+    id_motivo_cancelado = models.AutoField(primary_key=True)
+    id_solicitud = models.ForeignKey(Solicitudes, models.DO_NOTHING, db_column='id_solicitud')
+    motivo_cancelado = models.TextField()
+
+    class Meta:
+        managed = False
+        db_table = 'motivo_cancelado'
 
 
 class Informes(models.Model):
