@@ -120,6 +120,14 @@ CREATE TABLE Solicitudes (
     FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado)
 );
 
+CREATE TABLE Motivo_Cancelado (
+    id_motivo_cancelado SERIAL PRIMARY KEY,
+    id_solicitud INT NOT NULL,
+    motivo_cancelado TEXT NOT NULL,
+    FOREIGN KEY (id_solicitud) REFERENCES Solicitudes(id_solicitud)
+);
+
+
 CREATE TABLE Cuentas_Bancarias (
     id_cuenta_bancaria SERIAL PRIMARY KEY,
     id_banco INT NOT NULL,
