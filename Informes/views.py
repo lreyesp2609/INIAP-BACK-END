@@ -924,7 +924,7 @@ class CrearInformeView(View):
             return JsonResponse({'error': str(e)}, status=400)
         except Exception as e:
             return JsonResponse({'error': f'Error al crear el informe: {str(e)}'}, status=500)
-
+ 
 class ListarInformesView(View):
     def get(self, request, id_usuario, *args, **kwargs):
         try:
@@ -1671,13 +1671,13 @@ def generar_pdf(informe):
         transportes_list = []
         for transporte in transportes:
             transportes_list.append({
-                'Tipo de Transporte': transporte['tipo_transporte_info'],
-                'Nombre del Transporte': transporte['nombre_transporte_info'],
+                'Tipo_de_Transporte': transporte['tipo_transporte_info'],
+                'Nombre_del_Transporte': transporte['nombre_transporte_info'],
                 'Ruta': transporte['ruta_info'],
-                'Fecha de Salida': transporte['fecha_salida_info'].strftime('%d-%m-%Y') if transporte['fecha_salida_info'] else '',
-                'Hora de Salida': transporte['hora_salida_info'].strftime('%H:%M') if transporte['hora_salida_info'] else '',
-                'Fecha de Llegada': transporte['fecha_llegada_info'].strftime('%d-%m-%Y') if transporte['fecha_llegada_info'] else '',
-                'Hora de Llegada': transporte['hora_llegada_info'].strftime('%H:%M') if transporte['hora_llegada_info'] else '',
+                'Fecha_de_Salida': transporte['fecha_salida_info'].strftime('%d-%m-%Y') if transporte['fecha_salida_info'] else '',
+                'Hora_de_Salida': transporte['hora_salida_info'].strftime('%H:%M') if transporte['hora_salida_info'] else '',
+                'Fecha_de_Llegada': transporte['fecha_llegada_info'].strftime('%d-%m-%Y') if transporte['fecha_llegada_info'] else '',
+                'Hora_de_Llegada': transporte['hora_llegada_info'].strftime('%H:%M') if transporte['hora_llegada_info'] else '',
             })
         
         productos = ProductosAlcanzadosInformes.objects.filter(id_informe=informe).values('descripcion')
@@ -1716,6 +1716,8 @@ def generar_pdf(informe):
     except Exception as e:
         logger.error(f'Error en generar_pdf: {str(e)}')
         return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)
+
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class GenerarPdfFacturasView(View):
