@@ -329,6 +329,12 @@ INSERT INTO Bancos (nombre_banco) VALUES
 ('Banco de Loja'),
 ('Banco del Austro');
 
+-- Horarios y Rutas Ordenes de Movilizacion
+INSERT INTO rutas_movilizacion (ruta_origen, ruta_destino, ruta_descripcion, ruta_estado) VALUES
+('Mocache', 'Quevedo', 'Mocache - Quevedo', 1);
+INSERT INTO horario_orden_movilizacion (hora_ida_minima, hora_llegada_maxima, duracion_minima, duracion_maxima) VALUES
+('07:00:00', '17:00:00', 30, 120);
+
 -- Obtener el id_persona recién insertado
 DO $$
 DECLARE

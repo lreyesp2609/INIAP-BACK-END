@@ -83,19 +83,29 @@
             Este informe proporciona un detalle completo sobre las órdenes de movilización registradas.
         </p>
 
+        <p class="description">
+            {{ descripcion|safe }}
+        </p>        
+
         <div class="table-responsive">
             <table class="table table-bordered table-striped table-hover">
                 <thead class="thead-light">
                     <tr>
                         <th>Sec.</th>
-                        <th>Estado</th>
-                        <th>Funcionario</th>
+                        {% if mostrar_estado %}
+                            <th>Estado</th>
+                        {% endif %}
+                        {% if mostrar_funcionario %}
+                            <th>Funcionario</th>
+                        {% endif %}
                         <th>Motivo</th>
                         <th>Origen y Destino</th>
                         <th>Fecha del Viaje</th>
                         <th>Hora de Ida</th>
                         <th>Duración</th>
-                        <th>Conductor</th>
+                        {% if mostrar_conductor %}
+                            <th>Conductor</th>
+                        {% endif %}
                         <th>Vehículo</th>
                     </tr>
                 </thead>
@@ -109,14 +119,20 @@
                                 {{ orden.secuencial_orden_movilizacion }}
                             {% endif %}
                         </td>
-                        <td>{{ orden.estado_movilizacion }}</td>
-                        <td>{{ orden.empleado_apellidos }} <br> {{ orden.empleado_nombres }} </td>
+                        {% if mostrar_estado %}
+                            <td>{{ orden.estado_movilizacion }}</td>
+                        {% endif %}
+                        {% if mostrar_funcionario %}
+                            <td>{{ orden.empleado_apellidos }} <br> {{ orden.empleado_nombres }} </td>
+                        {% endif %}
                         <td>{{ orden.motivo_movilizacion }}</td>
                         <td>{{ orden.lugar_origen_destino_movilizacion }}</td>
                         <td>{{ orden.fecha_viaje }}</td>
                         <td>{{ orden.hora_ida }}</td>
                         <td>{{ orden.duracion_movilizacion }}</td>
-                        <td>{{ orden.conductor_apellidos }} <br> {{ orden.conductor_nombres }} </td>
+                        {% if mostrar_conductor %}
+                            <td>{{ orden.conductor_apellidos }} <br> {{ orden.conductor_nombres }} </td>
+                        {% endif %}
                         <td>{{ orden.vehiculo_placa }}</td>
                     </tr>
                     {% endfor %}

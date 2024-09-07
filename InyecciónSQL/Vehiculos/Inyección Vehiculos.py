@@ -1,7 +1,9 @@
 import pandas as pd
 import requests
+import os
 
-file_path = r'C:\Users\Luis\Desktop\INIAP-SOFTWARE\INIAP-BACK-END\Inyección SQL\Vehiculos\BASE DE DATOS VEHICULOS EETP.xlsx'
+# Ruta al archivo Excel
+file_path = os.path.join(os.getcwd(), 'inyecciónSQL/Vehiculos/BASE DE DATOS VEHICULOS EETP.xlsx')
 df = pd.read_excel(file_path, engine='openpyxl')
 
 url = 'http://127.0.0.1:8000/Vehiculos/crear-vehiculo/1/'

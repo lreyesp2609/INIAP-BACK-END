@@ -120,6 +120,14 @@ CREATE TABLE Solicitudes (
     FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado)
 );
 
+CREATE TABLE Motivo_Cancelado (
+    id_motivo_cancelado SERIAL PRIMARY KEY,
+    id_solicitud INT NOT NULL,
+    motivo_cancelado TEXT NOT NULL,
+    FOREIGN KEY (id_solicitud) REFERENCES Solicitudes(id_solicitud)
+);
+
+
 CREATE TABLE Cuentas_Bancarias (
     id_cuenta_bancaria SERIAL PRIMARY KEY,
     id_banco INT NOT NULL,
@@ -150,7 +158,7 @@ CREATE TABLE Transporte_Solicitudes (
 CREATE TABLE Encabezados (
     id_encabezado SERIAL PRIMARY KEY,
     encabezado_superior TEXT NULL,
-    encabezado_inferior TEXT NULL,
+    encabezado_inferior TEXT NULL
 );
 
 CREATE TABLE Informes (
@@ -298,5 +306,5 @@ CREATE TABLE rutas_movilizacion (
     ruta_origen VARCHAR(250) NOT NULL,
     ruta_destino VARCHAR(250) NOT NULL,
     ruta_descripcion VARCHAR(250) NOT NULL,
-    ruta_estado VARCHAR(250) NOT NULL
+    ruta_estado SMALLINT NOT NULL DEFAULT 1
 ); 

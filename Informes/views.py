@@ -1,4 +1,3 @@
-
 from django.conf import settings
 from django.forms import ValidationError
 from django.shortcuts import render
@@ -6,7 +5,9 @@ from django.http import JsonResponse
 import jwt
 from dateutil import parser
 
-from .models import Empleados, Personas, ProductosAlcanzadosInformes, TransporteInforme, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades, TransporteSolicitudes, Vehiculo, CuentasBancarias,FacturasInformes, TotalFactura,EstadoFactura
+from Encabezados.models import Encabezados
+
+from .models import Empleados, Personas, ProductosAlcanzadosInformes, TransporteInforme, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades, TransporteSolicitudes, Vehiculo, CuentasBancarias,FacturasInformes, TotalFactura,EstadoFactura,MotivoCancelado
 from datetime import datetime, date
 import json
 from django.utils.decorators import method_decorator
@@ -36,9 +37,17 @@ from django.utils.dateparse import parse_date, parse_time
 from django.utils import timezone
 from django.db.models import Sum
 
-
-
 from django.db import transaction
+
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework.exceptions import AuthenticationFailed
+from django.conf import settings
+import logging
+logger = logging.getLogger(__name__)
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from xhtml2pdf import pisa
+from io import BytesIO
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearSolicitudView(View):
@@ -917,7 +926,7 @@ class CrearInformeView(View):
             return JsonResponse({'error': str(e)}, status=400)
         except Exception as e:
             return JsonResponse({'error': f'Error al crear el informe: {str(e)}'}, status=500)
-
+ 
 class ListarInformesView(View):
     def get(self, request, id_usuario, *args, **kwargs):
         try:
@@ -1368,10 +1377,24 @@ class EditarJustificacionView(View):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListarDetalleFacturasView(View):
-    def get(self, request, id_informe, *args, **kwargs):
+    def get(self, request, id_usuario, id_informe, *args, **kwargs):
         try:
-            print(f"ID Informe recibido: {id_informe}")  # Verifica que el ID se recibe correctamente
-            
+            # Obtener el token del encabezado de la solicitud
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            # Decodificar el token
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            # Verificar que el ID de usuario en el token coincida con el ID de usuario en la URL
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
+
+            # Obtener las facturas asociadas al informe
             facturas = FacturasInformes.objects.filter(id_informe=id_informe).values(
                 'id_factura',
                 'tipo_documento',
@@ -1384,6 +1407,7 @@ class ListarDetalleFacturasView(View):
             if not facturas:
                 return JsonResponse({'error': 'No se encontraron facturas para el informe especificado.'}, status=404)
 
+            # Crear una lista con los detalles de las facturas
             facturas_list = []
             for factura in facturas:
                 factura_data = {
@@ -1401,10 +1425,19 @@ class ListarDetalleFacturasView(View):
                 'facturas': facturas_list
             }, status=200, safe=False)
 
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except AuthenticationFailed as e:
+            return JsonResponse({'error': str(e)}, status=403)
+
         except Exception as e:
-            print(f"Error al listar las facturas: {str(e)}")  # Agrega un log para errores
+            print(f"Error al listar las facturas: {str(e)}")  # Log de error para depuración
             return JsonResponse({'error': f'Error al listar las facturas: {str(e)}'}, status=500)
-        
+       
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListarDetalleJustificacionesView(View):
@@ -1445,6 +1478,24 @@ class ListarDetalleJustificacionesView(View):
             else:
                 rango_fechas = 'Fechas no disponibles'
 
+            # Obtener el empleado asociado a la solicitud
+            empleado = solicitud.id_empleado
+            persona = empleado.id_persona
+
+            # Obtener el cargo del empleado
+            cargo_obj = Cargos.objects.get(id_cargo=empleado.id_cargo.id_cargo)  # Asegúrate que `id_cargo` esté relacionado con empleado
+            nombre_cargo = cargo_obj.cargo
+
+            # Preparar los datos del empleado
+            distintivo = empleado.distintivo or ''
+            nombres = persona.nombres or ''
+            apellidos = persona.apellidos or ''
+            numero_cedula = persona.numero_cedula or ''
+
+            # Formato para el campo deseado
+            nombre_completo = f"{distintivo} {nombres} {apellidos}"
+            cedula = f"CI. {numero_cedula}"
+
             # Obtener las facturas asociadas
             facturas = FacturasInformes.objects.filter(id_informe=id_informe).values(
                 'id_factura',
@@ -1481,6 +1532,9 @@ class ListarDetalleJustificacionesView(View):
             return JsonResponse({
                 'codigo_solicitud': codigo_solicitud,
                 'rango_fechas': rango_fechas,
+                'nombre_completo': nombre_completo,
+                'cedula': cedula,
+                'cargo': nombre_cargo,  # Añadir el cargo al JSON de respuesta
                 'facturas': facturas_list,
                 'total_factura': total_factura_str
             }, status=200, safe=False)
@@ -1491,3 +1545,303 @@ class ListarDetalleJustificacionesView(View):
         except Exception as e:
             print(f"Error al listar el detalle de las justificaciones: {str(e)}")
             return JsonResponse({'error': f'Error al listar el detalle de las justificaciones: {str(e)}'}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class CrearMotivoCanceladoView(View):
+    def post(self, request, id_solicitud, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            motivo_cancelado = data.get('motivo_cancelado')
+
+            if not motivo_cancelado:
+                return JsonResponse({'error': 'Debe proporcionar el motivo de cancelación.'}, status=400)
+
+            with transaction.atomic():
+                solicitud = Solicitudes.objects.get(id_solicitud=id_solicitud)
+
+                # Crear el motivo cancelado
+                motivo = MotivoCancelado.objects.create(
+                    id_solicitud=solicitud,
+                    motivo_cancelado=motivo_cancelado
+                )
+
+            return JsonResponse({
+                'mensaje': 'Motivo de cancelación creado exitosamente',
+                'id_motivo_cancelado': motivo.id_motivo_cancelado
+            }, status=201)
+
+        except Solicitudes.DoesNotExist:
+            return JsonResponse({'error': 'La solicitud especificada no existe'}, status=404)
+        except ValidationError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': f'Error al crear el motivo de cancelación: {str(e)}'}, status=500)
+        
+
+class ListarMotivosCanceladosView(View):
+    def get(self, request, id_solicitud, *args, **kwargs):
+        try:
+            # Verificar que la solicitud exista
+            solicitud = Solicitudes.objects.get(id_solicitud=id_solicitud)
+
+            # Obtener los motivos de cancelación asociados a la solicitud
+            motivos_cancelados = MotivoCancelado.objects.filter(id_solicitud=solicitud)
+
+            # Formatear la respuesta
+            motivos_list = [{
+                'id_motivo_cancelado': motivo.id_motivo_cancelado,
+                'motivo_cancelado': motivo.motivo_cancelado
+            } for motivo in motivos_cancelados]
+
+            return JsonResponse({
+                'solicitud': id_solicitud,
+                'motivos_cancelados': motivos_list
+            }, status=200)
+
+        except Solicitudes.DoesNotExist:
+            return JsonResponse({'error': 'La solicitud especificada no existe'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': f'Error al obtener los motivos de cancelación: {str(e)}'}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class GenerarPdfInformeView(View):
+    def get(self, request, id_usuario, id_informe):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
+            informe = Informes.objects.get(id_informes=id_informe)
+            if not informe:
+                return JsonResponse({"error": "Informe no encontrado"}, status=404)
+
+            return generar_pdf(informe)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except AuthenticationFailed as e:
+            return JsonResponse({'error': str(e)}, status=403)
+
+        except Usuarios.DoesNotExist:
+            return JsonResponse({"error": "Usuario no encontrado"}, status=404)
+
+        except Solicitudes.DoesNotExist:
+            return JsonResponse({"error": "Orden de movilización no encontrada"}, status=404)
+
+        except Exception as e:
+            print(f'Error al generar el PDF: {str(e)}')
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+def generar_pdf(informe):
+    try:
+        template_path = 'informe_viaje_pdf.html'
+        
+        solicitud = informe.id_solicitud
+        empleado = solicitud.id_empleado
+        persona = empleado.id_persona
+        cargo = empleado.id_cargo
+        unidad = cargo.id_unidad
+
+        nombre_completo = f"{empleado.distintivo if empleado.distintivo else ''} {persona.apellidos if persona.apellidos else ''} {persona.nombres if persona.nombres else ''}".strip()
+        
+        fecha_informe = informe.fecha_informe.strftime('%d-%m-%Y')
+
+        transportes = TransporteInforme.objects.filter(id_informe=informe).values(
+            'tipo_transporte_info',
+            'nombre_transporte_info',
+            'ruta_info',
+            'fecha_salida_info',
+            'hora_salida_info',
+            'fecha_llegada_info',
+            'hora_llegada_info'
+        )
+        
+        transportes_list = []
+        for transporte in transportes:
+            transportes_list.append({
+                'Tipo_de_Transporte': transporte['tipo_transporte_info'],
+                'Nombre_del_Transporte': transporte['nombre_transporte_info'],
+                'Ruta': transporte['ruta_info'],
+                'Fecha_de_Salida': transporte['fecha_salida_info'].strftime('%d-%m-%Y') if transporte['fecha_salida_info'] else '',
+                'Hora_de_Salida': transporte['hora_salida_info'].strftime('%H:%M') if transporte['hora_salida_info'] else '',
+                'Fecha_de_Llegada': transporte['fecha_llegada_info'].strftime('%d-%m-%Y') if transporte['fecha_llegada_info'] else '',
+                'Hora_de_Llegada': transporte['hora_llegada_info'].strftime('%H:%M') if transporte['hora_llegada_info'] else '',
+            })
+        
+        productos = ProductosAlcanzadosInformes.objects.filter(id_informe=informe).values('descripcion')
+        productos_list = [producto['descripcion'] for producto in productos]
+        productos_alcanzados = ''.join(productos_list)
+
+        encabezados = Encabezados.objects.first()  # Suponiendo que solo hay un encabezado, si no, ajusta según sea necesario
+        
+        context = {
+            'codigo_solicitud': solicitud.generar_codigo_solicitud(),
+            'fecha_informe': fecha_informe,
+            'nombre_completo': nombre_completo,
+            'cargo': cargo.cargo if cargo.cargo else '',
+            'lugar_servicio': solicitud.lugar_servicio if solicitud.lugar_servicio else '',
+            'nombre_unidad': unidad.nombre_unidad if unidad.nombre_unidad else '',
+            'listado_empleados': solicitud.listado_empleado if solicitud.listado_empleado else '',
+            'fecha_salida_informe': informe.fecha_salida_informe.strftime('%d-%m-%Y') if informe.fecha_salida_informe else '',
+            'hora_salida_informe': informe.hora_salida_informe.strftime('%H:%M') if informe.hora_salida_informe else '',
+            'fecha_llegada_informe': informe.fecha_llegada_informe.strftime('%d-%m-%Y') if informe.fecha_llegada_informe else '',
+            'hora_llegada_informe': informe.hora_llegada_informe.strftime('%H:%M') if informe.hora_llegada_informe else '',
+            'observacion': informe.observacion if informe.observacion else '',
+            'transportes': transportes_list,
+            'productos_alcanzados': productos_alcanzados,
+            'encabezado_superior': encabezados.encabezado_superior if encabezados.encabezado_superior else '',
+            'encabezado_inferior': encabezados.encabezado_inferior if encabezados.encabezado_inferior else '',
+        }
+
+        html = render_to_string(template_path, context)
+
+        result = BytesIO()
+        pdf = pisa.CreatePDF(BytesIO(html.encode("UTF-8")), dest=result)
+
+        if pdf.err:
+            logger.error(f'Error al generar el PDF: {pdf.err}')
+            return HttpResponse('Error al generar el PDF', status=500)
+
+        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="informe_{informe.id_informes}.pdf"'
+        return response
+
+    except Exception as e:
+        logger.error(f'Error en generar_pdf: {str(e)}')
+        return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)
+
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class GenerarPdfFacturasView(View):
+    def get(self, request, id_usuario, id_informe):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            if token_id_usuario != id_usuario:
+                return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
+
+            facturas = FacturasInformes.objects.filter(id_informe=id_informe).values(
+                'id_factura',
+                'tipo_documento',
+                'numero_factura',
+                'fecha_emision',
+                'detalle_documento',
+                'valor'
+            )
+
+            if not facturas:
+                return JsonResponse({'error': 'No se encontraron facturas para el informe especificado.'}, status=404)
+
+            facturas_list = []
+            for factura in facturas:
+                factura_data = {
+                    'id_factura': factura['id_factura'],
+                    'tipo_documento': factura['tipo_documento'],
+                    'numero_factura': factura['numero_factura'],
+                    'fecha_emision': factura['fecha_emision'].strftime('%d-%m-%Y'),
+                    'detalle_documento': factura['detalle_documento'],
+                    'valor': str(factura['valor']) if factura['valor'] is not None else '0.00'
+                }
+                facturas_list.append(factura_data)
+
+            return generar_pdf_facturas(facturas_list, id_informe)
+
+        except Exception as e:
+            print(f"Error al generar el PDF: {str(e)}")  
+            return JsonResponse({'error': f'Error al generar el PDF: {str(e)}'}, status=500)
+
+def generar_pdf_facturas(facturas_list, id_informe):
+    try:
+        template_path = 'facturas_informe_pdf.html'
+        
+        # Obtener detalles del informe y del empleado
+        informe = Informes.objects.get(id_informes=id_informe)
+        solicitud = informe.id_solicitud
+        empleado = solicitud.id_empleado
+        persona = empleado.id_persona
+        cedula = persona.numero_cedula
+        cargo = empleado.id_cargo
+        unidad = cargo.id_unidad
+
+        fecha_salida = informe.fecha_salida_informe
+        fecha_llegada = informe.fecha_llegada_informe
+
+        meses_espanol = {
+            'January': 'enero', 'February': 'febrero', 'March': 'marzo',
+            'April': 'abril', 'May': 'mayo', 'June': 'junio',
+            'July': 'julio', 'August': 'agosto', 'September': 'septiembre',
+            'October': 'octubre', 'November': 'noviembre', 'December': 'diciembre'
+        }
+
+        if fecha_salida and fecha_llegada:
+            mes_salida = fecha_salida.strftime('%B')
+            mes_llegada = fecha_llegada.strftime('%B') 
+            mes_salida_es = meses_espanol.get(mes_salida, mes_salida)
+            mes_llegada_es = meses_espanol.get(mes_llegada, mes_llegada)
+            if fecha_salida.month == fecha_llegada.month:
+                rango_fechas = f"del {fecha_salida.day} al {fecha_llegada.day} de {mes_salida_es} del {fecha_salida.year}"
+            else:
+                rango_fechas = f"del {fecha_salida.day} de {mes_salida_es} al {fecha_llegada.day} de {mes_llegada_es} del {fecha_llegada.year}"
+        else:
+            rango_fechas = 'Fechas no disponibles'
+
+        # Calcular el total de los valores de las facturas
+        total_valor = sum(float(factura['valor']) for factura in facturas_list)
+
+        # Formatear datos para el contexto
+        nombre_completo = f"{empleado.distintivo if empleado.distintivo else ''} {persona.apellidos if persona.apellidos else ''} {persona.nombres if persona.nombres else ''}".strip()
+
+        # Crear el contexto para el template
+        context = {
+            'codigo_solicitud': solicitud.generar_codigo_solicitud(),
+            'fecha_comision': rango_fechas,
+            'nombre_completo': nombre_completo,
+            'cedula': cedula,
+            'cargo': cargo.cargo if cargo.cargo else '',
+            'lugar_servicio': solicitud.lugar_servicio if solicitud.lugar_servicio else '',
+            'nombre_unidad': unidad.nombre_unidad if unidad.nombre_unidad else '',
+            'facturas': facturas_list,
+            'total_valor': total_valor 
+        }
+
+        # Renderizar el template a HTML
+        html = render_to_string(template_path, context)
+
+        # Crear el PDF
+        result = BytesIO()
+        pdf = pisa.CreatePDF(BytesIO(html.encode("UTF-8")), dest=result)
+
+        if pdf.err:
+            logger.error(f'Error al generar el PDF: {pdf.err}')
+            return HttpResponse('Error al generar el PDF', status=500)
+
+        # Preparar la respuesta con el PDF
+        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="facturas_{informe.id_informes}.pdf"'
+        return response
+
+    except Exception as e:
+        logger.error(f'Error en generar_pdf_facturas: {str(e)}')
+        return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)

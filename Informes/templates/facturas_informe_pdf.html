@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            margin: 4cm;
+        }
+        table {
+            width: auto; 
+            margin: 0 auto; 
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 4px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .signature {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .bold {
+            font-weight: bold;
+        }
+        .column1 { width: 3cm; }
+        .column2 { width: 2.5cm; }
+        .column3 { width: 3cm; }
+        .column4 { width: 4cm; }
+        .column5 { width: 3cm; }
+        .empty-cell {
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="bold">
+        DETALLES DE DOCUMENTO DE RESPALDO PARA LA<br>
+        JUSTIFICACION DEL 70% DE GASTOS REALIZADOS EN LA<br>
+        COMISION DE SERVICIOS
+    </h1>
+    
+    <p class="bold"><strong>Número de Informe:</strong> {{ codigo_solicitud }}</p>
+    <p class="bold"><strong>Fecha de la Comisión:</strong> {{ fecha_comision }}</p>
+
+        <table>
+            <tr>
+                <th class="column1 bold">Tipo de Documento</th>
+                <th class="column2 bold"># Factura</th>
+                <th class="column3 bold">Fecha Emisión</th>
+                <th class="column4 bold">Detalle Documento</th>
+                <th class="column5 bold">Valor ($)</th>
+            </tr>
+            {% for factura in facturas %}
+            <tr>
+                <td class="column1">{{ factura.tipo_documento }}</td>
+                <td class="column2">{{ factura.numero_factura }}</td>
+                <td class="column3">{{ factura.fecha_emision }}</td>
+                <td class="column4">{{ factura.detalle_documento }}</td>
+                <td class="column5">{{ factura.valor }}</td>
+            </tr>
+            {% endfor %}
+            <tr>
+                <td colspan="4" class="empty-cell"></td> 
+                <td class="bold">{{ total_valor }}</td>
+            </tr>
+        </table>
+
+    <div class="signature">
+        <p>&nbsp;</p>
+        <p>&nbsp;</p>
+        <p>&nbsp;</p>
+        <p class="bold">Atentamente,</p>
+        <p>&nbsp;</p>
+        <p>&nbsp;</p>
+        <p>&nbsp;</p>
+        <p>&nbsp;</p>
+        <p>_______________________________________</p>
+        <p class="bold">{{ nombre_completo }}</p>
+        <p class="bold">{{ cargo }}</p>
+        <p class="bold">CI. {{ cedula }}</p>
+    </div>
+</body>
+</html>
