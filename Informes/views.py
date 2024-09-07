@@ -5,6 +5,8 @@ from django.http import JsonResponse
 import jwt
 from dateutil import parser
 
+from Encabezados.models import Encabezados
+
 from .models import Empleados, Personas, ProductosAlcanzadosInformes, TransporteInforme, Unidades, Estaciones, Solicitudes, Informes, Usuarios,Bancos, Motivo,Provincias, Ciudades,Usuarios, Personas, Empleados, Cargos, Unidades, TransporteSolicitudes, Vehiculo, CuentasBancarias,FacturasInformes, TotalFactura,EstadoFactura,MotivoCancelado
 from datetime import datetime, date
 import json
@@ -1629,11 +1631,11 @@ def generar_pdf(informe):
         persona = empleado.id_persona
         cargo = empleado.id_cargo
         unidad = cargo.id_unidad
-        
+
         nombre_completo = f"{empleado.distintivo if empleado.distintivo else ''} {persona.apellidos if persona.apellidos else ''} {persona.nombres if persona.nombres else ''}".strip()
         
         fecha_informe = informe.fecha_informe.strftime('%d-%m-%Y')
-        
+
         transportes = TransporteInforme.objects.filter(id_informe=informe).values(
             'tipo_transporte_info',
             'nombre_transporte_info',
@@ -1658,6 +1660,9 @@ def generar_pdf(informe):
         
         productos = ProductosAlcanzadosInformes.objects.filter(id_informe=informe).values('descripcion')
         productos_list = [producto['descripcion'] for producto in productos]
+        productos_alcanzados = ''.join(productos_list)
+
+        encabezados = Encabezados.objects.first()  # Suponiendo que solo hay un encabezado, si no, ajusta según sea necesario
         
         context = {
             'codigo_solicitud': solicitud.generar_codigo_solicitud(),
@@ -1673,7 +1678,9 @@ def generar_pdf(informe):
             'hora_llegada_informe': informe.hora_llegada_informe.strftime('%H:%M') if informe.hora_llegada_informe else '',
             'observacion': informe.observacion if informe.observacion else '',
             'transportes': transportes_list,
-            'productos_alcanzados': productos_list,
+            'productos_alcanzados': productos_alcanzados,
+            'encabezado_superior': encabezados.encabezado_superior if encabezados.encabezado_superior else '',
+            'encabezado_inferior': encabezados.encabezado_inferior if encabezados.encabezado_inferior else '',
         }
 
         html = render_to_string(template_path, context)
@@ -1692,5 +1699,3 @@ def generar_pdf(informe):
     except Exception as e:
         logger.error(f'Error en generar_pdf: {str(e)}')
         return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)
-
-
