@@ -1646,10 +1646,18 @@ class GenerarPdfInformeView(View):
             return JsonResponse({'error': str(e)}, status=500)
 
 
+from weasyprint import HTML, CSS
+from io import BytesIO
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+import logging
+
+logger = logging.getLogger(__name__)
+
 def generar_pdf(informe):
     try:
         template_path = 'informe_viaje_pdf.html'
-        
+
         solicitud = informe.id_solicitud
         empleado = solicitud.id_empleado
         persona = empleado.id_persona
@@ -1693,6 +1701,7 @@ def generar_pdf(informe):
             'fecha_informe': fecha_informe,
             'nombre_completo': nombre_completo,
             'cargo': cargo.cargo if cargo.cargo else '',
+            'cedula': persona.numero_cedula if persona.numero_cedula else '',
             'lugar_servicio': solicitud.lugar_servicio if solicitud.lugar_servicio else '',
             'nombre_unidad': unidad.nombre_unidad if unidad.nombre_unidad else '',
             'listado_empleados': solicitud.listado_empleado if solicitud.listado_empleado else '',
@@ -1707,24 +1716,22 @@ def generar_pdf(informe):
             'encabezado_inferior': encabezados.encabezado_inferior if encabezados.encabezado_inferior else '',
         }
 
-        html = render_to_string(template_path, context)
+        # Renderizar el HTML con el contexto
+        html_content = render_to_string(template_path, context)
 
-        result = BytesIO()
-        pdf = pisa.CreatePDF(BytesIO(html.encode("UTF-8")), dest=result)
+        # Crear el PDF usando WeasyPrint
+        pdf_file = BytesIO()
+        HTML(string=html_content).write_pdf(pdf_file)
 
-        if pdf.err:
-            logger.error(f'Error al generar el PDF: {pdf.err}')
-            return HttpResponse('Error al generar el PDF', status=500)
-
-        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        # Configurar la respuesta HTTP
+        response = HttpResponse(pdf_file.getvalue(), content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="informe_{informe.id_informes}.pdf"'
+
         return response
 
     except Exception as e:
         logger.error(f'Error en generar_pdf: {str(e)}')
         return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)
-
-
 
 @method_decorator(csrf_exempt, name='dispatch')
 class GenerarPdfFacturasView(View):
@@ -1845,3 +1852,4 @@ def generar_pdf_facturas(facturas_list, id_informe):
     except Exception as e:
         logger.error(f'Error en generar_pdf_facturas: {str(e)}')
         return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)
+
