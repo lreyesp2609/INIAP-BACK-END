@@ -3,49 +3,105 @@
 <head>
     <meta charset="utf-8">
     <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+
         body {
             font-family: 'Times New Roman', serif;
-            margin: 4cm;
+            margin: 0;
+            padding: 0;
+            position: relative;
+            font-size: 10px;
+            line-height: 1.3;
         }
+
+        .header, .footer {
+            position: fixed;
+            left: 0;
+            width: 100%;
+            text-align: center;
+        }
+
+        .header {
+            top: -1cm;
+            border-bottom: 1px solid #000;
+            padding-bottom: 10px;
+        }
+
+        .footer {
+            bottom: -1cm;
+            border-top: 1px solid #000;
+            padding-top: 10px;
+        }
+
+        .content {
+            margin-top: 60px;
+            margin-bottom: 40px;
+        }
+
         table {
             width: auto; 
-            margin: 0 auto; 
+            margin: 0 auto;
             border-collapse: collapse;
+            page-break-inside: auto;
         }
+
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+
         th, td {
             border: 1px solid black;
             padding: 4px;
             text-align: left;
+            vertical-align: top;
         }
+
         th {
             background-color: #f2f2f2;
+            font-weight: bold;
         }
+
         .signature {
             text-align: center;
             margin-top: 20px;
         }
+
         .bold {
             font-weight: bold;
         }
+
         .column1 { width: 3cm; }
         .column2 { width: 2.5cm; }
         .column3 { width: 3cm; }
         .column4 { width: 4cm; }
         .column5 { width: 3cm; }
+
         .empty-cell {
             border: none;
         }
+
     </style>
 </head>
 <body>
-    <h1 class="bold">
-        DETALLES DE DOCUMENTO DE RESPALDO PARA LA<br>
-        JUSTIFICACION DEL 70% DE GASTOS REALIZADOS EN LA<br>
-        COMISION DE SERVICIOS
-    </h1>
+    <div class="header">
+        {% if encabezado_superior %}
+        <img src="{{ encabezado_superior }}" alt="Encabezado Superior" style="width: 100%; height: auto;">
+        {% endif %}
+    </div>
+
+    <div class="content">
+        <h1 class="bold">
+            DETALLES DE DOCUMENTO DE RESPALDO PARA LA<br>
+            JUSTIFICACIÓN DEL 70% DE GASTOS REALIZADOS EN LA<br>
+            COMISIÓN DE SERVICIOS
+        </h1>
     
-    <p class="bold"><strong>Número de Informe:</strong> {{ codigo_solicitud }}</p>
-    <p class="bold"><strong>Fecha de la Comisión:</strong> {{ fecha_comision }}</p>
+        <p class="bold"><strong>Número de Informe:</strong> {{ codigo_solicitud }}</p>
+        <p class="bold"><strong>Fecha de la Comisión:</strong> {{ fecha_comision }}</p>
 
         <table>
             <tr>
@@ -69,6 +125,7 @@
                 <td class="bold">{{ total_valor }}</td>
             </tr>
         </table>
+    </div>
 
     <div class="signature">
         <p>&nbsp;</p>
@@ -83,6 +140,12 @@
         <p class="bold">{{ nombre_completo }}</p>
         <p class="bold">{{ cargo }}</p>
         <p class="bold">CI. {{ cedula }}</p>
+    </div>
+
+    <div class="footer">
+        {% if encabezado_inferior %}
+        <img src="{{ encabezado_inferior }}" alt="Encabezado Inferior" style="width: 100%; height: auto;">
+        {% endif %}
     </div>
 </body>
 </html>
