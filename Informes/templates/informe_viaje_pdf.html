@@ -1,161 +1,180 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solicitud de Autorización</title>
     <style>
         @page {
             size: A4;
             margin: 2cm;
         }
+
         body {
             font-family: Arial, sans-serif;
-            font-size: 12px;
-            color: #333;
+            font-size: 10px;
+            line-height: 1.3;
+            margin: 0;
+            padding: 0;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            page-break-inside: auto;
         }
-        table, th, td {
+
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+
+        th,
+        td {
             border: 1px solid #000;
-        }
-        th, td {
-            padding: 8px;
+            padding: 3px;
             text-align: left;
+            vertical-align: top;
+            min-width: 80px;
+            /* Asigna un ancho mínimo a las celdas */
         }
-        .section-title {
+
+        th {
+            background-color: #f2f2f2;
             font-weight: bold;
-            margin-top: 20px;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #000;
-            padding-bottom: 5px;
+        }
+
+        .section-title {
+            background-color: #d9d9d9;
+            font-weight: bold;
+        }
+
+        .signature-space {
+            height: 40px;
         }
     </style>
 </head>
-<body>
 
+<body>
     <table>
         <tr>
-            <td colspan="4" class="section-title">SOLICITUD DE AUTORIZACIÓN PARA CUMPLIMIENTO DE SERVICIOS INSTITUCIONALES</td>
+            <th colspan="4">SOLICITUD DE AUTORIZACIÓN PARA CUMPLIMIENTO DE SERVICIOS INSTITUCIONALES</th>
         </tr>
         <tr>
-            <td>Nro. SOLICITUD DE AUTORIZACIÓN PARA CUMPLIMIENTO DE SERVICIOS INSTITUCIONALES</td>
-            <td>FECHA DE SOLICITUD (dd-mm-aaaa)</td>
-            <td colspan="2">Código Solicitud: {{ codigo_solicitud }}<br>Fecha Informe: {{ fecha_informe }}</td>
+            <th>Nro. SOLICITUD</th>
+            <td>{{ codigo_solicitud | default:"&nbsp;" }}</td>
+            <th>FECHA DE SOLICITUD</th>
+            <td>{{ fecha_informe | default:"&nbsp;" }}</td>
+        </tr>
+        <tr class="section-title">
+            <td colspan="4">DATOS GENERALES</td>
         </tr>
         <tr>
-            <td>Código Solicitud</td>
-            <td>Fecha Informe</td>
-            <td>{{ codigo_solicitud }}</td>
-            <td>{{ fecha_informe }}</td>
+            <th>APELLIDOS Y NOMBRES</th>
+            <td>{{ nombre_completo | default:"&nbsp;" }}</td>
+            <th>PUESTO</th>
+            <td>{{ cargo | default:"&nbsp;" }}</td>
         </tr>
         <tr>
-            <td>Motivos</td>
-            <td colspan="3">{{ motivos }}</td>
+            <th>CIUDAD - PROVINCIA</th>
+            <td>{{ lugar_servicio | default:"&nbsp;" }}</td>
+            <th>UNIDAD</th>
+            <td>{{ nombre_unidad | default:"&nbsp;" }}</td>
         </tr>
         <tr>
-            <td colspan="4" class="section-title">DATOS GENERALES</td>
+            <th>FECHA SALIDA</th>
+            <td>{{ fecha_salida_informe | default:"&nbsp;" }}</td>
+            <th>HORA SALIDA</th>
+            <td>{{ hora_salida_informe | default:"&nbsp;" }}</td>
         </tr>
         <tr>
-            <td>APELLIDOS - NOMBRES DE LA O EL SERVIDOR</td>
-            <td>PUESTO QUE OCUPA</td>
-            <td>{{ nombre_completo }}</td>
-            <td>{{ cargo }}</td>
+            <th>FECHA LLEGADA</th>
+            <td>{{ fecha_llegada_informe | default:"&nbsp;" }}</td>
+            <th>HORA LLEGADA</th>
+            <td>{{ hora_llegada_informe | default:"&nbsp;" }}</td>
+        </tr>
+        <tr class="section-title">
+            <td colspan="4">SERVIDORES QUE INTEGRAN LOS SERVICIOS INSTITUCIONALES</td>
         </tr>
         <tr>
-            <td>CIUDAD - PROVINCIA DEL SERVICIO INSTITUCIONAL</td>
-            <td>NOMBRE DE LA UNIDAD A LA QUE PERTENECE LA O EL SERVIDOR</td>
-            <td>{{ lugar_servicio }}</td>
-            <td>{{ nombre_unidad }}</td>
+            <td colspan="4">{{ nombre_completo | default:"&nbsp;" }}</td>
+        </tr>
+        <tr class="section-title">
+            <td colspan="4">DESCRIPCIÓN DE LAS ACTIVIDADES A EJECUTARSE</td>
         </tr>
         <tr>
-            <td>FECHA SALIDA (dd-mm-aaaa)</td>
-            <td>HORA SALIDA (hh:mm)</td>
-            <td>FECHA LLEGADA (dd-mm-aaaa)</td>
-            <td>HORA LLEGADA (hh:mm)</td>
+            <td colspan="4">{{ observacion | default:"&nbsp;" }}</td>
+        </tr>
+        <tr class="section-title">
+            <td colspan="4">TRANSPORTE</td>
         </tr>
         <tr>
-            <td>{{ fecha_salida_informe }}</td>
-            <td>{{ hora_salida_informe }}</td>
-            <td>{{ fecha_llegada_informe }}</td>
-            <td>{{ hora_llegada_informe }}</td>
-        </tr>
-        <tr>
-            <td colspan="4" class="section-title">SERVIDORES QUE INTEGRAN LOS SERVICIOS INSTITUCIONALES</td>
-        </tr>
-        <tr>
-            <td colspan="4">{{ nombre_completo }}</td>
-        </tr>
-        <tr>
-            <td colspan="4" class="section-title">DESCRIPCIÓN DE LAS ACTIVIDADES A EJECUTARSE</td>
-        </tr>
-        <tr>
-            <td colspan="4">{{ observacion }}</td>
-        </tr>
-        <tr>
-            <td colspan="4" class="section-title">TRANSPORTE</td>
-        </tr>
-        <tr>
-            <td>TIPO DE TRANSPORTE</td>
-            <td>NOMBRE DE TRANSPORTE</td>
-            <td>RUTA</td>
-            <td>SALIDA</td>
-            <td>FECHA SALIDA</td>
-            <td>HORA SALIDA</td>
-            <td>LLEGADA</td>
-            <td>FECHA LLEGADA</td>
-            <td>HORA LLEGADA</td>
+            <th>TIPO</th>
+            <th>NOMBRE</th>
+            <th>RUTA</th>
+            <th>FECHA/HORA SALIDA</th>
         </tr>
         {% for transporte in transportes %}
         <tr>
-            <td>{{ transporte.Tipo_de_Transporte }}</td>
-            <td>{{ transporte.Nombre_del_Transporte }}</td>
-            <td>{{ transporte.Ruta }}</td>
-            <td>{{ transporte.Fecha_de_Salida }}</td>
-            <td>{{ transporte.Hora_de_Salida }}</td>
-            <td>{{ transporte.Fecha_de_Llegada }}</td>
-            <td>{{ transporte.Hora_de_Llegada }}</td>
+            <td>{{ transporte.Tipo_de_Transporte | default:"&nbsp;" }}</td>
+            <td>{{ transporte.Nombre_del_Transporte | default:"&nbsp;" }}</td>
+            <td>{{ transporte.Ruta | default:"&nbsp;" }}</td>
+            <td>{{ transporte.Fecha_de_Salida | default:"&nbsp;" }} {{ transporte.Hora_de_Salida | default:"&nbsp;" }}
+            </td>
+        </tr>
+        <tr>
+            <th colspan="3">FECHA/HORA LLEGADA</th>
+            <td>{{ transporte.Fecha_de_Llegada | default:"&nbsp;" }} {{ transporte.Hora_de_Llegada | default:"&nbsp;" }}
+            </td>
         </tr>
         {% endfor %}
-        <tr>
-            <td colspan="4" class="section-title">DATOS PARA LA TRANSFERENCIA</td>
+        <tr class="section-title">
+            <td colspan="4">DATOS PARA LA TRANSFERENCIA</td>
         </tr>
         <tr>
-            <td>NOMBRE DEL BANCO</td>
-            <td>TIPO DE CUENTA</td>
-            <td>No. DE CUENTA</td>
-            <td></td>
+            <th>NOMBRE DEL BANCO</th>
+            <td>{{ nombre_banco | default:"&nbsp;" }}</td>
+            <th>TIPO DE CUENTA</th>
+            <td>{{ tipo_cuenta | default:"&nbsp;" }}</td>
         </tr>
         <tr>
-            <td colspan="3">{{ nombre_banco }}</td>
-            <td>{{ tipo_cuenta }}</td>
-            <td>{{ num_cuenta }}</td>
+            <th>No. DE CUENTA</th>
+            <td colspan="3">{{ num_cuenta | default:"&nbsp;" }}</td>
+        </tr>
+        <tr class="section-title">
+            <td colspan="4">FIRMAS</td>
         </tr>
         <tr>
-            <td colspan="2" class="section-title">FIRMA DE LA O EL SERVIDOR SOLICITANTE</td>
-            <td colspan="2" class="section-title">FIRMA DE LA O EL RESPONSABLE DE LA UNIDAD SOLICITANTE</td>
+            <th colspan="2">SERVIDOR SOLICITANTE</th>
+            <th colspan="2">RESPONSABLE DE LA UNIDAD SOLICITANTE</th>
         </tr>
         <tr>
-            <td>(ESPACIO EN BLANCO PARA FIRMA)</td>
-            <td>(ESPACIO EN BLANCO PARA FIRMA)</td>
+            <td colspan="2" class="signature-space"></td>
+            <td colspan="2" class="signature-space"></td>
         </tr>
         <tr>
-            <td colspan="2">{{ nombre_completo }}<br>CC: {{ cedula }}</td>
+            <td colspan="2">{{ nombre_completo | default:"&nbsp;" }}<br>CC: {{ cedula | default:"&nbsp;" }}</td>
             <td colspan="2"></td>
         </tr>
         <tr>
-            <td colspan="2" class="section-title">FIRMA DE LA AUTORIDAD NOMINADORA O SU DELEGADO</td>
-            <td colspan="2" class="section-title">NOTA</td>
+            <th colspan="2">AUTORIDAD NOMINADORA O SU DELEGADO</th>
+            <th colspan="2">NOTA</th>
         </tr>
         <tr>
-            <td colspan="2">(ESPACIO EN BLANCO PARA FIRMA)</td>
-            <td colspan="2">Las solicitudes de autorización deben ser ingresadas con al menos 72 horas antes del viaje.<br>
-                En caso de no estar disponible el transporte oficial, se autoriza a la o el servidor a utilizar transporte público.<br>
-                La autorización de servicios institucionales deberá aprobarse según disponibilidad presupuestaria.</td>
+            <td colspan="2" class="signature-space"></td>
+            <td colspan="2" rowspan="2">
+                Las solicitudes de autorización deben ser ingresadas con al menos 72 horas antes del viaje.<br>
+                En caso de no estar disponible el transporte oficial, se autoriza a la o el servidor a utilizar
+                transporte público.<br>
+                La autorización de servicios institucionales deberá aprobarse según disponibilidad presupuestaria.
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2"></td>
         </tr>
     </table>
-
 </body>
+
 </html>
+
