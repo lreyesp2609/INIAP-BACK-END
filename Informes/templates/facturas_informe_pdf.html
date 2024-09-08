@@ -74,6 +74,10 @@
             font-weight: bold;
         }
 
+        .center-text {
+            text-align: center;
+        }
+
         .column1 { width: 3cm; }
         .column2 { width: 2.5cm; }
         .column3 { width: 3cm; }
@@ -94,14 +98,17 @@
     </div>
 
     <div class="content">
-        <h1 class="bold">
+        <h1 class="bold center-text">
             DETALLES DE DOCUMENTO DE RESPALDO PARA LA<br>
             JUSTIFICACIÓN DEL 70% DE GASTOS REALIZADOS EN LA<br>
             COMISIÓN DE SERVICIOS
         </h1>
-    
-        <p class="bold"><strong>Número de Informe:</strong> {{ codigo_solicitud }}</p>
-        <p class="bold"><strong>Fecha de la Comisión:</strong> {{ fecha_comision }}</p>
+
+        <!-- Centramos el número de informe y la fecha de comisión -->
+        <div class="center-text">
+            <p class="bold"><strong>NÚMERO DE INFORME:</strong> 001-RPLA-UI-INIAP-EETP-2024</p>
+            <p class="bold"><strong>FECHA DE LA COMISIÓN:</strong> del 26 al 26 de septiembre del 2024</p>
+        </div>
 
         <table>
             <tr>
@@ -121,7 +128,9 @@
             </tr>
             {% endfor %}
             <tr>
-                <td colspan="4" class="empty-cell"></td> 
+                <!-- Alineamos "Total $" debajo de Detalle Documento, y el valor total en la columna de valor-->
+                <td colspan="3" class="empty-cell"></td> 
+                <td class="bold">Total $</td>
                 <td class="bold">{{ total_valor }}</td>
             </tr>
         </table>
