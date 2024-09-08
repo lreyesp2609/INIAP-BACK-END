@@ -28,13 +28,13 @@
         }
 
         .header {
-            top: 0;
+            top: -1cm;
             border-bottom: 1px solid #000;
             padding-bottom: 10px;
         }
 
         .footer {
-            bottom: 0;
+            bottom: -1cm;
             border-top: 1px solid #000;
             padding-top: 10px;
         }
@@ -184,7 +184,13 @@
                 <th colspan="2">NOTA</th>
             </tr>
             <tr>
-                <td colspan="2" class="bottom-align">{{ nombre_completo | default:"&nbsp;" }}<br>CC: {{ cedula | default:"&nbsp;" }}<br>PUESTO: {{ cargo | default:"&nbsp;" }}</td>
+                <td colspan="2" class="bottom-align">
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+                    {{ nombre_completo | default:"&nbsp;" }}<br>CC: {{ cedula | default:"&nbsp;" }}<br>PUESTO: {{ cargo | default:"&nbsp;" }}
+                </td>
                 <td colspan="2">
                     El presente informe deberá presentarse dentro del término de 4 días del cumplimiento de servicios
                     institucionales, caso contrario la liquidación se demorará e incluso de no presentarlo tendría que restituir los valores
