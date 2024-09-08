@@ -153,19 +153,27 @@ class EditarUnidadView(View):
 
             # Obtener datos del formulario FormData
             nombre_unidad = request.POST.get('nombre_unidad', '').upper()
+            siglas_unidad = request.POST.get('siglas_unidad', '').upper()
 
-            # Generar siglas automáticamente
-            palabras_comunes = ['DE', 'LA', 'LAS', 'EL', 'LOS', 'DEL', 'Y', 'EN']
-            palabras = [palabra for palabra in nombre_unidad.split() if palabra not in palabras_comunes]
-            siglas_unidad = ''.join([palabra[0] for palabra in palabras]).upper()
+            # Generar siglas automáticamente si no se proporcionan
+            if not siglas_unidad:
+                palabras_comunes = ['DE', 'LA', 'LAS', 'EL', 'LOS', 'DEL', 'Y', 'EN']
+                palabras = [palabra for palabra in nombre_unidad.split() if palabra not in palabras_comunes]
+                siglas_unidad = ''.join([palabra[0] for palabra in palabras]).upper()
 
-            # Validar campos obligatorios si es necesario
+            # Validar campos obligatorios
             if not nombre_unidad:
                 return JsonResponse({'error': 'El nombre de la unidad es requerido'}, status=400)
 
-            # Verificar si ya existe una unidad con el mismo nombre, excluyendo la actual
+            if not siglas_unidad:
+                return JsonResponse({'error': 'Las siglas de la unidad son requeridas'}, status=400)
+
+            # Verificar si ya existe una unidad con el mismo nombre o siglas, excluyendo la actual
             if Unidades.objects.filter(nombre_unidad=nombre_unidad).exclude(id_unidad=id_unidad).exists():
                 return JsonResponse({'error': 'Ya existe una unidad con este nombre'}, status=400)
+            
+            if Unidades.objects.filter(siglas_unidad=siglas_unidad).exclude(id_unidad=id_unidad).exists():
+                return JsonResponse({'error': 'Ya existe una unidad con estas siglas'}, status=400)
 
             # Actualizar la unidad
             Unidades.objects.filter(id_unidad=id_unidad).update(
@@ -177,3 +185,4 @@ class EditarUnidadView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
