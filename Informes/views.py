@@ -568,17 +568,28 @@ class ListarSolicitudesCanceladasAdminView(View):
 class ListarSolicitudesAceptadasAdminView(View):
     def get(self, request, *args, **kwargs):
         try:
-            # Obtener todas las solicitudes con estado pendiente
+            # Obtener todas las solicitudes con estado aceptado
             solicitudes = Solicitudes.objects.filter(estado_solicitud='aceptado')
 
             # Preparar la respuesta con los datos requeridos
             data = []
             for solicitud in solicitudes:
-                codigo_solicitud = solicitud.generar_codigo_solicitud()
+                try:
+                    # Manejar el formateo de fecha
+                    fecha_solicitud = solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else ''
+                except Exception as e:
+                    fecha_solicitud = f"Error formateando fecha: {e}"
+
+                try:
+                    # Generar código de solicitud
+                    codigo_solicitud = solicitud.generar_codigo_solicitud()
+                except Exception as e:
+                    codigo_solicitud = f"Error generando código: {e}"
+
                 data.append({
-                    'id':solicitud.id_solicitud,
-                    'Codigo de Solicitud': codigo_solicitud,
-                    'Fecha Solicitud': solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else '',
+                    'id': solicitud.id_solicitud,
+                    'Codigo de Solicitud': codigo_solicitud if codigo_solicitud else '',
+                    'Fecha Solicitud': fecha_solicitud,
                     'Motivo': solicitud.motivo_movilizacion if solicitud.motivo_movilizacion else '',
                     'Estado': solicitud.estado_solicitud if solicitud.estado_solicitud else '',
                 })
@@ -586,7 +597,9 @@ class ListarSolicitudesAceptadasAdminView(View):
             return JsonResponse({'solicitudes': data}, status=200)
 
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            import traceback
+            error_message = traceback.format_exc()
+            return JsonResponse({'error': error_message}, status=500)
         
 class ListarSolicitudesEmpleadoView(View):
     def get(self, request, id_solicitud, *args, **kwargs):
