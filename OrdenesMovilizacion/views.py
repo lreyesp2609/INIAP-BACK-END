@@ -19,6 +19,8 @@ from io import BytesIO
 
 logger = logging.getLogger(__name__)
 
+from unicodedata import normalize
+
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearOrdenMovilizacionView(View):
     def post(self, request, id_usuario, *args, **kwargs):
@@ -57,6 +59,19 @@ class CrearOrdenMovilizacionView(View):
             # Convertir strings de hora a objetos datetime.time
             hora_ida = datetime.strptime(hora_ida_str, '%H:%M').time()
             hora_regreso = datetime.strptime(hora_regreso_str, '%H:%M').time()
+
+            # Normalizar el motivo de movilización y la ruta para evitar diferencias de acentos y mayúsculas
+            motivo_normalizado = normalize('NFKD', motivo_movilizacion).encode('ASCII', 'ignore').decode('ASCII').lower().strip()
+            ruta_normalizada = normalize('NFKD', lugar_origen_destino_movilizacion).encode('ASCII', 'ignore').decode('ASCII').lower().strip()
+
+            # Verificar si ya existe una orden con el mismo motivo y ruta
+            orden_existente = OrdenesMovilizacion.objects.filter(
+                motivo_movilizacion__icontains=motivo_normalizado,
+                lugar_origen_destino_movilizacion__icontains=ruta_normalizada
+            ).exists()
+
+            if orden_existente:
+                return JsonResponse({'error': 'Ya existe una orden de movilización con el mismo motivo y ruta'}, status=400)
 
             # Validación de horas y duraciones con el modelo HorarioOrdenMovilizacion
             horario = HorarioOrdenMovilizacion.objects.first()  # Obtener los límites de horario
@@ -107,6 +122,7 @@ class CrearOrdenMovilizacionView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListarOrdenMovilizacionView(View):

@@ -239,3 +239,47 @@ class ListaCargosPorUnidadView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class EditarCargoView(View):
+    def post(self, request, id_usuario, id_cargo, *args, **kwargs):
+        try:
+            # Autenticación por token
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            try:
+                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            except jwt.ExpiredSignatureError:
+                return JsonResponse({'error': 'Token expirado'}, status=401)
+            except jwt.InvalidTokenError:
+                return JsonResponse({'error': 'Token inválido'}, status=401)
+
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                return JsonResponse({'error': 'ID de usuario no encontrado en el token'}, status=403)
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
+            # Obtener datos del formulario
+            cargo = request.POST.get('cargo', '').upper()
+
+            # Validar campos obligatorios
+            if not cargo:
+                return JsonResponse({'error': 'El nombre del cargo es requerido'}, status=400)
+
+            # Verificar si ya existe un cargo con el mismo nombre en la misma unidad
+            if Cargos.objects.filter(cargo=cargo, id_unidad=Cargos.objects.get(id_cargo=id_cargo).id_unidad).exclude(id_cargo=id_cargo).exists():
+                return JsonResponse({'error': 'Ya existe un cargo con este nombre en la unidad'}, status=400)
+
+            # Actualizar el cargo
+            Cargos.objects.filter(id_cargo=id_cargo).update(
+                cargo=cargo
+            )
+
+            return JsonResponse({'mensaje': 'Cargo actualizado exitosamente'}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)

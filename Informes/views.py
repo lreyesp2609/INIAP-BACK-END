@@ -568,17 +568,28 @@ class ListarSolicitudesCanceladasAdminView(View):
 class ListarSolicitudesAceptadasAdminView(View):
     def get(self, request, *args, **kwargs):
         try:
-            # Obtener todas las solicitudes con estado pendiente
+            # Obtener todas las solicitudes con estado aceptado
             solicitudes = Solicitudes.objects.filter(estado_solicitud='aceptado')
 
             # Preparar la respuesta con los datos requeridos
             data = []
             for solicitud in solicitudes:
-                codigo_solicitud = solicitud.generar_codigo_solicitud()
+                try:
+                    # Manejar el formateo de fecha
+                    fecha_solicitud = solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else ''
+                except Exception as e:
+                    fecha_solicitud = f"Error formateando fecha: {e}"
+
+                try:
+                    # Generar código de solicitud
+                    codigo_solicitud = solicitud.generar_codigo_solicitud()
+                except Exception as e:
+                    codigo_solicitud = f"Error generando código: {e}"
+
                 data.append({
-                    'id':solicitud.id_solicitud,
-                    'Codigo de Solicitud': codigo_solicitud,
-                    'Fecha Solicitud': solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else '',
+                    'id': solicitud.id_solicitud,
+                    'Codigo de Solicitud': codigo_solicitud if codigo_solicitud else '',
+                    'Fecha Solicitud': fecha_solicitud,
                     'Motivo': solicitud.motivo_movilizacion if solicitud.motivo_movilizacion else '',
                     'Estado': solicitud.estado_solicitud if solicitud.estado_solicitud else '',
                 })
@@ -586,7 +597,9 @@ class ListarSolicitudesAceptadasAdminView(View):
             return JsonResponse({'solicitudes': data}, status=200)
 
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            import traceback
+            error_message = traceback.format_exc()
+            return JsonResponse({'error': error_message}, status=500)
         
 class ListarSolicitudesEmpleadoView(View):
     def get(self, request, id_solicitud, *args, **kwargs):
@@ -1646,10 +1659,18 @@ class GenerarPdfInformeView(View):
             return JsonResponse({'error': str(e)}, status=500)
 
 
+from weasyprint import HTML, CSS
+from io import BytesIO
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+import logging
+
+logger = logging.getLogger(__name__)
+
 def generar_pdf(informe):
     try:
         template_path = 'informe_viaje_pdf.html'
-        
+
         solicitud = informe.id_solicitud
         empleado = solicitud.id_empleado
         persona = empleado.id_persona
@@ -1693,6 +1714,7 @@ def generar_pdf(informe):
             'fecha_informe': fecha_informe,
             'nombre_completo': nombre_completo,
             'cargo': cargo.cargo if cargo.cargo else '',
+            'cedula': persona.numero_cedula if persona.numero_cedula else '',
             'lugar_servicio': solicitud.lugar_servicio if solicitud.lugar_servicio else '',
             'nombre_unidad': unidad.nombre_unidad if unidad.nombre_unidad else '',
             'listado_empleados': solicitud.listado_empleado if solicitud.listado_empleado else '',
@@ -1707,24 +1729,22 @@ def generar_pdf(informe):
             'encabezado_inferior': encabezados.encabezado_inferior if encabezados.encabezado_inferior else '',
         }
 
-        html = render_to_string(template_path, context)
+        # Renderizar el HTML con el contexto
+        html_content = render_to_string(template_path, context)
 
-        result = BytesIO()
-        pdf = pisa.CreatePDF(BytesIO(html.encode("UTF-8")), dest=result)
+        # Crear el PDF usando WeasyPrint
+        pdf_file = BytesIO()
+        HTML(string=html_content).write_pdf(pdf_file)
 
-        if pdf.err:
-            logger.error(f'Error al generar el PDF: {pdf.err}')
-            return HttpResponse('Error al generar el PDF', status=500)
-
-        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        # Configurar la respuesta HTTP
+        response = HttpResponse(pdf_file.getvalue(), content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="informe_{informe.id_informes}.pdf"'
+
         return response
 
     except Exception as e:
         logger.error(f'Error en generar_pdf: {str(e)}')
         return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)
-
-
 
 @method_decorator(csrf_exempt, name='dispatch')
 class GenerarPdfFacturasView(View):
@@ -1772,6 +1792,8 @@ class GenerarPdfFacturasView(View):
             print(f"Error al generar el PDF: {str(e)}")  
             return JsonResponse({'error': f'Error al generar el PDF: {str(e)}'}, status=500)
 
+logger = logging.getLogger(__name__)
+
 def generar_pdf_facturas(facturas_list, id_informe):
     try:
         template_path = 'facturas_informe_pdf.html'
@@ -1813,6 +1835,9 @@ def generar_pdf_facturas(facturas_list, id_informe):
         # Formatear datos para el contexto
         nombre_completo = f"{empleado.distintivo if empleado.distintivo else ''} {persona.apellidos if persona.apellidos else ''} {persona.nombres if persona.nombres else ''}".strip()
 
+        # Obtener encabezados
+        encabezados = Encabezados.objects.first()  # Suponiendo que hay un único conjunto de encabezados
+        
         # Crear el contexto para el template
         context = {
             'codigo_solicitud': solicitud.generar_codigo_solicitud(),
@@ -1823,25 +1848,50 @@ def generar_pdf_facturas(facturas_list, id_informe):
             'lugar_servicio': solicitud.lugar_servicio if solicitud.lugar_servicio else '',
             'nombre_unidad': unidad.nombre_unidad if unidad.nombre_unidad else '',
             'facturas': facturas_list,
-            'total_valor': total_valor 
+            'total_valor': total_valor,
+            'encabezado_superior': encabezados.encabezado_superior if encabezados.encabezado_superior else '',
+            'encabezado_inferior': encabezados.encabezado_inferior if encabezados.encabezado_inferior else '',
         }
 
         # Renderizar el template a HTML
-        html = render_to_string(template_path, context)
+        html_content = render_to_string(template_path, context)
 
-        # Crear el PDF
-        result = BytesIO()
-        pdf = pisa.CreatePDF(BytesIO(html.encode("UTF-8")), dest=result)
+        # Crear el PDF usando WeasyPrint
+        pdf_file = BytesIO()
+        HTML(string=html_content).write_pdf(pdf_file, stylesheets=[CSS(string='''
+            @page {
+                size: A4;
+                margin: 2cm;
+                @top-center {
+                    content: element(header);
+                }
+                @bottom-center {
+                    content: element(footer);
+                }
+            }
+            #header {
+                position: running(header);
+                width: 100%;
+                text-align: center;
+                font-size: 10px;
+                border-bottom: 1px solid black;
+            }
+            #footer {
+                position: running(footer);
+                width: 100%;
+                text-align: center;
+                font-size: 10px;
+                border-top: 1px solid black;
+            }
+        ''')])
 
-        if pdf.err:
-            logger.error(f'Error al generar el PDF: {pdf.err}')
-            return HttpResponse('Error al generar el PDF', status=500)
-
-        # Preparar la respuesta con el PDF
-        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        # Configurar la respuesta HTTP
+        response = HttpResponse(pdf_file.getvalue(), content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="facturas_{informe.id_informes}.pdf"'
+
         return response
 
     except Exception as e:
         logger.error(f'Error en generar_pdf_facturas: {str(e)}')
         return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)
+
