@@ -36,4 +36,5 @@ urlpatterns = [
     path('listar-motivos-cancelados/<int:id_solicitud>/', ListarMotivosCanceladosView.as_view(), name='listar_motivos_cancelados'),
     path('generar_pdf/<int:id_usuario>/<int:id_informe>/pdf/', GenerarPdfInformeView.as_view(), name='generar_informe_pdf'),
     path('generar_pdf_facturas/<int:id_usuario>/<int:id_informe>/pdf/', GenerarPdfFacturasView.as_view(), name='generar_facturas_pdf'),
+    path('generar_pdf_solicitud/<int:id_usuario>/<int:id_solicitud>/pdf/', GenerarPdfSolicitudView.as_view(), name='generar_solicitud_pdf'),
  ]
