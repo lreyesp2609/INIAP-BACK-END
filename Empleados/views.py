@@ -37,14 +37,14 @@ class NuevoEmpleadoView(View):
                 return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
 
             numero_cedula = request.POST.get('numero_cedula')
-            nombres = request.POST.get('nombres')
-            apellidos = request.POST.get('apellidos')
-            fecha_nacimiento = request.POST.get('fecha_nacimiento')
-            genero = request.POST.get('genero')
+            nombres = request.POST.get('nombres', '').upper()
+            apellidos = request.POST.get('apellidos', '').upper()
+            fecha_nacimiento = request.POST.get('fecha_nacimiento', None)
+            genero = request.POST.get('genero', '').upper()
             celular = request.POST.get('celular')
-            direccion = request.POST.get('direccion')
+            direccion = request.POST.get('direccion', '').upper()
             correo_electronico = request.POST.get('correo_electronico')
-            distintivo = request.POST.get('distintivo')
+            distintivo = request.POST.get('distintivo', '').upper()
             id_rol = request.POST.get('id_rol')
             id_cargo = request.POST.get('id_cargo')
             id_tipo_licencia = request.POST.get('id_tipo_licencia')  # nuevo campo
@@ -52,7 +52,7 @@ class NuevoEmpleadoView(View):
             # Usa la fecha actual del servidor como fecha de ingreso
             fecha_ingreso = datetime.now().strftime('%Y-%m-%d')
 
-            if not all([numero_cedula, nombres, apellidos, fecha_nacimiento, genero, celular, direccion, correo_electronico, distintivo, id_rol, id_cargo]):
+            if not all([numero_cedula, nombres, apellidos, genero, celular, correo_electronico, distintivo, id_rol, id_cargo]):
                 return JsonResponse({'error': 'Todos los campos son obligatorios'}, status=400)
 
             if not numero_cedula.isdigit():
@@ -64,13 +64,10 @@ class NuevoEmpleadoView(View):
             if not apellidos.replace(" ", "").isalpha():
                 return JsonResponse({'error': 'Los apellidos deben contener solo letras'}, status=400)
 
-            if not genero in ['Masculino', 'Femenino']:
+            if genero not in ['MASCULINO', 'FEMENINO']:
                 return JsonResponse({'error': 'El género debe ser Masculino o Femenino'}, status=400)
-            
-            if not re.match(r'^[a-zA-Z0-9\s,.\-áéíóúÁÉÍÓÚñÑ]+$', direccion):
-                return JsonResponse({'error': 'La dirección debe contener solo letras y números'}, status=400)
 
-            if not re.match(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s.]+$', distintivo):
+            if not re.match(r'^[A-ZÁÉÍÓÚÑ\s.]+$', distintivo):
                 return JsonResponse({'error': 'El distintivo debe contener solo letras, tildes y espacios'}, status=400)
 
             if not distintivo.endswith('.'):
@@ -84,15 +81,18 @@ class NuevoEmpleadoView(View):
                         pass
                 raise ValueError('Formato de fecha inválido')
 
-            try:
-                fecha_nacimiento = parse_date(fecha_nacimiento)
-            except ValueError as e:
-                return JsonResponse({'error': str(e)}, status=400)
+            if fecha_nacimiento:
+                try:
+                    fecha_nacimiento = parse_date(fecha_nacimiento)
+                except ValueError as e:
+                    return JsonResponse({'error': str(e)}, status=400)
 
-            fecha_nacimiento_dt = datetime.strptime(fecha_nacimiento, '%Y-%m-%d')
-            edad = (datetime.now() - fecha_nacimiento_dt).days // 365
-            if edad < 18:
-                return JsonResponse({'error': 'El empleado debe ser mayor de 18 años'}, status=400)
+                fecha_nacimiento_dt = datetime.strptime(fecha_nacimiento, '%Y-%m-%d')
+                edad = (datetime.now() - fecha_nacimiento_dt).days // 365
+                if edad < 18:
+                    return JsonResponse({'error': 'El empleado debe ser mayor de 18 años'}, status=400)
+            else:
+                fecha_nacimiento = None
 
             habilitado = '1'
 
