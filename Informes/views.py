@@ -1941,22 +1941,50 @@ def generar_pdf_solicitud(solicitud):
         unidad = cargo.id_unidad
 
         nombre_completo = f"{empleado.distintivo if empleado.distintivo else ''} {persona.apellidos if persona.apellidos else ''} {persona.nombres if persona.nombres else ''}".strip()
-        
-        # fecha_informe = solicitud.fecha_informe.strftime('%d-%m-%Y')
+        fecha_solicitud = solicitud.fecha_solicitud.strftime('%d-%m-%Y')  # Formato de la fecha
 
-        encabezados = Encabezados.objects.first()  
-        
+        encabezados = Encabezados.objects.first()
+
+        # Obtener datos de transporte
+        transportes = TransporteSolicitudes.objects.filter(id_solicitud=solicitud.id_solicitud)
+
+        # Obtener datos bancarios
+        cuenta_bancaria = CuentasBancarias.objects.filter(id_solicitud=solicitud.id_solicitud).first()
+        banco = cuenta_bancaria.id_banco.nombre_banco if cuenta_bancaria and cuenta_bancaria.id_banco else ''
+        tipo_cuenta = cuenta_bancaria.tipo_cuenta if cuenta_bancaria else ''
+        numero_cuenta = cuenta_bancaria.numero_cuenta if cuenta_bancaria else ''
+
+        # Determinar qué opciones están marcadas
+        motivo = solicitud.motivo_movilizacion
+        viaticos_checked = 'checked' if motivo == 'VIÁTICOS' else ''
+        movilizaciones_checked = 'checked' if motivo == 'MOVILIZACIONES' else ''
+        subsistencias_checked = 'checked' if motivo == 'SUBSISTENCIAS' else ''
+        alimentacion_checked = 'checked' if motivo == 'ALIMENTACIÓN' else ''
+
         context = {
             'codigo_solicitud': solicitud.generar_codigo_solicitud(),
-            #'fecha_informe': fecha_informe,
+            'fecha_solicitud': fecha_solicitud,
             'nombre_completo': nombre_completo,
             'cargo': cargo.cargo if cargo.cargo else '',
             'cedula': persona.numero_cedula if persona.numero_cedula else '',
             'lugar_servicio': solicitud.lugar_servicio if solicitud.lugar_servicio else '',
+            'descripcion_actividades': solicitud.descripcion_actividades if solicitud.descripcion_actividades else '',
             'nombre_unidad': unidad.nombre_unidad if unidad.nombre_unidad else '',
             'listado_empleados': solicitud.listado_empleado if solicitud.listado_empleado else '',
             'encabezado_superior': encabezados.encabezado_superior if encabezados.encabezado_superior else '',
             'encabezado_inferior': encabezados.encabezado_inferior if encabezados.encabezado_inferior else '',
+            'viaticos_checked': viaticos_checked,
+            'movilizaciones_checked': movilizaciones_checked,
+            'subsistencias_checked': subsistencias_checked,
+            'alimentacion_checked': alimentacion_checked,
+            'fecha_salida_solicitud': solicitud.fecha_salida_solicitud.strftime('%d-%m-%Y') if solicitud.fecha_salida_solicitud else '',
+            'hora_salida_solicitud': solicitud.hora_salida_solicitud.strftime('%H:%M') if solicitud.hora_salida_solicitud else '',
+            'fecha_llegada_solicitud': solicitud.fecha_llegada_solicitud.strftime('%d-%m-%Y') if solicitud.fecha_llegada_solicitud else '',
+            'hora_llegada_solicitud': solicitud.hora_llegada_solicitud.strftime('%H:%M') if solicitud.hora_llegada_solicitud else '',
+            'transportes': transportes,
+            'banco': banco,
+            'tipo_cuenta': tipo_cuenta,
+            'numero_cuenta': numero_cuenta
         }
 
         # Renderizar el HTML con el contexto
