@@ -356,6 +356,55 @@ class CancelarOrdenMovilizacionView(View):
             return JsonResponse({"error": str(e)}, status=500)
 
 @method_decorator(csrf_exempt, name='dispatch')
+class DeshabilitarOrdenMovilizacionView(View):
+    @transaction.atomic
+    def post(self, request, id_usuario, id_orden_movilizacion, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            usuario = Usuarios.objects.select_related('id_rol').get(id_usuario=token_id_usuario)
+            if usuario.id_rol.rol != 'SuperUsuario':
+                return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
+
+            if token_id_usuario != id_usuario:
+                return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
+
+            orden_movilizacion = OrdenesMovilizacion.objects.get(id_orden_movilizacion=id_orden_movilizacion)
+            if orden_movilizacion.habilitado == 0:
+                return JsonResponse({'error': 'La orden de movilización ya está deshabilitada'}, status=400)
+
+            # Deshabilitar la orden de movilización
+            orden_movilizacion.habilitado = 0
+            orden_movilizacion.save()
+
+            return JsonResponse({'mensaje': 'Orden de movilización deshabilitada exitosamente'}, status=200)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except AuthenticationFailed as e:
+            return JsonResponse({'error': str(e)}, status=403)
+
+        except OrdenesMovilizacion.DoesNotExist:
+            return JsonResponse({'error': 'Orden de movilización no encontrada'}, status=404)
+
+        except Exception as e:
+            transaction.set_rollback(True)
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
 class HabilitarOrdenMovilizacionView(View):
     def put(self, request, id_usuario, id_orden):
         try:
