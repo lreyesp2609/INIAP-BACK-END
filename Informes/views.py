@@ -1616,7 +1616,6 @@ class ListarMotivosCanceladosView(View):
         except Exception as e:
             return JsonResponse({'error': f'Error al obtener los motivos de cancelación: {str(e)}'}, status=500)
 
-
 @method_decorator(csrf_exempt, name='dispatch')
 class GenerarPdfInformeView(View):
     def get(self, request, id_usuario, id_informe):
@@ -1637,7 +1636,8 @@ class GenerarPdfInformeView(View):
             if not informe:
                 return JsonResponse({"error": "Informe no encontrado"}, status=404)
 
-            return generar_pdf_informe(informe)
+            include_header_footer = request.GET.get('include_header_footer', 'true').lower() == 'true'
+            return generar_pdf_informe(informe, include_header_footer)
 
         except jwt.ExpiredSignatureError:
             return JsonResponse({'error': 'Token expirado'}, status=401)
@@ -1664,7 +1664,7 @@ from django.http import HttpResponse
 from django.template.loader import render_to_string
 import logging
 
-def generar_pdf_informe(informe):
+def generar_pdf_informe(informe, include_header_footer):
     try:
         template_path = 'informe_viaje_pdf.html'
 
@@ -1722,18 +1722,41 @@ def generar_pdf_informe(informe):
             'observacion': informe.observacion if informe.observacion else '',
             'transportes': transportes_list,
             'productos_alcanzados': productos_alcanzados,
-            'encabezado_superior': encabezados.encabezado_superior if encabezados.encabezado_superior else '',
-            'encabezado_inferior': encabezados.encabezado_inferior if encabezados.encabezado_inferior else '',
+            'encabezado_superior': encabezados.encabezado_superior if encabezados and include_header_footer else '',
+            'encabezado_inferior': encabezados.encabezado_inferior if encabezados and include_header_footer else '',
         }
 
-        # Renderizar el HTML con el contexto
         html_content = render_to_string(template_path, context)
 
-        # Crear el PDF usando WeasyPrint
         pdf_file = BytesIO()
-        HTML(string=html_content).write_pdf(pdf_file)
+        if include_header_footer:
+            HTML(string=html_content).write_pdf(pdf_file, stylesheets=[CSS(string='''
+                @page {
+                    size: A4;
+                    margin: 2cm;
+                    @top-center {
+                        content: element(header);
+                    }
+                    @bottom-center {
+                        content: element(footer);
+                    }
+                }
+                #header {
+                    position: running(header);
+                    width: 100%;
+                    text-align: center;
+                    font-size: 10px;
+                }
+                #footer {
+                    position: running(footer);
+                    width: 100%;
+                    text-align: center;
+                    font-size: 10px;
+                }
+            ''')])
+        else:
+            HTML(string=html_content).write_pdf(pdf_file)
 
-        # Configurar la respuesta HTTP
         response = HttpResponse(pdf_file.getvalue(), content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="informe_{informe.id_informes}.pdf"'
 
@@ -1742,6 +1765,7 @@ def generar_pdf_informe(informe):
     except Exception as e:
         logger.error(f'Error en generar_pdf: {str(e)}')
         return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class GenerarPdfFacturasView(View):
@@ -1783,13 +1807,14 @@ class GenerarPdfFacturasView(View):
                 }
                 facturas_list.append(factura_data)
 
-            return generar_pdf_facturas(facturas_list, id_informe)
+            include_header_footer = request.GET.get('includeHeaderFooter', 'true').lower() == 'true'
+            return generar_pdf_facturas(facturas_list, id_informe, include_header_footer)
 
         except Exception as e:
             print(f"Error al generar el PDF: {str(e)}")  
             return JsonResponse({'error': f'Error al generar el PDF: {str(e)}'}, status=500)
 
-def generar_pdf_facturas(facturas_list, id_informe):
+def generar_pdf_facturas(facturas_list, id_informe, include_header_footer):
     try:
         template_path = 'facturas_informe_pdf.html'
         
@@ -1844,9 +1869,14 @@ def generar_pdf_facturas(facturas_list, id_informe):
             'nombre_unidad': unidad.nombre_unidad if unidad.nombre_unidad else '',
             'facturas': facturas_list,
             'total_valor': total_valor,
-            'encabezado_superior': encabezados.encabezado_superior if encabezados.encabezado_superior else '',
-            'encabezado_inferior': encabezados.encabezado_inferior if encabezados.encabezado_inferior else '',
         }
+
+        if include_header_footer:
+            encabezados = Encabezados.objects.first()
+            context.update({
+                'encabezado_superior': encabezados.encabezado_superior if encabezados else '',
+                'encabezado_inferior': encabezados.encabezado_inferior if encabezados else '',
+        })
 
         # Renderizar el template a HTML
         html_content = render_to_string(template_path, context)
@@ -1910,7 +1940,8 @@ class GenerarPdfSolicitudView(View):
             if not solicitud:
                 return JsonResponse({"error": "Solicitud no encontrada"}, status=404)
 
-            return generar_pdf_solicitud(solicitud)
+            include_header_footer = request.GET.get('include_header_footer', 'true').lower() == 'true'
+            return generar_pdf_solicitud(solicitud, include_header_footer)
 
         except jwt.ExpiredSignatureError:
             return JsonResponse({'error': 'Token expirado'}, status=401)
@@ -1921,17 +1952,15 @@ class GenerarPdfSolicitudView(View):
         except AuthenticationFailed as e:
             return JsonResponse({'error': str(e)}, status=403)
 
-        except Usuarios.DoesNotExist:
-            return JsonResponse({"error": "Usuario no encontrado"}, status=404)
-
         except Solicitudes.DoesNotExist:
             return JsonResponse({"error": "Solicitud no encontrada"}, status=404)
 
         except Exception as e:
-            print(f'Error al generar el PDF: {str(e)}')
+            logger.error(f'Error al generar el PDF: {str(e)}')
             return JsonResponse({'error': str(e)}, status=500)
 
-def generar_pdf_solicitud(solicitud):
+
+def generar_pdf_solicitud(solicitud, include_header_footer):
     try:
         template_path = 'solicitud_viaje_pdf.html'
 
@@ -1941,20 +1970,16 @@ def generar_pdf_solicitud(solicitud):
         unidad = cargo.id_unidad
 
         nombre_completo = f"{empleado.distintivo if empleado.distintivo else ''} {persona.apellidos if persona.apellidos else ''} {persona.nombres if persona.nombres else ''}".strip()
-        fecha_solicitud = solicitud.fecha_solicitud.strftime('%d-%m-%Y')  # Formato de la fecha
+        fecha_solicitud = solicitud.fecha_solicitud.strftime('%d-%m-%Y')
 
-        encabezados = Encabezados.objects.first()
+        encabezados = Encabezados.objects.first() if include_header_footer else None
 
-        # Obtener datos de transporte
         transportes = TransporteSolicitudes.objects.filter(id_solicitud=solicitud.id_solicitud)
-
-        # Obtener datos bancarios
         cuenta_bancaria = CuentasBancarias.objects.filter(id_solicitud=solicitud.id_solicitud).first()
         banco = cuenta_bancaria.id_banco.nombre_banco if cuenta_bancaria and cuenta_bancaria.id_banco else ''
         tipo_cuenta = cuenta_bancaria.tipo_cuenta if cuenta_bancaria else ''
         numero_cuenta = cuenta_bancaria.numero_cuenta if cuenta_bancaria else ''
 
-        # Determinar qué opciones están marcadas
         motivo = solicitud.motivo_movilizacion
         viaticos_checked = 'checked' if motivo == 'VIÁTICOS' else ''
         movilizaciones_checked = 'checked' if motivo == 'MOVILIZACIONES' else ''
@@ -1971,8 +1996,6 @@ def generar_pdf_solicitud(solicitud):
             'descripcion_actividades': solicitud.descripcion_actividades if solicitud.descripcion_actividades else '',
             'nombre_unidad': unidad.nombre_unidad if unidad.nombre_unidad else '',
             'listado_empleados': solicitud.listado_empleado if solicitud.listado_empleado else '',
-            'encabezado_superior': encabezados.encabezado_superior if encabezados.encabezado_superior else '',
-            'encabezado_inferior': encabezados.encabezado_inferior if encabezados.encabezado_inferior else '',
             'viaticos_checked': viaticos_checked,
             'movilizaciones_checked': movilizaciones_checked,
             'subsistencias_checked': subsistencias_checked,
@@ -1987,19 +2010,54 @@ def generar_pdf_solicitud(solicitud):
             'numero_cuenta': numero_cuenta
         }
 
-        # Renderizar el HTML con el contexto
+        if include_header_footer and encabezados:
+            context.update({
+                'encabezado_superior': encabezados.encabezado_superior,
+                'encabezado_inferior': encabezados.encabezado_inferior
+            })
+
         html_content = render_to_string(template_path, context)
 
-        # Crear el PDF usando WeasyPrint
         pdf_file = BytesIO()
-        HTML(string=html_content).write_pdf(pdf_file)
+        css_styles = '''
+            @page {
+                size: A4;
+                margin: 2cm;
+                {% if include_header_footer %}
+                @top-center {
+                    content: element(header);
+                }
+                @bottom-center {
+                    content: element(footer);
+                }
+                {% endif %}
+            }
+            #header {
+                {% if include_header_footer %}
+                position: running(header);
+                width: 100%;
+                text-align: center;
+                font-size: 10px;
+                border-bottom: 1px solid black;
+                {% endif %}
+            }
+            #footer {
+                {% if include_header_footer %}
+                position: running(footer);
+                width: 100%;
+                text-align: center;
+                font-size: 10px;
+                border-top: 1px solid black;
+                {% endif %}
+            }
+        '''
+        HTML(string=html_content).write_pdf(pdf_file, stylesheets=[CSS(string=css_styles)])
 
-        # Configurar la respuesta HTTP
         response = HttpResponse(pdf_file.getvalue(), content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="solicitud_{solicitud.id_solicitud}.pdf"'
 
         return response
 
     except Exception as e:
-        logger.error(f'Error en generar_pdf: {str(e)}')
+        logger.error(f'Error en generar_pdf_solicitud: {str(e)}')
         return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)
