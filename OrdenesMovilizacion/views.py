@@ -5,6 +5,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.db import transaction
 import jwt
+
+from Encabezados.models import Encabezados
 from .models import *
 from datetime import datetime
 from Vehiculos.models import Vehiculo
@@ -731,6 +733,7 @@ def generar_pdf(orden):
     try:
         template_path = 'ordenes_movilizacion_pdf.html'
 
+        # Obtener los datos necesarios
         conductor_persona = orden.id_conductor.id_persona
         empleado_persona = orden.id_empleado.id_persona
 
@@ -740,7 +743,11 @@ def generar_pdf(orden):
         minutos = duracion.minute
         duracion_formateada = f"{horas:02}:{minutos:02}hrs"
 
+        # Fecha actual
         fecha_actual = datetime.now().strftime('%d/%m/%Y')
+
+        # Obtener los encabezados de la base de datos
+        encabezados = Encabezados.objects.first()
 
         context = {
             'orden': orden,
@@ -751,14 +758,19 @@ def generar_pdf(orden):
             'empleado': orden.id_empleado,
             'empleado_persona': empleado_persona,
             'duracion_formateada': duracion_formateada,
-            'fecha_actual': fecha_actual,  
+            'fecha_actual': fecha_actual,
+            'encabezado_superior': encabezados.encabezado_superior if encabezados else '',
+            'encabezado_inferior': encabezados.encabezado_inferior if encabezados else '',
         }
 
+        # Renderizar el HTML con el contexto
         html = render_to_string(template_path, context)
 
+        # Crear el PDF usando WeasyPrint
         pdf_file = BytesIO()
         HTML(string=html).write_pdf(pdf_file)
 
+        # Configurar la respuesta HTTP
         response = HttpResponse(pdf_file.getvalue(), content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="orden_{orden.id_orden_movilizacion}.pdf"'
         return response
@@ -1057,3 +1069,5 @@ class ListarRutasView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+            
+

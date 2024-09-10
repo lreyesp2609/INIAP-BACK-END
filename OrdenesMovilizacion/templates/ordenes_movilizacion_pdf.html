@@ -5,9 +5,10 @@
     <title>Orden de Movilización</title>
     <style>
         @page {
-            size: 15.7cm 10cm;
+            size: 17.7cm 11cm;
             margin: 1cm;
         }
+
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -15,62 +16,124 @@
             width: 15.7cm;
             height: 10cm;
         }
+
         .content {
             padding: 5px;
             text-align: center;
+            margin-top: -20px;
+            page-break-inside: avoid;
         }
+
         table {
             margin: 0 auto;
             table-layout: fixed;
             font-size: 10px;
             width: 100%;
+            page-break-inside: avoid;
         }
+
         th, td {
             padding: 3px;
             text-align: left;
             vertical-align: top;
             border: 1px solid black;
-            font-size: 10px; /* Mantener el mismo tamaño de fuente */
+            font-size: 10px;
             word-wrap: break-word;
             overflow-wrap: break-word;
             white-space: normal;
         }
+
         th {
             background-color: #f2f2f2;
             font-weight: bold;
         }
+
         .tr1 td, .tr2 td, .tr3 td, .tr4 td {
             height: auto;
             min-height: 0.7cm;
         }
+
         .tr5 td, .tr6 td {
             height: auto;
             min-height: 1.3cm;
         }
+
         .col1 {
             width: 8cm;
         }
+
         .col2 {
             width: 5.2cm;
         }
+
         .title {
             text-align: center;
             font-weight: bold;
-            font-size: 10px; 
+            font-size: 10px;
             padding: 5px 0;
         }
+
         .info-table {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
         }
+
         .info-table td, .info-table td strong {
-            font-size: 10px; /* Asegura que todo el texto tenga el mismo tamaño */
+            font-size: 10px;
             line-height: 1.2;
         }
+
+        .signature-section {
+            font-size: 10px;
+            text-align: right;
+            padding-top: 20px;
+        }
+
+        .signature-line {
+            margin-top: 10px;
+            border-top: 1px solid black;
+            width: 200px;
+            display: inline-block;
+        }
+
+        .header, .footer {
+            position: fixed;
+            left: 0;
+            width: 100%;
+        }
+
+        .header {
+            top: 0;
+        }
+
+        .footer {
+            bottom: 0;
+            padding-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer img {
+            width: 80%;
+            height: auto;
+        }
+
+        .footer .signature-section {
+            width: 50%;
+        }
+        
+        .footer .footer-content {
+            width: 50%;
+            text-align: left; /* Cambiado de right a left */
+        }
+        
     </style>
 </head>
 <body>
+    
+    <!-- Contenido principal -->
     <div class="content">
         <div class="title">ORDEN DE MOVILIZACIÓN</div>
         <div class="title">ESTACIÓN EXPERIMENTAL TROPICAL PICHILINGUE</div>
@@ -108,6 +171,20 @@
                 <td class="col2"><strong>Año:</strong> {{ vehiculo.anio_fabricacion }}</td>
             </tr>
         </table>
+    </div>
+
+    <!-- Pie de página -->
+    <div class="footer">
+        <div class="footer-content">
+            {% if encabezado_inferior %}
+            <img src="{{ encabezado_inferior }}" alt="Encabezado Inferior">
+            {% endif %}
+        </div>
+
+        <div class="signature-section">
+            <strong>Firma autorizada:</strong>
+            <div class="signature-line"></div>
+        </div>
     </div>
 </body>
 </html>
