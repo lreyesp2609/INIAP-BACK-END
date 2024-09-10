@@ -13,9 +13,8 @@ from rest_framework.exceptions import AuthenticationFailed
 import logging
 from django.http import HttpResponse
 from django.template.loader import render_to_string
-from xhtml2pdf import pisa
 from io import BytesIO
-
+from weasyprint import HTML, CSS
 
 logger = logging.getLogger(__name__)
 
@@ -757,14 +756,10 @@ def generar_pdf(orden):
 
         html = render_to_string(template_path, context)
 
-        result = BytesIO()
-        pdf = pisa.CreatePDF(BytesIO(html.encode("UTF-8")), dest=result)
+        pdf_file = BytesIO()
+        HTML(string=html).write_pdf(pdf_file)
 
-        if pdf.err:
-            logger.error(f'Error al generar el PDF: {pdf.err}')
-            return HttpResponse('Error al generar el PDF', status=500)
-
-        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        response = HttpResponse(pdf_file.getvalue(), content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="orden_{orden.id_orden_movilizacion}.pdf"'
         return response
 
