@@ -153,17 +153,24 @@ class NuevoEmpleadoView(View):
             return JsonResponse({'error': str(e)}, status=500)
 
     def generate_username(self, nombres, apellidos):
+        # Utiliza el primer nombre y el primer apellido para la base del nombre de usuario
         base_username = f"{nombres.split()[0].lower()}.{apellidos.split()[0].lower()}"
+
+        # Busca nombres de usuario similares que empiecen con la misma base
         similar_usernames = Usuarios.objects.filter(usuario__startswith=base_username).values_list('usuario', flat=True)
 
         if similar_usernames:
+            # Si hay más de un nombre, toma la primera letra del segundo nombre
             nombre_parts = nombres.split()
             if len(nombre_parts) > 1:
                 base_username += nombre_parts[1][0].lower()
+            # Si el nombre con esa letra ya existe, agrega un número
             if base_username in similar_usernames:
                 base_username += str(len(similar_usernames) + 1)
 
         return base_username
+
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaEmpleadosView(View):
