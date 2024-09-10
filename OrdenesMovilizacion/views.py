@@ -961,6 +961,9 @@ class CrearRutaView(View):
             if not ruta_origen or not ruta_destino or not ruta_descripcion or not ruta_estado:
                 return JsonResponse({'error': 'Datos incompletos'}, status=400)
 
+            if RutasMovilizacion.objects.filter(ruta_descripcion=ruta_descripcion).exists():
+                return JsonResponse({'error': 'La descripción de la ruta ya existe'}, status=400)
+
             RutasMovilizacion.objects.create(
                 ruta_origen=ruta_origen,
                 ruta_destino=ruta_destino,
@@ -1006,6 +1009,9 @@ class EditarRutaView(View):
 
             try:
                 ruta = RutasMovilizacion.objects.get(id_ruta_movilizacion=id_ruta_movilizacion)
+                if RutasMovilizacion.objects.filter(ruta_descripcion=ruta_descripcion).exclude(id_ruta_movilizacion=id_ruta_movilizacion).exists():
+                    return JsonResponse({'error': 'La descripción de la ruta ya existe en otro registro'}, status=400)
+
                 ruta.ruta_origen=ruta_origen
                 ruta.ruta_destino=ruta_destino
                 ruta.ruta_descripcion = ruta_descripcion
@@ -1054,4 +1060,44 @@ class ListarRutasView(View):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
             
+@method_decorator(csrf_exempt, name='dispatch')
+class CambiarEstadoRutaView(View):
+    def post(self, request, id_usuario, id_ruta_movilizacion, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
 
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                return JsonResponse({'error': 'ID de usuario no encontrado en el token'}, status=403)
+
+            if token_id_usuario != id_usuario:
+                return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
+
+            try:
+                ruta = RutasMovilizacion.objects.get(id_ruta_movilizacion=id_ruta_movilizacion)
+
+                # Cambiar el estado de la ruta
+                if ruta.ruta_estado == 1:
+                    ruta.ruta_estado = 0  # Deshabilitar la ruta
+                else:
+                    ruta.ruta_estado = 1  # Habilitar la ruta
+                
+                ruta.save()
+
+                estado_actual = "habilitada" if ruta.ruta_estado == 1 else "deshabilitada"
+                return JsonResponse({'message': f'Ruta {estado_actual} exitosamente'}, status=200)
+
+            except RutasMovilizacion.DoesNotExist:
+                return JsonResponse({'error': 'Ruta no encontrada'}, status=404)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
