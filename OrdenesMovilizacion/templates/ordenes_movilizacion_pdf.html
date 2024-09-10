@@ -20,7 +20,7 @@
         .content {
             padding: 5px;
             text-align: center;
-            margin-top: -20px;
+            margin-top: 60px; /* Añadir margen para evitar que el contenido se superponga con el encabezado */
             page-break-inside: avoid;
         }
 
@@ -105,6 +105,7 @@
 
         .header {
             top: 0;
+            padding-bottom: 20px;
         }
 
         .footer {
@@ -126,19 +127,52 @@
         
         .footer .footer-content {
             width: 50%;
-            text-align: left; /* Cambiado de right a left */
+            text-align: left;
+            margin-top: 5px; /* Añadir margen superior para bajarlo */
+
         }
-        
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-logo {
+            width: 30%;
+        }
+
+        .header-logo img {
+            width: 100%;
+            height: auto;
+        }
+
+        .header-title {
+            width: 70%;
+            text-align: center;
+        }
+
     </style>
 </head>
 <body>
-    
+    <!-- Encabezado -->
+    <div class="header">
+        <div class="header-content">
+            <div class="header-logo">
+                {% if encabezado_superior %}
+                <img src="{{ encabezado_superior }}" alt="Encabezado Superior">
+                {% endif %}
+            </div>
+            <div class="header-title">
+                <div class="title">ORDEN DE MOVILIZACIÓN</div>
+                <div class="title">ESTACIÓN EXPERIMENTAL TROPICAL PICHILINGUE</div>
+                <div class="title">{{ orden.secuencial_orden_movilizacion }}</div>
+            </div>
+        </div>
+    </div>
+
     <!-- Contenido principal -->
     <div class="content">
-        <div class="title">ORDEN DE MOVILIZACIÓN</div>
-        <div class="title">ESTACIÓN EXPERIMENTAL TROPICAL PICHILINGUE</div>
-        <div class="title">{{ orden.secuencial_orden_movilizacion }}</div>
-
         <table class="info-table">
             <tr class="tr1">
                 <td class="col1"><strong>Lugar, fecha y hora de emisión de la orden:</strong> Mocache, {{ fecha_actual }}</td>
