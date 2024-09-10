@@ -73,12 +73,11 @@ VALUES
     'luis@example.com'  -- Correo electrónico
   );
 
-
 INSERT INTO Motivo (nombre_motivo, descripcion_motivo, estado_motivo) VALUES
-('Viáticos', 'Gastos relacionados con viajes de trabajo.', 1),
-('Movilizaciones', 'Gastos de transporte durante la jornada laboral.', 1),
-('Subsistencias', 'Gastos diarios de mantenimiento personal.', 1),
-('Alimentación', 'Gastos de comidas durante la jornada laboral.', 1);
+('VIÁTICOS', 'GASTOS RELACIONADOS CON VIAJES DE TRABAJO.', 1),
+('MOVILIZACIONES', 'GASTOS DE TRANSPORTE DURANTE LA JORNADA LABORAL.', 1),
+('SUBSISTENCIAS', 'GASTOS DIARIOS DE MANTENIMIENTO PERSONAL.', 1),
+('ALIMENTACIÓN', 'GASTOS DE COMIDAS DURANTE LA JORNADA LABORAL.', 1);
 
 INSERT INTO Provincias (Provincia) VALUES
 ('Azuay'),

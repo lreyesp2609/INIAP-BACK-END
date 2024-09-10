@@ -5,6 +5,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.db import transaction
 import jwt
+
+from Encabezados.models import Encabezados
 from .models import *
 from datetime import datetime
 from Vehiculos.models import Vehiculo
@@ -13,13 +15,10 @@ from rest_framework.exceptions import AuthenticationFailed
 import logging
 from django.http import HttpResponse
 from django.template.loader import render_to_string
-from xhtml2pdf import pisa
 from io import BytesIO
-
+from weasyprint import HTML, CSS
 
 logger = logging.getLogger(__name__)
-
-from unicodedata import normalize
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearOrdenMovilizacionView(View):
@@ -59,19 +58,6 @@ class CrearOrdenMovilizacionView(View):
             # Convertir strings de hora a objetos datetime.time
             hora_ida = datetime.strptime(hora_ida_str, '%H:%M').time()
             hora_regreso = datetime.strptime(hora_regreso_str, '%H:%M').time()
-
-            # Normalizar el motivo de movilización y la ruta para evitar diferencias de acentos y mayúsculas
-            motivo_normalizado = normalize('NFKD', motivo_movilizacion).encode('ASCII', 'ignore').decode('ASCII').lower().strip()
-            ruta_normalizada = normalize('NFKD', lugar_origen_destino_movilizacion).encode('ASCII', 'ignore').decode('ASCII').lower().strip()
-
-            # Verificar si ya existe una orden con el mismo motivo y ruta
-            orden_existente = OrdenesMovilizacion.objects.filter(
-                motivo_movilizacion__icontains=motivo_normalizado,
-                lugar_origen_destino_movilizacion__icontains=ruta_normalizada
-            ).exists()
-
-            if orden_existente:
-                return JsonResponse({'error': 'Ya existe una orden de movilización con el mismo motivo y ruta'}, status=400)
 
             # Validación de horas y duraciones con el modelo HorarioOrdenMovilizacion
             horario = HorarioOrdenMovilizacion.objects.first()  # Obtener los límites de horario
@@ -122,7 +108,6 @@ class CrearOrdenMovilizacionView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListarOrdenMovilizacionView(View):
@@ -732,6 +717,7 @@ def generar_pdf(orden):
     try:
         template_path = 'ordenes_movilizacion_pdf.html'
 
+        # Obtener los datos necesarios
         conductor_persona = orden.id_conductor.id_persona
         empleado_persona = orden.id_empleado.id_persona
 
@@ -741,7 +727,11 @@ def generar_pdf(orden):
         minutos = duracion.minute
         duracion_formateada = f"{horas:02}:{minutos:02}hrs"
 
+        # Fecha actual
         fecha_actual = datetime.now().strftime('%d/%m/%Y')
+
+        # Obtener los encabezados de la base de datos
+        encabezados = Encabezados.objects.first()
 
         context = {
             'orden': orden,
@@ -752,19 +742,20 @@ def generar_pdf(orden):
             'empleado': orden.id_empleado,
             'empleado_persona': empleado_persona,
             'duracion_formateada': duracion_formateada,
-            'fecha_actual': fecha_actual,  
+            'fecha_actual': fecha_actual,
+            'encabezado_superior': encabezados.encabezado_superior if encabezados else '',
+            'encabezado_inferior': encabezados.encabezado_inferior if encabezados else '',
         }
 
+        # Renderizar el HTML con el contexto
         html = render_to_string(template_path, context)
 
-        result = BytesIO()
-        pdf = pisa.CreatePDF(BytesIO(html.encode("UTF-8")), dest=result)
+        # Crear el PDF usando WeasyPrint
+        pdf_file = BytesIO()
+        HTML(string=html).write_pdf(pdf_file)
 
-        if pdf.err:
-            logger.error(f'Error al generar el PDF: {pdf.err}')
-            return HttpResponse('Error al generar el PDF', status=500)
-
-        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        # Configurar la respuesta HTTP
+        response = HttpResponse(pdf_file.getvalue(), content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="orden_{orden.id_orden_movilizacion}.pdf"'
         return response
 
@@ -1062,3 +1053,5 @@ class ListarRutasView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+            
+

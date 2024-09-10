@@ -40,11 +40,11 @@
         }
 
         @media print {
-    .content {
-        margin-top: 0.5cm; /* Ajusta este valor según la altura de tu encabezado */
-        margin-bottom: 2cm; /* Para respetar el pie de página */
-    }
-}
+            .content {
+                margin-top: 0.5cm; /* Ajusta este valor según la altura de tu encabezado */
+                margin-bottom: 2cm; /* Para respetar el pie de página */
+            }
+        }
 
         table {
             width: 100%;
@@ -90,6 +90,27 @@
             vertical-align: bottom;
             text-align: center;
         }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+        }
+
+        .checkbox-label span {
+            margin-right: 10px;
+        }
+
+        .checked::before {
+            content: "✓"; /* Puedes usar '✔' si prefieres */
+            color: green;
+            margin-right: 5px;
+        }
+
+        .unchecked::before {
+            content: "✘";
+            color: red;
+            margin-right: 5px;
+        }
     </style>
 </head>
 
@@ -108,8 +129,27 @@
             <tr>
                 <th>Nro. SOLICITUD DE AUTORIZACIÓN PARA CUMPLIMIENTO DE SERVICIOS INSTITUCIONALES</th>
                 <td>{{ codigo_solicitud | default:"&nbsp;" }}</td>
-                <th>FECHA DE SOLICITUD (ddd-mmm-aaa)</th>
-                <td>{{ fecha_informe | default:"&nbsp;" }}</td>
+                <th>FECHA DE SOLICITUD</th>
+                <td>{{ fecha_solicitud | default:"&nbsp;" }}</td>
+            </tr>
+            <tr class="section-title">
+                <td colspan="4">VIÁTICOS, MOVILIZACIONES, SUBSISTENCIAS, ALIMENTACIÓN</td>
+            </tr>
+            <tr>
+                <td colspan="4">
+                    <div class="checkbox-label">
+                        <span class="{{ viaticos_checked }}">VIÁTICOS</span>
+                    </div>
+                    <div class="checkbox-label">
+                        <span class="{{ movilizaciones_checked }}">MOVILIZACIONES</span>
+                    </div>
+                    <div class="checkbox-label">
+                        <span class="{{ subsistencias_checked }}">SUBSISTENCIAS</span>
+                    </div>
+                    <div class="checkbox-label">
+                        <span class="{{ alimentacion_checked }}">ALIMENTACIÓN</span>
+                    </div>
+                </td>
             </tr>
             <tr class="section-title">
                 <td colspan="4">DATOS GENERALES</td>
@@ -121,10 +161,22 @@
                 <td>{{ cargo | default:"&nbsp;" }}</td>
             </tr>
             <tr>
-                <th>CIUDAD - PROVINCIA</th>
+                <th>CIUDAD - PROVINCIA DEL SERVICIO INSTITUCIONAL</th>
                 <td>{{ lugar_servicio | default:"&nbsp;" }}</td>
                 <th>UNIDAD</th>
                 <td>{{ nombre_unidad | default:"&nbsp;" }}</td>
+            </tr>
+            <tr>
+                <th>FECHA SALIDA (dd-mm-aaaa)</th>
+                <th>HORA SALIDA (hh:mm)</th>
+                <th>FECHA LLEGADA (dd-mm-aaaa)</th>
+                <th>HORA LLEGADA (hh:mm)</th>
+            </tr>
+            <tr>
+                <td>{{ fecha_salida_solicitud | default:"&nbsp;" }}</td>
+                <td>{{ hora_salida_solicitud | default:"&nbsp;" }}</td>
+                <td>{{ fecha_llegada_solicitud | default:"&nbsp;" }}</td>
+                <td>{{ hora_llegada_solicitud | default:"&nbsp;" }}</td>
             </tr>
             <tr class="section-title">
                 <td colspan="4">SERVIDORES QUE INTEGRAN LOS SERVICIOS INSTITUCIONALES</td>
@@ -133,31 +185,10 @@
                 <td colspan="4">{{ nombre_completo | default:"&nbsp;" }}</td>
             </tr>
             <tr class="section-title">
-                <td colspan="4">INFORME DE ACTIVIDADES Y PRODUCTOS ALCANZADOS</td>
+                <td colspan="4">DESCRIPCIÓN DE LAS ACTIVIDADES A EJECUTARSE</td>
             </tr>
             <tr>
-                <td colspan="4">{{ productos_alcanzados | safe | default:"&nbsp;" }}</td>
-            </tr>
-            <tr>
-                <th>ITINERARIO</th>
-                <th>SALIDA</th>
-                <th>LLEGADA</th>
-                <th>NOTA</th>
-            </tr>
-            <tr>
-                <td>FECHA<br>dd-mm-aaa</td>
-                <td>{{ fecha_salida_informe | default:"&nbsp;" }}</td>
-                <td>{{ fecha_llegada_informe | default:"&nbsp;" }}</td>
-                <td rowspan="2" class="note-box">
-                    Estos datos se refieren al tiempo efectivamente utilizado en el cumplimiento del servicio institucional,
-                    desde la salida del lugar de residencia o trabajo habituales o del cumplimiento del servicio
-                    institucional según sea el caso, hasta su llegada a estos sitios.
-                </td>
-            </tr>
-            <tr>
-                <td>HORA<br>hh:mm</td>
-                <td>{{ hora_salida_informe | default:"&nbsp;" }}</td>
-                <td>{{ hora_llegada_informe | default:"&nbsp;" }}</td>
+                <td colspan="4">{{ descripcion_actividades | safe | default:"&nbsp;" }}</td>
             </tr>
             <tr class="section-title">
                 <td colspan="4">TRANSPORTE</td>
@@ -170,27 +201,33 @@
             </tr>
             {% for transporte in transportes %}
             <tr>
-                <td>{{ transporte.Tipo_de_Transporte | default:"&nbsp;" }}</td>
-                <td>{{ transporte.Nombre_del_Transporte | default:"&nbsp;" }}</td>
-                <td>{{ transporte.Ruta | default:"&nbsp;" }}</td>
+                <td>{{ transporte.tipo_transporte_soli  | default:"&nbsp;" }}</td>
+                <td>{{ transporte.nombre_transporte_soli | default:"&nbsp;" }}</td>
+                <td>{{ transporte.ruta_soli  | default:"&nbsp;" }}</td>
                 <td>
                     <strong>Fecha/Hora Salida:</strong><br>
-                    {{ transporte.Fecha_de_Salida | default:"&nbsp;" }} {{ transporte.Hora_de_Salida | default:"&nbsp;" }}<br><br>
+                    {{ transporte.fecha_salida_soli | default:"&nbsp;" }} {{ transporte.hora_salida_soli | default:"&nbsp;" }}<br><br>
                     <strong>Fecha/Hora Llegada:</strong><br>
-                    {{ transporte.Fecha_de_Llegada | default:"&nbsp;" }} {{ transporte.Hora_de_Llegada | default:"&nbsp;" }}
+                    {{ transporte.fecha_llegada_soli | default:"&nbsp;" }} {{ transporte.hora_llegada_soli | default:"&nbsp;" }}
                 </td>
             </tr>
             {% endfor %}
             <tr class="section-title">
-                <td colspan="4">OBSERVACIONES</td>
+                <td colspan="4">DATOS PARA TRANSFERENCIA</td>
             </tr>
             <tr>
-                <td colspan="4">{{ observacion | default:"&nbsp;" }}</td>
+                <th>Nombre del Banco</th>
+                <td>{{ banco | default:"&nbsp;" }}</td>
+                <th>Tipo de Cuenta</th>
+                <td>{{ tipo_cuenta | default:"&nbsp;" }}</td>
             </tr>
-            
+            <tr>
+                <th>Número de Cuenta</th>
+                <td colspan="3">{{ numero_cuenta | default:"&nbsp;" }}</td>
+            </tr>            
             <tr>
                 <th colspan="2" class="bottom-align">FIRMA DE LA O EL SERVIDOR COMISIONADO</th>
-                <th colspan="2">NOTA</th>
+                <th colspan="2">FIRMA DE LA O EL RESPONSABLE DE LA UNIDAD SOLICITANTE</th>
             </tr>
             <tr>
                 <td colspan="2" class="bottom-align">
@@ -200,30 +237,21 @@
                     <br>
                     {{ nombre_completo | default:"&nbsp;" }}<br>CC: {{ cedula | default:"&nbsp;" }}<br>PUESTO: {{ cargo | default:"&nbsp;" }}
                 </td>
-                <td colspan="2">
-                    El presente informe deberá presentarse dentro del término de 4 días del cumplimiento de servicios
-                    institucionales, caso contrario la liquidación se demorará e incluso de no presentarlo tendría que restituir los valores
-                    percibidos. Cuando el cumplimiento de servicios institucionales sea superior al número de días autorizados, se
-                    deberá adjuntar la autorización por escrito de la Máxima Autoridad o su Delegado.
-                </td>
-            </tr>
-            <tr class="section-title">
-                <td colspan="4">FIRMAS DE APROBACIÓN</td>
-            </tr>
-            <tr>
-                <th colspan="2">FIRMA DE LA O EL RESPONSABLE DE LA UNIDAD DEL SERVIDOR COMISIONADO</th>
-                <th colspan="2">FIRMA DE LA O EL JEFE DE LA O EL RESPONSABLE DE LA UNIDAD COMISIONADO</th>
-            </tr>
-            <tr>
                 <td colspan="2" class="bottom-align">
                     <br>
                     <br>
                     <br>
                     <br>
                     Mgs. Ruth Marjorie Tenesaca Mera<br>
-                    RESPONSABLE DE PLANIFICACIÓN<br>
+                    RESPONSABLE DE PLANIFICACIÓN Y GESTIÓN ESTRÁTEGICA<br>
                     CI: 1203984008
                 </td>
+            </tr>
+            <tr>
+                <th colspan="2">FIRMA DE LA AUTORIDAD NOMINADORA O SU DELEGADO</th>
+                <th colspan="2">NOTA</th>
+            </tr>
+            <tr>
                 <td colspan="2" class="bottom-align">
                     <br>
                     <br>
@@ -232,6 +260,18 @@
                     Mgs. Carlos Alberto Molina Hidrovo<br>
                     DIRECTOR DE ESTACIÓN TROPICAL PICHILINGUE<br>
                     CI: 1307209526
+                </td>
+                <td colspan="2" rowspan="2">
+                    Esta solicitud deberá ser presentada para su autorización con por lo menos 72 horas de
+                    anticipación a los servicios institucionales, salvo el caso de que por necesidades
+                    institucionales la Autoridad Nominadora autorice.<br>
+                    * De no existir disponibilidad presupuestaria, tanto la solicitud como la autorización quedarán
+                    insubsistentes.<br>
+                    * El informe de servicios institucionales deberá presentarse dentro del término de 4 días de
+                    cumplido el servicio institucional.<br>
+                    Está prohibido conceder servicios institucionales durante los días de descanso obligatorios, con
+                    excepción de las máximas autoridades o de casos excepcionales debidamente justificados por la
+                    máxima autoridad o su delegado.
                 </td>
             </tr>
         </table>
@@ -245,5 +285,3 @@
 </body>
 
 </html>
-
-
