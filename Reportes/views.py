@@ -6,13 +6,12 @@ from django.views.decorators.csrf import csrf_exempt
 from django.template.loader import render_to_string
 from django.http import HttpResponse
 from rest_framework.exceptions import AuthenticationFailed
-import xhtml2pdf.pisa as pisa
 from io import BytesIO
 import jwt
 from django.conf import settings
 from OrdenesMovilizacion.urls import OrdenesMovilizacion
 from datetime import datetime
-
+from weasyprint import HTML, CSS
 
 @method_decorator(csrf_exempt, name='dispatch')
 class GenerarReporteOrdenesView(View):
@@ -170,24 +169,26 @@ def generar_descripcion(filtros, ordenes):
 
 
 def generar_pdf(ordenes, descripcion, mostrar_estado, mostrar_funcionario, mostrar_conductor, mostrar_placa):
-    template_path = 'reporte_ordenes.html'
-    context = {
-        'ordenes': ordenes,
-        'descripcion': descripcion,
-        'mostrar_estado': mostrar_estado,
-        'mostrar_funcionario': mostrar_funcionario,
-        'mostrar_conductor': mostrar_conductor,
-        'mostrar_placa': mostrar_placa
-    }
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'inline; filename="reporte_ordenes.pdf"'
-    response['Content-Transfer-Encoding'] = 'binary'
+    try:
+        context = {
+            'ordenes': ordenes,
+            'descripcion': descripcion,
+            'mostrar_estado': mostrar_estado,
+            'mostrar_funcionario': mostrar_funcionario,
+            'mostrar_conductor': mostrar_conductor,
+            'mostrar_placa': mostrar_placa
+        }
 
-    template = render_to_string(template_path, context)
-    result = BytesIO()
-    pdf = pisa.pisaDocument(BytesIO(template.encode("UTF-8")), result)
-    if not pdf.err:
-        response.write(result.getvalue())
+        html_string = render_to_string('reporte_ordenes.html', context)
+
+        pdf_file = BytesIO()
+        HTML(string=html_string).write_pdf(pdf_file)
+
+        response = HttpResponse(pdf_file.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = 'inline; filename="reporte_ordenes.pdf"'
+        response['Content-Transfer-Encoding'] = 'binary'
+        
         return response
-    else:
-        return HttpResponse('Error al generar el PDF', status=500)
+
+    except Exception as e:
+        return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)

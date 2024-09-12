@@ -22,4 +22,5 @@ urlpatterns = [
     path('listar-rutas/<int:id_usuario>/', ListarRutasView.as_view(), name='listar_rutas'),
     path('Deshabilitar-orden/<int:id_usuario>/<int:id_orden>/', DeshabilitarOrdenMovilizacionView.as_view(), name='Deshabilitar-orden'),
 
+    path('cambiar-estado-rutas/<int:id_usuario>/<int:id_ruta_movilizacion>/', CambiarEstadoRutaView.as_view(), name='cambiar_estado_ruta'),
 ]
