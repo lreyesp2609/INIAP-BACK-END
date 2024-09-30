@@ -118,16 +118,15 @@
     <div class="content">
         <table>
             <tr>
-                <th colspan="4">INFORME DE SERVICIOS INSTITUCIONALES</th>
+                <th colspan="4">SOLICITUD DE AUTORIZACIÓN PARA CUMPLIMIENTO DE SERVICIOS INSTITUCIONALES</th>
             </tr>
             <tr>
-                <th>Nro. SOLICITUD DE AUTORIZACIÓN PARA CUMPLIMIENTO DE SERVICIOS INSTITUCIONALES</th>
-                <td>{{ codigo_solicitud | default:"&nbsp;" }}</td>
-                <th>FECHA DE SOLICITUD</th>
-                <td>{{ fecha_solicitud | default:"&nbsp;" }}</td>
+                <th colspan="3">Nro. SOLICITUD DE AUTORIZACIÓN PARA CUMPLIMIENTO DE SERVICIOS INSTITUCIONALES</th>
+                <th colspan="3">FECHA DE SOLICITUD (dd-mm-aaaa)</th>
             </tr>
-            <tr class="section-title">
-                <td colspan="4">VIÁTICOS, MOVILIZACIONES, SUBSISTENCIAS, ALIMENTACIÓN</td>
+            <tr>
+                <td colspan="3">{{ codigo_solicitud | default:"&nbsp;" }}</td>
+                <td colspan="3">{{ fecha_solicitud | default:"&nbsp;" }}</td>
             </tr>
             <tr>
                 <td colspan="4">
@@ -145,16 +144,20 @@
                 <td colspan="4">DATOS GENERALES</td>
             </tr>
             <tr>
-                <th>APELLIDOS Y NOMBRES</th>
-                <td>{{ nombre_completo | default:"&nbsp;" }}</td>
-                <th>PUESTO</th>
-                <td>{{ cargo | default:"&nbsp;" }}</td>
+                <th colspan="3">APELLIDOS - NOMBRES DE LA O EL SERVIDOR</th>
+                <th colspan="3">PUESTO QUE OCUPA</th>
             </tr>
             <tr>
-                <th>CIUDAD - PROVINCIA DEL SERVICIO INSTITUCIONAL</th>
-                <td>{{ lugar_servicio | default:"&nbsp;" }}</td>
-                <th>UNIDAD</th>
-                <td>{{ nombre_unidad | default:"&nbsp;" }}</td>
+                <td colspan="3">{{ nombre_completo | default:"&nbsp;" }}</td>
+                <td colspan="3">{{ cargo | default:"&nbsp;" }}</td>
+            </tr>
+            <tr>
+                <th colspan="3">CIUDAD - PROVINCIA DEL SERVICIO INSTITUCIONAL</th>
+                <th colspan="3">NOMBRE DE LA UNIDAD A LA QUE PERTENECE LA O EL SERVIDOR</th>
+            </tr>
+            <tr>
+                <td colspan="3">{{ lugar_servicio | default:"&nbsp;" }}</td>
+                <td colspan="3">{{ nombre_unidad | default:"&nbsp;" }}</td>
             </tr>
             <tr>
                 <th>FECHA SALIDA (dd-mm-aaaa)</th>
@@ -184,7 +187,7 @@
                 <td colspan="4">TRANSPORTE</td>
             </tr>
             <tr>
-                <th>TIPO DE TRANSPORTE</th>
+                <th>TIPO DE TRANSPORTE (Aéreo, terrestre, marítimo, otros)</th>
                 <th>NOMBRE DE TRANSPORTE</th>
                 <th>RUTA</th>
                 <th>SALIDA / LLEGADA</th>
@@ -212,28 +215,28 @@
                 <td colspan="4">DATOS PARA TRANSFERENCIA</td>
             </tr>
             <tr>
-                <th>Nombre del Banco</th>
-                <td>{{ banco | default:"&nbsp;" }}</td>
+                <th colspan="2">Nombre del Banco</th>
                 <th>Tipo de Cuenta</th>
+                <th>Tipo de Cuenta</th>
+            </tr>
+            <tr>
+                <td colspan="2">{{ banco | default:"&nbsp;" }}</td>
+                <td>{{ tipo_cuenta | default:"&nbsp;" }}</td>
                 <td>{{ tipo_cuenta | default:"&nbsp;" }}</td>
             </tr>
             <tr>
-                <th>Número de Cuenta</th>
-                <td colspan="3">{{ numero_cuenta | default:"&nbsp;" }}</td>
-            </tr>            
-            <tr>
-                <th colspan="2" class="bottom-align">FIRMA DE LA O EL SERVIDOR COMISIONADO</th>
-                <th colspan="2">FIRMA DE LA O EL RESPONSABLE DE LA UNIDAD SOLICITANTE</th>
+                <th colspan="3">FIRMA DE LA O EL SERVIDOR COMISIONADO</th>
+                <th colspan="3">FIRMA DE LA O EL RESPONSABLE DE LA UNIDAD SOLICITANTE</th>
             </tr>
             <tr>
-                <td colspan="2" class="bottom-align">
+                <td colspan="3" class="bottom-align">
                     <br>
                     <br>
                     <br>
                     <br>
                     {{ nombre_completo | default:"&nbsp;" }}<br>CC: {{ cedula | default:"&nbsp;" }}<br>PUESTO: {{ cargo | default:"&nbsp;" }}
                 </td>
-                <td colspan="2" class="bottom-align">
+                <td colspan="3" class="bottom-align">
                     <br>
                     <br>
                     <br>
@@ -244,11 +247,11 @@
                 </td>
             </tr>
             <tr>
-                <th colspan="2">FIRMA DE LA AUTORIDAD NOMINADORA O SU DELEGADO</th>
-                <th colspan="2">NOTA</th>
+                <th colspan="3">FIRMA DE LA AUTORIDAD NOMINADORA O SU DELEGADO</th>
+                <th colspan="3">NOTA</th>
             </tr>
             <tr>
-                <td colspan="2" class="bottom-align">
+                <td colspan="3" class="bottom-align">
                     <br>
                     <br>
                     <br>
@@ -257,7 +260,7 @@
                     DIRECTOR DE ESTACIÓN TROPICAL PICHILINGUE<br>
                     CI: 1307209526
                 </td>
-                <td colspan="2" rowspan="2">
+                <td colspan="3" rowspan="2">
                     Esta solicitud deberá ser presentada para su autorización con por lo menos 72 horas de
                     anticipación a los servicios institucionales, salvo el caso de que por necesidades
                     institucionales la Autoridad Nominadora autorice.<br>
