@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solicitud de Autorización</title>
+    <title>Informes de servicios</title>
     <style>
         @page {
             size: A4;
@@ -166,7 +166,7 @@
                 <th>TIPO DE TRANSPORTE</th>
                 <th>NOMBRE DE TRANSPORTE</th>
                 <th>RUTA</th>
-                <th>FECHA/HORA</th>
+                <th>SALIDA / LLEGADA</th>
             </tr>
             {% for transporte in transportes %}
             <tr>
@@ -174,13 +174,19 @@
                 <td>{{ transporte.Nombre_del_Transporte | default:"&nbsp;" }}</td>
                 <td>{{ transporte.Ruta | default:"&nbsp;" }}</td>
                 <td>
-                    <strong>Fecha/Hora Salida:</strong><br>
-                    {{ transporte.Fecha_de_Salida | default:"&nbsp;" }} {{ transporte.Hora_de_Salida | default:"&nbsp;" }}<br><br>
-                    <strong>Fecha/Hora Llegada:</strong><br>
-                    {{ transporte.Fecha_de_Llegada | default:"&nbsp;" }} {{ transporte.Hora_de_Llegada | default:"&nbsp;" }}
+                    <table style="width: 100%;">
+                        <tr>
+                            <td><strong>Fecha/Hora Salida:</strong></td>
+                            <td><strong>Fecha/Hora Llegada:</strong></td>
+                        </tr>
+                        <tr>
+                            <td>{{ transporte.Fecha_de_Salida | default:"&nbsp;" }} {{ transporte.Hora_de_Salida | default:"&nbsp;" }}</td>
+                            <td>{{ transporte.Fecha_de_Llegada | default:"&nbsp;" }} {{ transporte.Hora_de_Llegada | default:"&nbsp;" }}</td>
+                        </tr>
+                    </table>
                 </td>
             </tr>
-            {% endfor %}
+            {% endfor %}            
             <tr class="section-title">
                 <td colspan="4">OBSERVACIONES</td>
             </tr>

@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Justificación de gastos</title>
     <style>
         @page {
             size: A4;
@@ -56,13 +58,17 @@
         th, td {
             border: 1px solid black;
             padding: 4px;
-            text-align: left;
             vertical-align: top;
         }
 
         th {
             background-color: #f2f2f2;
             font-weight: bold;
+            text-align: center; /* Todos los encabezados centrados */
+        }
+
+        td {
+            text-align: left; /* Alinear el texto de las celdas a la izquierda por defecto */
         }
 
         .signature {
@@ -78,11 +84,15 @@
             text-align: center;
         }
 
+        .value-column { 
+            text-align: right; /* Alinear solo los valores de la columna Valor ($) a la derecha */
+        }
+
         .column1 { width: 3cm; }
         .column2 { width: 2.5cm; }
         .column3 { width: 3cm; }
         .column4 { width: 4cm; }
-        .column5 { width: 3cm; }
+        .column5 { width: 3cm; } /* Mantener el ancho de la columna */
 
         .empty-cell {
             border: none;
@@ -116,7 +126,7 @@
                 <th class="column2 bold"># Factura</th>
                 <th class="column3 bold">Fecha Emisión</th>
                 <th class="column4 bold">Detalle Documento</th>
-                <th class="column5 bold">Valor ($)</th>
+                <th class="column5 bold">Valor ($)</th> <!-- Este encabezado estará centrado -->
             </tr>
             {% for factura in facturas %}
             <tr>
@@ -124,14 +134,13 @@
                 <td class="column2">{{ factura.numero_factura }}</td>
                 <td class="column3">{{ factura.fecha_emision }}</td>
                 <td class="column4">{{ factura.detalle_documento }}</td>
-                <td class="column5">{{ factura.valor }}</td>
+                <td class="column5 value-column">{{ factura.valor|floatformat:2 }}</td> <!-- Alineado a la derecha -->
             </tr>
             {% endfor %}
             <tr>
-                <!-- Alineamos "Total $" debajo de Detalle Documento, y el valor total en la columna de valor-->
                 <td colspan="3" class="empty-cell"></td> 
                 <td class="bold">Total $</td>
-                <td class="bold">{{ total_valor }}</td>
+                <td class="column5 value-column bold">{{ total_valor|floatformat:2 }}</td> <!-- Alineado a la derecha -->
             </tr>
         </table>
     </div>
