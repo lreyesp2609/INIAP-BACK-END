@@ -389,8 +389,9 @@ class EditarEmpleadoView(View):
             persona.nombres = request.POST.get('nombres', persona.nombres)
             persona.apellidos = request.POST.get('apellidos', persona.apellidos)
 
-            fecha_nacimiento_str = request.POST.get('fecha_nacimiento', persona.fecha_nacimiento)
-            if fecha_nacimiento_str:
+            # Actualización de la fecha de nacimiento
+            fecha_nacimiento_str = request.POST.get('fecha_nacimiento')
+            if fecha_nacimiento_str is not None and fecha_nacimiento_str != 'null':  # Verificar si el valor no es 'null'
                 try:
                     if isinstance(fecha_nacimiento_str, str):
                         def parse_date(date_str):
@@ -409,6 +410,11 @@ class EditarEmpleadoView(View):
                         persona.fecha_nacimiento = fecha_nacimiento_dt
                 except ValueError as e:
                     return JsonResponse({'error': str(e)}, status=400)
+            else:
+                persona.fecha_nacimiento = None  # Asignar None si se envía 'null' o no se envía valorlización de la fecha de nacimiento
+
+
+
 
             persona.genero = request.POST.get('genero', persona.genero)
             persona.celular = request.POST.get('celular', persona.celular)
@@ -423,14 +429,6 @@ class EditarEmpleadoView(View):
             
             if persona.genero and persona.genero not in ['Masculino', 'Femenino']:
                 return JsonResponse({'error': 'El género debe ser Masculino o Femenino'}, status=400)
-            
-            if persona.celular:
-                celular_pattern = r'^\+?\d[\d\s]{9,15}$'
-                if not re.match(celular_pattern, persona.celular):
-                    return JsonResponse({'error': 'El número de celular debe tener un formato válido'}, status=400)
-            
-            if persona.direccion and not re.match(r'^[a-zA-Z0-9\s,.\-áéíóúÁÉÍÓÚñÑ]+$', persona.direccion):
-                return JsonResponse({'error': 'La dirección debe contener solo letras y números'}, status=400)
 
             if persona.nombres and not re.match(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$', persona.nombres):
                 return JsonResponse({'error': 'El nombre debe contener solo letras, tildes y espacios'}, status=400)
@@ -440,9 +438,9 @@ class EditarEmpleadoView(View):
 
             persona.save()
 
-            # Actualización del tipo de licencia
+            # Actualización del tipo de licencia (opcional)
             tipo_licencia_id = request.POST.get('id_licencia')
-            if tipo_licencia_id:
+            if tipo_licencia_id and tipo_licencia_id != 'null':
                 try:
                     tipo_licencia_obj = TipoLicencias.objects.get(id_tipo_licencia=tipo_licencia_id)
                     empleados_tipo_licencias, created = EmpleadosTipoLicencias.objects.get_or_create(
@@ -452,8 +450,7 @@ class EditarEmpleadoView(View):
                         empleados_tipo_licencias.save()
                 except TipoLicencias.DoesNotExist:
                     return JsonResponse({'error': 'El tipo de licencia no es válido'}, status=400)
-
-
+                
             cargo_id = request.POST.get('id_cargo')
             if cargo_id:
                 cargo = Cargos.objects.get(id_cargo=cargo_id)
@@ -470,7 +467,6 @@ class EditarEmpleadoView(View):
                 usuario_a_actualizar.save()
 
             empleado.fecha_ingreso = request.POST.get('fecha_ingreso', empleado.fecha_ingreso)
-            empleado.habilitado = request.POST.get('habilitado', empleado.habilitado)
             empleado.distintivo = request.POST.get('distintivo', empleado.distintivo)
             if empleado.distintivo and not empleado.distintivo.endswith('.'):
                 empleado.distintivo += '.'
@@ -518,7 +514,6 @@ class DetalleEmpleadoView(View):
                 return JsonResponse({'error': 'Token no proporcionado'}, status=400)
 
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-
             token_id_usuario = payload.get('id_usuario')
             if not token_id_usuario:
                 raise AuthenticationFailed('ID de usuario no encontrado en el token')
@@ -538,6 +533,16 @@ class DetalleEmpleadoView(View):
                 usuario_empleado = Usuarios.objects.select_related('id_rol').get(id_persona=persona)
             except Usuarios.DoesNotExist:
                 usuario_empleado = None
+
+            # Obtener la licencia del empleado
+            try:
+                licencia = EmpleadosTipoLicencias.objects.select_related('id_tipo_licencia').get(id_empleado=empleado)
+                licencia_data = {
+                    'id_tipo_licencia': licencia.id_tipo_licencia.id_tipo_licencia,
+                    'tipo_licencia': licencia.id_tipo_licencia.tipo_licencia  # Asegúrate de que 'tipo_licencia' sea un campo en tu modelo TipoLicencias
+                }
+            except EmpleadosTipoLicencias.DoesNotExist:
+                licencia_data = None  # O manejar de otra manera si no hay licencia
 
             cargo_data = {
                 'id_cargo': cargo.id_cargo,
@@ -577,6 +582,7 @@ class DetalleEmpleadoView(View):
                 'rol': rol_data,
                 'genero': persona.genero,
                 'distintivo': empleado.distintivo,
+                'licencia': licencia_data  # Agregar aquí los datos de licencia
             }
 
             return JsonResponse(empleado_data, safe=False)
@@ -598,7 +604,6 @@ class DetalleEmpleadoView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
 
 @method_decorator(csrf_exempt, name='dispatch')
 class DeshabilitarEmpleadoView(View):

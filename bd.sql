@@ -78,6 +78,7 @@ CREATE TABLE Empleados (
     distintivo VARCHAR(100),
     fecha_ingreso DATE,
     habilitado SMALLINT DEFAULT 1,
+    es_jefe SMALLINT DEFAULT 0,
     FOREIGN KEY (id_persona) REFERENCES Personas(id_persona),
     FOREIGN KEY (id_cargo) REFERENCES Cargos(id_cargo)
 );

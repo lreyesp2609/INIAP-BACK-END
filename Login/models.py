@@ -74,6 +74,7 @@ class Empleados(models.Model):
     distintivo = models.CharField(max_length=100, blank=True, null=True)
     fecha_ingreso = models.DateField(blank=True, null=True)
     habilitado = models.SmallIntegerField(blank=True, null=True)
+    es_jefe = models.BooleanField(blank=True, null=True)
 
     class Meta:
         managed = False

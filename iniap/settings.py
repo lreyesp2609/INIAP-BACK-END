@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     'Provincias',
     'Ciudades',
     'Encabezados',
-    'Bancos'
+    'Bancos',
+    'Jefes'
 ]
 
 MIDDLEWARE = [

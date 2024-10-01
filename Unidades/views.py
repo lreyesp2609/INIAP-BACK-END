@@ -11,7 +11,7 @@ from django.db import transaction
 import re
 
 @method_decorator(csrf_exempt, name='dispatch')
-class ListaUnidadesPorEstacionView(View):
+class ListaAllUnidades(View):
     def post(self, request, *args, **kwargs):
         try:
             token = request.headers.get('Authorization')
@@ -24,6 +24,37 @@ class ListaUnidadesPorEstacionView(View):
 
             # Obtener las unidades con las siglas incluidas
             unidades = Unidades.objects.values('id_unidad', 'nombre_unidad', 'siglas_unidad', 'id_estacion_id')
+
+            return JsonResponse(list(unidades), safe=False)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except AuthenticationFailed as e:
+            return JsonResponse({'error': str(e)}, status=403)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ListaUnidadesPorEstacionView(View):
+    def post(self, request, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+
+            estacion_id = request.POST.get('estacion_id')
+            if not estacion_id:
+                return JsonResponse({'error': 'ID de estación no proporcionado'}, status=400)
+
+            # Obtener las unidades con las siglas incluidas
+            unidades = Unidades.objects.filter(id_estacion=estacion_id).values('id_unidad', 'nombre_unidad', 'siglas_unidad', 'id_estacion_id')
 
             return JsonResponse(list(unidades), safe=False)
 
