@@ -78,10 +78,12 @@ CREATE TABLE Empleados (
     distintivo VARCHAR(100),
     fecha_ingreso DATE,
     habilitado SMALLINT DEFAULT 1,
-    es_jefe SMALLINT DEFAULT 0,
+    es_jefe BOOLEAN DEFAULT FALSE,
+    es_director BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (id_persona) REFERENCES Personas(id_persona),
     FOREIGN KEY (id_cargo) REFERENCES Cargos(id_cargo)
 );
+
 
 CREATE TABLE Tipo_Licencias (
     id_tipo_licencia SERIAL PRIMARY KEY,
@@ -309,3 +311,6 @@ CREATE TABLE rutas_movilizacion (
     ruta_descripcion VARCHAR(250) NOT NULL,
     ruta_estado SMALLINT NOT NULL DEFAULT 1
 ); 
+
+
+ALTER TABLE empleados ADD COLUMN es_jefe boolean;

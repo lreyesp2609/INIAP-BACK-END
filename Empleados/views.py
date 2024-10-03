@@ -236,7 +236,9 @@ class ListaEmpleadosView(View):
                     'habilitado': empleado.habilitado,
                     'genero': persona.genero,
                     'distintivo': empleado.distintivo,
-                    'Licencia': tipo_licencia
+                    'Licencia': tipo_licencia,
+                    'es_jefe': empleado.es_jefe,
+                    'es_director': empleado.es_director
                 }
                 empleados_list.append(empleado_data)
 
@@ -259,7 +261,6 @@ class ListaEmpleadosView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
         
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaEmpleadosDeshabilitadosView(View):

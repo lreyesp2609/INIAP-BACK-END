@@ -13,6 +13,7 @@ class Empleados(models.Model):
     fecha_ingreso = models.DateField(blank=True, null=True)
     habilitado = models.SmallIntegerField(blank=True, null=True)
     es_jefe = models.BooleanField(blank=True, null=True)
+    es_director = models.BooleanField(blank=True, null=True)
 
     class Meta:
         managed = False
