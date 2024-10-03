@@ -5,220 +5,106 @@
     <title>Orden de Movilización</title>
     <style>
         @page {
-            size: 17.7cm 11cm;
-            margin: 1cm;
+            size: 15.7cm 10cm;
+            margin: 0cm;
         }
-
         body {
             font-family: Arial, sans-serif;
+            font-size: 10px;
             margin: 0;
             padding: 0;
             width: 15.7cm;
             height: 10cm;
+            display: flex;
+            margin-top: 3cm;
+            flex-direction: column;
+            justify-content: space-between; /* Centrado vertical */
         }
-
         .content {
-            padding: 5px;
-            text-align: center;
-            margin-top: 60px; /* Añadir margen para evitar que el contenido se superponga con el encabezado */
-            page-break-inside: avoid;
+            padding: 0;
+            margin: 0 1.3cm; 
         }
-
         table {
-            margin: 0 auto;
-            table-layout: fixed;
-            font-size: 10px;
-            width: 100%;
-            page-break-inside: avoid;
-        }
-
-        th, td {
-            padding: 3px;
-            text-align: left;
-            vertical-align: top;
-            border: 1px solid black;
-            font-size: 10px;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            white-space: normal;
-        }
-
-        th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-
-        .tr1 td, .tr2 td, .tr3 td, .tr4 td {
-            height: auto;
-            min-height: 0.7cm;
-        }
-
-        .tr5 td, .tr6 td {
-            height: auto;
-            min-height: 1.3cm;
-        }
-
-        .col1 {
-            width: 8cm;
-        }
-
-        .col2 {
-            width: 5.2cm;
-        }
-
-        .title {
-            text-align: center;
-            font-weight: bold;
-            font-size: 10px;
-            padding: 5px 0;
-        }
-
-        .info-table {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
         }
-
-        .info-table td, .info-table td strong {
-            font-size: 10px;
-            line-height: 1.2;
+        th, td {
+            padding: 0;
+            text-align: right; /* Alinea todo a la derecha por defecto */
+            word-wrap: break-word;
         }
-
-        .signature-section {
-            font-size: 10px;
-            text-align: right;
-            padding-top: 20px;
+        .row-2 {
+            height: 0.6cm;
         }
-
-        .signature-line {
-            margin-top: 10px;
-            border-top: 1px solid black;
-            width: 200px;
-            display: inline-block;
+        .row-3 {
+            height: 0.5cm;
         }
-
-        .header, .footer {
-            position: fixed;
-            left: 0;
-            width: 100%;
+        .row-4 {
+            height: 1.3cm;
         }
-
-        .header {
-            top: 0;
-            padding-bottom: 20px;
+        .row-6 {
+            height: 1.3cm;
         }
-
-        .footer {
-            bottom: 0;
-            padding-top: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .col-2 {
+            width: 7.9cm;
         }
-
-        .footer img {
-            width: 80%;
-            height: auto;
+        .col-3 {
+            width: 5.2cm;
         }
-
-        .footer .signature-section {
-            width: 50%;
-        }
-        
-        .footer .footer-content {
-            width: 50%;
+        .left-align {
             text-align: left;
-            margin-top: 5px; /* Añadir margen superior para bajarlo */
-
         }
-
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .right-align {
+            text-align: right;
         }
-
-        .header-logo {
-            width: 30%;
-        }
-
-        .header-logo img {
+        .name-left-id-right {
             width: 100%;
-            height: auto;
         }
-
-        .header-title {
-            width: 70%;
-            text-align: center;
-        }
-
     </style>
 </head>
 <body>
-    <!-- Encabezado -->
-    <div class="header">
-        <div class="header-content">
-            <div class="header-logo">
-                {% if encabezado_superior %}
-                <img src="{{ encabezado_superior }}" alt="Encabezado Superior">
-                {% endif %}
-            </div>
-            <div class="header-title">
-                <div class="title">ORDEN DE MOVILIZACIÓN</div>
-                <div class="title">ESTACIÓN EXPERIMENTAL TROPICAL PICHILINGUE</div>
-                <div class="title">{{ orden.secuencial_orden_movilizacion }}</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Contenido principal -->
+    <!-- Margen superior -->
     <div class="content">
-        <table class="info-table">
-            <tr class="tr1">
-                <td class="col1"><strong>Lugar, fecha y hora de emisión de la orden:</strong> Mocache, {{ fecha_actual }}</td>
-                <td class="col2"><strong>Marca/Tipo:</strong> {{ vehiculo.marca }} / {{ vehiculo.modelo }}</td>
+        <table>
+            <tr>
+                <td class="row-2 col-2 right-align">{{ fecha_actual }}</td>
+                <td class="row-2 col-3 right-align">{{ vehiculo.marca }} / {{ vehiculo.modelo }}</td>
             </tr>
-            <tr class="tr2">
-                <td class="col1"><strong>Motivo de Movilización:</strong> {{ orden.motivo_movilizacion }}</td>
-                <td class="col2"><strong>Color:</strong> {{ vehiculo.color_primario }}</td>
+            <tr>
+                <td class="row-3 col-2 right-align">{{ orden.motivo_movilizacion }}</td>
+                <td class="row-3 col-3 right-align">{{ vehiculo.color_primario }}</td>
             </tr>
-            <tr class="tr3">
-                <td class="col1"><strong>Lugar y origen de destino:</strong> {{ orden.lugar_origen_destino_movilizacion }}</td>
-                <td class="col2"><strong>Placa N°:</strong> {{ vehiculo.placa }}</td>
+            <tr>
+                <td class="row-3 col-2 right-align">{{ orden.lugar_origen_destino_movilizacion }}</td>
+                <td class="row-3 col-3 right-align">{{ vehiculo.placa }}</td>
             </tr>
-            <tr class="tr4">
-                <td class="col1"><strong>Tiempo de duración de la comisión:</strong> {{ duracion_formateada }}</td>
-                <td class="col2"><strong>Matrícula:</strong> {{ vehiculo.numero_matricula }}</td>
+            <tr>
+                <td class="row-3 col-2 right-align">{{ duracion_formateada }}</td>
+                <td class="row-3 col-3 right-align">{{ vehiculo.numero_matricula }}</td>
             </tr>
-            <tr class="tr5">
-                <td class="col1">
-                    <strong>Nombres y apellidos del conductor:</strong> {{ conductor.distintivo }} {{ conductor_persona.nombres }} {{ conductor_persona.apellidos }}<br>
-                    <strong>N° de cédula de ciudadanía:</strong> {{ conductor_persona.numero_cedula }}
+            <tr>
+                <td class="row-4 col-2">
+                    <div class="name-left-id-right">
+                        <div class="left-align">ㅤ{{ conductor.distintivo }} {{ conductor_persona.nombres }} {{ conductor_persona.apellidos }}</div>
+                        <div>ㅤ</div>
+                        <div class="right-align">{{ conductor_persona.numero_cedula }}ㅤㅤㅤㅤㅤㅤㅤㅤ</div>
+                    </div>
                 </td>
-                <td class="col2"><strong>Motor:</strong> {{ vehiculo.numero_motor }}</td>
+                <td class="row-4 col-3 left-align">{{ vehiculo.numero_motor }}</td>
             </tr>
-            <tr class="tr6">
-                <td class="col1">
-                    <strong>Nombres y apellidos del funcionario:</strong> {{ empleado.distintivo }} {{ empleado_persona.nombres }} {{ empleado_persona.apellidos }}<br>
-                    <strong>N° de cédula de ciudadanía:</strong> {{ empleado_persona.numero_cedula }}
+            <tr>
+                <td class="row-6 col-2">
+                    <div class="name-left-id-right">
+                        <div class="left-align">ㅤ{{ empleado.distintivo }} {{ empleado_persona.nombres }} {{ empleado_persona.apellidos }}</div>
+                        <div>ㅤ</div>
+                        <div class="right-align">{{ empleado_persona.numero_cedula }}ㅤㅤㅤㅤㅤㅤㅤㅤ</div>
+                    </div>
                 </td>
-                <td class="col2"><strong>Año:</strong> {{ vehiculo.anio_fabricacion }}</td>
+                <td class="row-6 col-3 left-align">{{ vehiculo.anio_fabricacion }}</td>
             </tr>
         </table>
     </div>
-
-    <!-- Pie de página -->
-    <div class="footer">
-        <div class="footer-content">
-            {% if encabezado_inferior %}
-            <img src="{{ encabezado_inferior }}" alt="Encabezado Inferior">
-            {% endif %}
-        </div>
-
-        <div class="signature-section">
-            <strong>Firma autorizada:</strong>
-            <div class="signature-line"></div>
-        </div>
-    </div>
+    <!-- Margen inferior -->
 </body>
 </html>
