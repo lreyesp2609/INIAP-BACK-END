@@ -19,9 +19,12 @@ class ListaAllCargos(View):
 
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
 
-            
-
-            cargos = Cargos.objects.values('id_cargo', 'cargo')
+            # Consulta que incluye la unidad y la estación relacionadas, ordenando por id_cargo
+            cargos = Cargos.objects.select_related('id_unidad__id_estacion').values(
+                'id_cargo', 'cargo', 
+                'id_unidad__nombre_unidad', 'id_unidad__siglas_unidad', 
+                'id_unidad__id_estacion__nombre_estacion'
+            ).order_by('id_cargo')  # Ordenar de menor a mayor por id_cargo
 
             return JsonResponse(list(cargos), safe=False)
 
@@ -192,11 +195,18 @@ class CrearCargoView(View):
             if not cargo:
                 return JsonResponse({'error': 'Nombre del cargo no proporcionado'}, status=400)
 
+            # Convertir el nombre del cargo a mayúsculas
+            cargo = cargo.upper()
+
             # Verificar si la unidad existe
             try:
                 unidad = Unidades.objects.get(id_unidad=id_unidad)
             except Unidades.DoesNotExist:
                 return JsonResponse({'error': 'Unidad no encontrada'}, status=404)
+
+            # Verificar si ya existe un cargo con el mismo nombre en la misma unidad
+            if Cargos.objects.filter(id_unidad=unidad, cargo=cargo).exists():
+                return JsonResponse({'error': 'Ya existe un cargo con el mismo nombre en esta unidad.'}, status=400)
 
             # Crear el nuevo cargo
             nuevo_cargo = Cargos(
@@ -222,6 +232,7 @@ class CrearCargoView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaCargosPorUnidadView(View):
     def get(self, request, id_usuario, id_unidad, *args, **kwargs):
