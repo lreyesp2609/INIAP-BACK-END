@@ -108,9 +108,9 @@ class CrearUnidadView(View):
             
             nombre_unidad = nombre_unidad.upper()  # Convertir a mayúsculas
 
-            # Verificar si ya existe una unidad con el mismo nombre
-            if Unidades.objects.filter(nombre_unidad=nombre_unidad).exists():
-                return JsonResponse({'error': 'Ya existe una unidad con el mismo nombre.'}, status=400)
+            # Verificar si ya existe una unidad con el mismo nombre en la misma estación
+            if Unidades.objects.filter(nombre_unidad=nombre_unidad, id_estacion=id_estacion).exists():
+                return JsonResponse({'error': 'Ya existe una unidad con el mismo nombre en esta estación.'}, status=400)
 
             # Función para generar siglas excluyendo palabras comunes
             def generar_siglas(nombre):

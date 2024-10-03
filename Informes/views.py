@@ -46,7 +46,6 @@ import logging
 logger = logging.getLogger(__name__)
 from django.http import HttpResponse
 from django.template.loader import render_to_string
-from xhtml2pdf import pisa
 from io import BytesIO
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -1127,7 +1126,7 @@ class ListarInformesSinFacturasView(View):
             # Obtener las solicitudes del empleado con motivo de movilización específico
             solicitudes = Solicitudes.objects.filter(
                 id_empleado=empleado,
-                motivo_movilizacion__in=['Movilizaciones', 'Viáticos']
+                motivo_movilizacion__in=['MOVILIZACIONES', 'VIÁTICOS']
             )
 
             # Obtener los informes asociados a las solicitudes filtradas y que no tienen facturas asociadas
@@ -1236,7 +1235,6 @@ class CrearJustificacionView(View):
             return JsonResponse({'error': str(e)}, status=400)
         except Exception as e:
             return JsonResponse({'error': f'Error al crear las justificaciones: {str(e)}'}, status=500)
-
 
 class ListarFacturaInformesView(View):
     def get(self, request, id_usuario, *args, **kwargs):

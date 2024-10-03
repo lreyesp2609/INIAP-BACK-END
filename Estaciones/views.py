@@ -90,32 +90,27 @@ class CrearEstacionView(View):
 
             # Obtener datos del formulario FormData
             nombre_estacion = request.POST.get('nombre_estacion', '').upper()
-            siglas_estacion = request.POST.get('siglas_estacion', '')
+            siglas_estacion = request.POST.get('siglas_estacion', '').upper()
 
             # Generar siglas si no se proporcionan manualmente
             if not siglas_estacion:
-                # Eliminar palabras comunes y convertir a siglas
                 palabras_comunes = ['DE', 'LA', 'LAS', 'EL', 'LOS', 'DEL', 'Y', 'EN']
                 palabras = [palabra for palabra in nombre_estacion.split() if palabra not in palabras_comunes]
                 siglas_estacion = ''.join([palabra[0] for palabra in palabras]).upper()
 
             ruc = request.POST.get('ruc', '')
-            direccion = request.POST.get('direccion', '')
+            direccion = request.POST.get('direccion', '').upper()
             telefono = request.POST.get('telefono', '')
 
-            # Validar campos obligatorios si es necesario
             if not nombre_estacion:
                 return JsonResponse({'error': 'El nombre de la estación es requerido'}, status=400)
 
-            # Verificar si ya existe una estación con el mismo nombre
             if Estaciones.objects.filter(nombre_estacion=nombre_estacion).exists():
                 return JsonResponse({'error': 'Ya existe una estación con este nombre'}, status=400)
 
-            # Verificar si ya existe una estación con el mismo RUC
             if ruc and Estaciones.objects.filter(ruc=ruc).exists():
                 return JsonResponse({'error': 'Ya existe una estación registrada con este RUC'}, status=400)
 
-            # Crear la estación
             estacion = Estaciones.objects.create(
                 nombre_estacion=nombre_estacion,
                 siglas_estacion=siglas_estacion,
@@ -155,31 +150,24 @@ class EditarEstacionView(View):
             if usuario.id_rol.rol != 'SuperUsuario':
                 return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
 
-            # Obtener datos del formulario FormData
             nombre_estacion = request.POST.get('nombre_estacion', '').upper()
-
-            # Generar siglas automáticamente
             palabras_comunes = ['DE', 'LA', 'LAS', 'EL', 'LOS', 'DEL', 'Y', 'EN']
             palabras = [palabra for palabra in nombre_estacion.split() if palabra not in palabras_comunes]
             siglas_estacion = ''.join([palabra[0] for palabra in palabras]).upper()
 
             ruc = request.POST.get('ruc', '')
-            direccion = request.POST.get('direccion', '')
+            direccion = request.POST.get('direccion', '').upper()
             telefono = request.POST.get('telefono', '')
 
-            # Validar campos obligatorios si es necesario
             if not nombre_estacion:
                 return JsonResponse({'error': 'El nombre de la estación es requerido'}, status=400)
 
-            # Verificar si ya existe una estación con el mismo nombre
             if Estaciones.objects.filter(nombre_estacion=nombre_estacion).exclude(id_estacion=id_estacion).exists():
                 return JsonResponse({'error': 'Ya existe una estación con este nombre'}, status=400)
 
-            # Verificar si ya existe una estación con el mismo RUC
             if ruc and Estaciones.objects.filter(ruc=ruc).exclude(id_estacion=id_estacion).exists():
                 return JsonResponse({'error': 'Ya existe una estación registrada con este RUC'}, status=400)
 
-            # Actualizar la estación
             Estaciones.objects.filter(id_estacion=id_estacion).update(
                 nombre_estacion=nombre_estacion,
                 siglas_estacion=siglas_estacion,
@@ -192,3 +180,5 @@ class EditarEstacionView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+        
+        
