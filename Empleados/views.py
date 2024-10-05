@@ -263,6 +263,98 @@ class ListaEmpleadosView(View):
             return JsonResponse({'error': str(e)}, status=500)
         
 @method_decorator(csrf_exempt, name='dispatch')
+class ListaEmpleadosViewAdministrador(View):
+    def get(self, request, id_usuario, *args, **kwargs):
+        try:
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
+            usuario = Usuarios.objects.select_related('id_rol', 'id_persona').get(id_usuario=token_id_usuario)
+
+            if usuario.id_rol.rol not in ['SuperUsuario', 'Empleado', 'Administrador']:
+                return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
+
+            empleado_usuario = Empleados.objects.select_related('id_cargo').get(id_persona=usuario.id_persona)
+            unidad_usuario = Unidades.objects.get(id_unidad=empleado_usuario.id_cargo.id_unidad_id)
+            estacion_usuario = Estaciones.objects.get(id_estacion=unidad_usuario.id_estacion_id)
+
+            # Filtrando empleados que están habilitados (habilitado=1) y que tienen rol de "Administrador"
+            empleados = Empleados.objects.select_related('id_persona', 'id_cargo').filter(
+                id_cargo__id_unidad__id_estacion=estacion_usuario.id_estacion,
+                habilitado=1,
+                id_persona__usuarios__id_rol__rol='Administrador'  # Filtrar por rol de Administrador
+            ).order_by('id_empleado')
+
+            empleados_list = []
+            for empleado in empleados:
+                persona = empleado.id_persona
+                cargo = empleado.id_cargo
+
+                # Obtener la licencia del empleado, si existe
+                try:
+                    empleado_licencia = EmpleadosTipoLicencias.objects.get(id_empleado=empleado)
+                    tipo_licencia = empleado_licencia.id_tipo_licencia.tipo_licencia
+                except EmpleadosTipoLicencias.DoesNotExist:
+                    tipo_licencia = None
+
+                try:
+                    usuario_empleado = Usuarios.objects.get(id_persona=persona)
+                except Usuarios.DoesNotExist:
+                    usuario_empleado = None
+
+                empleado_data = {
+                    'nombres': persona.nombres,
+                    'apellidos': persona.apellidos,
+                    'cedula': persona.numero_cedula,
+                    'correo_electronico': persona.correo_electronico,
+                    'fecha_nacimiento': persona.fecha_nacimiento,
+                    'celular': persona.celular,
+                    'cargo': cargo.cargo,
+                    'nombre_unidad': cargo.id_unidad.nombre_unidad,
+                    'nombre_estacion': cargo.id_unidad.id_estacion.nombre_estacion,
+                    'id_empleado': empleado.id_empleado,
+                    'fecha_ingreso': empleado.fecha_ingreso,
+                    'direccion': persona.direccion,
+                    'usuario': usuario_empleado.usuario if usuario_empleado else None,
+                    'habilitado': empleado.habilitado,
+                    'genero': persona.genero,
+                    'distintivo': empleado.distintivo,
+                    'Licencia': tipo_licencia,
+                    'es_jefe': empleado.es_jefe,
+                    'es_director': empleado.es_director
+                }
+                empleados_list.append(empleado_data)
+
+            return JsonResponse(empleados_list, safe=False)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except AuthenticationFailed as e:
+            return JsonResponse({'error': str(e)}, status=403)
+
+        except Empleados.DoesNotExist:
+            return JsonResponse({'error': 'No se encontraron empleados'}, status=404)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': 'Objeto no encontrado'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
 class ListaEmpleadosDeshabilitadosView(View):
     def get(self, request, id_usuario, *args, **kwargs):
         try:
@@ -460,10 +552,13 @@ class EditarEmpleadoView(View):
             rol_id = request.POST.get('id_rol')
             if rol_id:
                 rol = Rol.objects.get(id_rol=rol_id)
-                if usuario.id_rol.rol != 'SuperUsuario':
-                    return JsonResponse({'error': 'No tienes permisos suficientes para cambiar el rol'}, status=403)
-
                 usuario_a_actualizar = Usuarios.objects.get(id_persona=persona)
+                
+                # Deshabilitar `es_jefe` y `es_director` si el rol ya no es 'Administrador'
+                if rol.rol in ['Empleado', 'SuperUsuario']:
+                    empleado.es_jefe = False
+                    empleado.es_director = False
+
                 usuario_a_actualizar.id_rol = rol
                 usuario_a_actualizar.save()
 

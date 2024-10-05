@@ -1673,8 +1673,18 @@ def generar_pdf_informe(informe, include_header_footer):
         unidad = cargo.id_unidad
 
         nombre_completo = f"{empleado.distintivo if empleado.distintivo else ''} {persona.apellidos if persona.apellidos else ''} {persona.nombres if persona.nombres else ''}".strip()
-        
         fecha_informe = informe.fecha_informe.strftime('%d-%m-%Y')
+
+        # Obtener el jefe de la unidad
+        jefe_unidad = Empleados.objects.filter(id_cargo__id_unidad=unidad.id_unidad, es_jefe=True).first()
+        nombre_jefe_unidad = f"{jefe_unidad.distintivo} {jefe_unidad.id_persona.apellidos} {jefe_unidad.id_persona.nombres}" if jefe_unidad else 'No asignado'
+        cedula_jefe_unidad = jefe_unidad.id_persona.numero_cedula if jefe_unidad else 'No asignado'
+
+        # Obtener el jefe de estación
+        jefe_estacion = Empleados.objects.filter(id_cargo__id_unidad__id_estacion=unidad.id_estacion, es_director=True).first()
+        nombre_jefe_estacion = f"{jefe_estacion.distintivo} {jefe_estacion.id_persona.apellidos} {jefe_estacion.id_persona.nombres}" if jefe_estacion else 'No asignado'
+        cedula_jefe_estacion = jefe_estacion.id_persona.numero_cedula if jefe_estacion else 'No asignado'
+        nombre_estacion = unidad.id_estacion.nombre_estacion if unidad.id_estacion else 'No asignada'
 
         transportes = TransporteInforme.objects.filter(id_informe=informe).values(
             'tipo_transporte_info',
@@ -1685,7 +1695,7 @@ def generar_pdf_informe(informe, include_header_footer):
             'fecha_llegada_info',
             'hora_llegada_info'
         )
-        
+
         transportes_list = []
         for transporte in transportes:
             transportes_list.append({
@@ -1697,12 +1707,12 @@ def generar_pdf_informe(informe, include_header_footer):
                 'Fecha_de_Llegada': transporte['fecha_llegada_info'].strftime('%d-%m-%Y') if transporte['fecha_llegada_info'] else '',
                 'Hora_de_Llegada': transporte['hora_llegada_info'].strftime('%H:%M') if transporte['hora_llegada_info'] else '',
             })
-        
+
         productos = ProductosAlcanzadosInformes.objects.filter(id_informe=informe).values('descripcion')
         productos_list = [producto['descripcion'] for producto in productos]
         productos_alcanzados = ''.join(productos_list)
 
-        encabezados = Encabezados.objects.first()  # Suponiendo que solo hay un encabezado, si no, ajusta según sea necesario
+        encabezados = Encabezados.objects.first()  # Suponiendo que solo hay un encabezado
         
         context = {
             'codigo_solicitud': solicitud.generar_codigo_solicitud(),
@@ -1720,6 +1730,11 @@ def generar_pdf_informe(informe, include_header_footer):
             'observacion': informe.observacion if informe.observacion else '',
             'transportes': transportes_list,
             'productos_alcanzados': productos_alcanzados,
+            'nombre_jefe_unidad': nombre_jefe_unidad,
+            'cedula_jefe_unidad': cedula_jefe_unidad,
+            'nombre_jefe_estacion': nombre_jefe_estacion,
+            'cedula_jefe_estacion': cedula_jefe_estacion,
+            'nombre_estacion': nombre_estacion,
             'encabezado_superior': encabezados.encabezado_superior if encabezados and include_header_footer else '',
             'encabezado_inferior': encabezados.encabezado_inferior if encabezados and include_header_footer else '',
         }
@@ -1728,30 +1743,7 @@ def generar_pdf_informe(informe, include_header_footer):
 
         pdf_file = BytesIO()
         if include_header_footer:
-            HTML(string=html_content).write_pdf(pdf_file, stylesheets=[CSS(string='''
-                @page {
-                    size: A4;
-                    margin: 2cm;
-                    @top-center {
-                        content: element(header);
-                    }
-                    @bottom-center {
-                        content: element(footer);
-                    }
-                }
-                #header {
-                    position: running(header);
-                    width: 100%;
-                    text-align: center;
-                    font-size: 10px;
-                }
-                #footer {
-                    position: running(footer);
-                    width: 100%;
-                    text-align: center;
-                    font-size: 10px;
-                }
-            ''')])
+            HTML(string=html_content).write_pdf(pdf_file, stylesheets=[CSS(string='''@page { size: A4; margin: 2cm; @top-center { content: element(header); } @bottom-center { content: element(footer); }} #header { position: running(header); width: 100%; text-align: center; font-size: 10px; } #footer { position: running(footer); width: 100%; text-align: center; font-size: 10px; } ''')])
         else:
             HTML(string=html_content).write_pdf(pdf_file)
 
@@ -1763,7 +1755,6 @@ def generar_pdf_informe(informe, include_header_footer):
     except Exception as e:
         logger.error(f'Error en generar_pdf: {str(e)}')
         return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)
-
 
 @method_decorator(csrf_exempt, name='dispatch')
 class GenerarPdfFacturasView(View):
@@ -1970,6 +1961,17 @@ def generar_pdf_solicitud(solicitud, include_header_footer):
         nombre_completo = f"{empleado.distintivo if empleado.distintivo else ''} {persona.apellidos if persona.apellidos else ''} {persona.nombres if persona.nombres else ''}".strip()
         fecha_solicitud = solicitud.fecha_solicitud.strftime('%d-%m-%Y')
 
+        # Obtener el jefe de la unidad
+        jefe_unidad = Empleados.objects.filter(id_cargo__id_unidad=unidad.id_unidad, es_jefe=True).first()
+        nombre_jefe_unidad = f"{jefe_unidad.distintivo} {jefe_unidad.id_persona.apellidos} {jefe_unidad.id_persona.nombres}" if jefe_unidad else 'No asignado'
+        cedula_jefe_unidad = jefe_unidad.id_persona.numero_cedula if jefe_unidad else 'No asignado'
+
+        # Obtener el jefe de estación
+        jefe_estacion = Empleados.objects.filter(id_cargo__id_unidad__id_estacion=unidad.id_estacion, es_director=True).first()
+        nombre_jefe_estacion = f"{jefe_estacion.distintivo} {jefe_estacion.id_persona.apellidos} {jefe_estacion.id_persona.nombres}" if jefe_estacion else 'No asignado'
+        cedula_jefe_estacion = jefe_estacion.id_persona.numero_cedula if jefe_estacion else 'No asignado'
+        nombre_estacion = unidad.id_estacion.nombre_estacion if unidad.id_estacion else 'No asignada'
+
         encabezados = Encabezados.objects.first() if include_header_footer else None
 
         transportes = TransporteSolicitudes.objects.filter(id_solicitud=solicitud.id_solicitud)
@@ -2005,7 +2007,12 @@ def generar_pdf_solicitud(solicitud, include_header_footer):
             'transportes': transportes,
             'banco': banco,
             'tipo_cuenta': tipo_cuenta,
-            'numero_cuenta': numero_cuenta
+            'numero_cuenta': numero_cuenta,
+            'nombre_jefe_unidad': nombre_jefe_unidad,
+            'cedula_jefe_unidad': cedula_jefe_unidad,
+            'nombre_jefe_estacion': nombre_jefe_estacion,
+            'cedula_jefe_estacion': cedula_jefe_estacion,
+            'nombre_estacion': nombre_estacion,
         }
 
         if include_header_footer and encabezados:

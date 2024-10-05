@@ -241,9 +241,9 @@
                     <br>
                     <br>
                     <br>
-                    Mgs. Ruth Marjorie Tenesaca Mera<br>
-                    RESPONSABLE DE PLANIFICACIÓN Y GESTIÓN ESTRÁTEGICA<br>
-                    CI: 1203984008
+                    {{ nombre_jefe_unidad | default:"No asignado" }}<br>
+                    CC: {{ cedula_jefe_unidad }}<br>
+                    RESPONSABLE DE PLANIFICACIÓN Y GESTIÓN ESTRÁTEGICA
                 </td>
             </tr>
             <tr>
@@ -256,9 +256,9 @@
                     <br>
                     <br>
                     <br>
-                    Mgs. Carlos Alberto Molina Hidrovo<br>
-                    DIRECTOR DE ESTACIÓN TROPICAL PICHILINGUE<br>
-                    CI: 1307209526
+                    {{ nombre_jefe_estacion | default:"No asignado" }}<br>
+                    CC: {{ cedula_jefe_estacion }}<br>
+                    {{ nombre_estacion }}
                 </td>
                 <td colspan="3" rowspan="2">
                     Esta solicitud deberá ser presentada para su autorización con por lo menos 72 horas de
