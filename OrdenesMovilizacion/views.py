@@ -37,7 +37,8 @@ class CrearOrdenMovilizacionView(View):
                 return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
 
             usuario = Usuarios.objects.select_related('id_rol').get(id_usuario=id_usuario)
-            if usuario.id_rol.rol != 'Empleado':
+            
+            if usuario.id_rol.rol not in ['Empleado', 'Administrador']:
                 return JsonResponse({'error': 'No tienes permisos suficientes'}, status=403)
 
             # Obtención de datos del formulario form-data
