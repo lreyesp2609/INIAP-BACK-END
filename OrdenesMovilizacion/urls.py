@@ -18,9 +18,9 @@ urlpatterns = [
     path('editar-horario/<int:id_usuario>/', EditarHorarioView.as_view(), name='editar_horario'),
     path('crear-ruta/<int:id_usuario>/', CrearRutaView.as_view(), name='editar_horario'),
     path('ver-horario/<int:id_usuario>/', VerHorarioView.as_view(), name='ver_horario'),
-    path('editar-ruta/<int:id_usuario>/<int:id_ruta_movilizacion>/', EditarRutaView.as_view(), name='editar_horario'),
+    path('editar-ruta/<int:id_usuario>/<int:id_ruta_movilizacion>/', EditarRutaView.as_view(), name='editar_ruta'),
+    path('detalle-ruta/<int:id_usuario>/<int:id_ruta_movilizacion>/', DetalleRutaView.as_view(), name='detalle_ruta'),
     path('listar-rutas/<int:id_usuario>/', ListarRutasView.as_view(), name='listar_rutas'),
     path('Deshabilitar-orden/<int:id_usuario>/<int:id_orden>/', DeshabilitarOrdenMovilizacionView.as_view(), name='Deshabilitar-orden'),
-
     path('cambiar-estado-rutas/<int:id_usuario>/<int:id_ruta_movilizacion>/', CambiarEstadoRutaView.as_view(), name='cambiar_estado_ruta'),
 ]
