@@ -28,13 +28,11 @@
 
         .header {
             top: -1cm;
-            border-bottom: 1px solid #000;
             padding-bottom: 10px;
         }
 
         .footer {
             bottom: -1cm;
-            border-top: 1px solid #000;
             padding-top: 10px;
         }
 
@@ -116,8 +114,8 @@
 
         <!-- Centramos el número de informe y la fecha de comisión -->
         <div class="center-text">
-            <p class="bold"><strong>NÚMERO DE INFORME:</strong> 001-RPLA-UI-INIAP-EETP-2024</p>
-            <p class="bold"><strong>FECHA DE LA COMISIÓN:</strong> del 26 al 26 de septiembre del 2024</p>
+            <p class="bold"><strong>NÚMERO DE INFORME:</strong> {{ codigo_solicitud }}</p>
+            <p class="bold"><strong>FECHA DE LA COMISIÓN:</strong> {{ fecha_comision }}</p>
         </div>
 
         <table>

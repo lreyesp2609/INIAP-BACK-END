@@ -29,13 +29,11 @@
 
         .header {
             top: -1.5cm;
-            border-bottom: 1px solid #000;
             padding-bottom: 10px;
         }
 
         .footer {
             bottom: -2cm;
-            border-top: 1px solid #000;
             padding-top: 10px;
         }
 
@@ -118,8 +116,8 @@
     <div class="content">
         <table>
             <tr>
-                <th colspan="4">SOLICITUD DE AUTORIZACIÓN PARA CUMPLIMIENTO DE SERVICIOS INSTITUCIONALES</th>
-            </tr>
+                <th colspan="4" style="text-align: center;">SOLICITUD DE AUTORIZACIÓN PARA CUMPLIMIENTO DE SERVICIOS INSTITUCIONALES</th>
+            </tr>            
             <tr>
                 <th colspan="3">Nro. SOLICITUD DE AUTORIZACIÓN PARA CUMPLIMIENTO DE SERVICIOS INSTITUCIONALES</th>
                 <th colspan="3">FECHA DE SOLICITUD (dd-mm-aaaa)</th>
@@ -217,12 +215,12 @@
             <tr>
                 <th colspan="2">Nombre del Banco</th>
                 <th>Tipo de Cuenta</th>
-                <th>Tipo de Cuenta</th>
+                <th>No. de Cuenta</th>
             </tr>
             <tr>
                 <td colspan="2">{{ banco | default:"&nbsp;" }}</td>
                 <td>{{ tipo_cuenta | default:"&nbsp;" }}</td>
-                <td>{{ tipo_cuenta | default:"&nbsp;" }}</td>
+                <td>{{ numero_cuenta | default:"&nbsp;" }}</td>
             </tr>
             <tr>
                 <th colspan="3">FIRMA DE LA O EL SERVIDOR COMISIONADO</th>

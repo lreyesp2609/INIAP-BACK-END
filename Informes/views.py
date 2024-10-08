@@ -1769,8 +1769,9 @@ class GenerarPdfFacturasView(View):
             if not token_id_usuario:
                 raise AuthenticationFailed('ID de usuario no encontrado en el token')
 
-            if token_id_usuario != id_usuario:
+            if int(token_id_usuario) != id_usuario:
                 return JsonResponse({'error': 'ID de usuario en el token no coincide con el de la URL'}, status=403)
+
 
             facturas = FacturasInformes.objects.filter(id_informe=id_informe).values(
                 'id_factura',
