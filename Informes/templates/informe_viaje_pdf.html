@@ -28,7 +28,7 @@
         }
 
         .header {
-            top: -1.5cm;
+            top: -2cm;
             padding-bottom: 10px;
         }
 
@@ -101,77 +101,87 @@
     <div class="content">
         <table>
             <tr>
-                <th colspan="4" style="text-align: center;">INFORME DE SERVICIOS INSTITUCIONALE</th>
+                <th colspan="5" style="text-align: center;">INFORME DE SERVICIOS INSTITUCIONALES</th>
             </tr>
             
             <tr>
                 <th colspan="3">Nro. SOLICITUD DE AUTORIZACIÓN PARA CUMPLIMIENTO DE SERVICIOS INSTITUCIONALES</th>
-                <th colspan="3">FECHA DE SOLICITUD (dd-mm-aaaa)</th>
+                <th colspan="2">FECHA DE SOLICITUD (dd-mm-aaaa)</th>
             </tr>
             <tr>
                 <td colspan="3">{{ codigo_solicitud | default:"&nbsp;" }}</td>
-                <td colspan="3">{{ fecha_informe | default:"&nbsp;" }}</td>
+                <td colspan="2">{{ fecha_informe | default:"&nbsp;" }}</td>
             </tr>
             <tr class="section-title">
-                <td colspan="4">DATOS GENERALES</td>
+                <td colspan="5">DATOS GENERALES</td>
             </tr>
             <tr>
                 <th colspan="3">APELLIDOS - NOMBRES DE LA O EL SERVIDOR</th>
-                <th colspan="3">PUESTO QUE OCUPA</th>
+                <th colspan="2">PUESTO QUE OCUPA</th>
             </tr>
             <tr>
                 <td colspan="3">{{ nombre_completo | default:"&nbsp;" }}</td>
-                <td colspan="3">{{ cargo | default:"&nbsp;" }}</td>
+                <td colspan="2">{{ cargo | default:"&nbsp;" }}</td>
             </tr>
             <tr>
                 <th colspan="3">CIUDAD - PROVINCIA DEL SERVICIO INSTITUCIONAL</th>
-                <th colspan="3">NOMBRE DE LA UNIDAD A LA QUE PERTENECE LA O EL SERVIDOR</th>
+                <th colspan="2">NOMBRE DE LA UNIDAD A LA QUE PERTENECE LA O EL SERVIDOR</th>
             </tr>
             <tr>
                 <td colspan="3">{{ lugar_servicio | default:"&nbsp;" }}</td>
-                <td colspan="3">{{ nombre_unidad | default:"&nbsp;" }}</td>
+                <td colspan="2">{{ nombre_unidad | default:"&nbsp;" }}</td>
             </tr>
             <tr class="section-title">
-                <td colspan="4">SERVIDORES QUE INTEGRAN LOS SERVICIOS INSTITUCIONALES</td>
+                <td colspan="5">SERVIDORES QUE INTEGRAN LOS SERVICIOS INSTITUCIONALES</td>
             </tr>
             <tr>
-                <td colspan="4">{{ nombre_completo | default:"&nbsp;" }}</td>
+                <td colspan="5">{{ nombre_completo | default:"&nbsp;" }}</td>
             </tr>
             <tr class="section-title">
-                <td colspan="4">INFORME DE ACTIVIDADES Y PRODUCTOS ALCANZADOS</td>
+                <td colspan="5">INFORME DE ACTIVIDADES Y PRODUCTOS ALCANZADOS</td>
             </tr>
             <tr>
-                <td colspan="4">{{ productos_alcanzados | safe | default:"&nbsp;" }}</td>
+                <td colspan="5">{{ productos_alcanzados | safe | default:"&nbsp;" }}</td>
             </tr>
             <tr>
                 <th>ITINERARIO</th>
-                <th>SALIDA</th>
-                <th>LLEGADA</th>
-                <th>NOTA</th>
+                <th colspan="2">SALIDA</th>
+                <th colspan="2">LLEGADA</th>
             </tr>
             <tr>
                 <td>FECHA<br>dd-mm-aaa</td>
-                <td>{{ fecha_salida_informe | default:"&nbsp;" }}</td>
-                <td>{{ fecha_llegada_informe | default:"&nbsp;" }}</td>
-                <td rowspan="2" class="note-box">
+                <td colspan="2">{{ fecha_salida_informe | default:"&nbsp;" }}</td>
+                <td colspan="2">{{ fecha_llegada_informe | default:"&nbsp;" }}</td>
+            </tr>
+            <tr>
+                <td>HORA<br>hh:mm</td>
+                <td colspan="2">{{ hora_salida_informe | default:"&nbsp;" }}</td>
+                <td colspan="2">{{ hora_llegada_informe | default:"&nbsp;" }}</td>
+            </tr>
+            <tr>
+                <td colspan="5" class="note-box">
                     Estos datos se refieren al tiempo efectivamente utilizado en el cumplimiento del servicio institucional,
                     desde la salida del lugar de residencia o trabajo habituales o del cumplimiento del servicio
                     institucional según sea el caso, hasta su llegada a estos sitios.
                 </td>
             </tr>
-            <tr>
-                <td>HORA<br>hh:mm</td>
-                <td>{{ hora_salida_informe | default:"&nbsp;" }}</td>
-                <td>{{ hora_llegada_informe | default:"&nbsp;" }}</td>
-            </tr>
             <tr class="section-title">
-                <td colspan="4">TRANSPORTE</td>
+                <td colspan="5">TRANSPORTE</td>
             </tr>
             <tr>
                 <th>TIPO DE TRANSPORTE</th>
                 <th>NOMBRE DE TRANSPORTE</th>
                 <th>RUTA</th>
-                <th>SALIDA / LLEGADA</th>
+                <th>
+                    SALIDA <br>
+                    FECHA (dd-mm-aaaa) <br>
+                    HORA (hh:mm)
+                </th>
+                <th>
+                    LLEGADA <br>
+                    FECHA (dd-mm-aaaa) <br>
+                    HORA (hh:mm)
+                </th>
             </tr>
             {% for transporte in transportes %}
             <tr>
@@ -179,42 +189,37 @@
                 <td>{{ transporte.Nombre_del_Transporte | default:"&nbsp;" }}</td>
                 <td>{{ transporte.Ruta | default:"&nbsp;" }}</td>
                 <td>
-                    <table style="width: 100%;">
-                        <tr>
-                            <td><strong>Fecha/Hora Salida:</strong></td>
-                            <td><strong>Fecha/Hora Llegada:</strong></td>
-                        </tr>
-                        <tr>
-                            <td>{{ transporte.Fecha_de_Salida | default:"&nbsp;" }} {{ transporte.Hora_de_Salida | default:"&nbsp;" }}</td>
-                            <td>{{ transporte.Fecha_de_Llegada | default:"&nbsp;" }} {{ transporte.Hora_de_Llegada | default:"&nbsp;" }}</td>
-                        </tr>
-                    </table>
+                    <strong>Fecha:</strong> {{ transporte.Fecha_de_Salida | default:"&nbsp;" }}<br>
+                    <strong>Hora:</strong> {{ transporte.Hora_de_Salida | default:"&nbsp;" }}
+                </td>
+                <td>
+                    <strong>Fecha:</strong> {{ transporte.Fecha_de_Llegada | default:"&nbsp;" }}<br>
+                    <strong>Hora:</strong> {{ transporte.Hora_de_Llegada | default:"&nbsp;" }}
                 </td>
             </tr>
             {% endfor %}
             <tr class="section-title">
-                <td colspan="4">NOTA: En caso de haber utilizado transporte público, se deberá adjuntar obligatoriamente los pases a bordo o boletos</td>
+                <td colspan="5">NOTA: En caso de haber utilizado transporte público, se deberá adjuntar obligatoriamente los pases a bordo o boletos</td>
             </tr>           
             <tr class="section-title">
-                <td colspan="4">OBSERVACIONES</td>
+                <td colspan="5">OBSERVACIONES</td>
             </tr>
             <tr>
-                <td colspan="4">{{ observacion | default:"&nbsp;" }}</td>
+                <td colspan="5">{{ observacion | default:"&nbsp;" }}</td>
             </tr>
             
             <tr>
-                <th colspan="3" class="bottom-align">FIRMA DE LA O EL SERVIDOR COMISIONADO</th>
-                <th colspan="3">NOTA</th>
+                <th colspan="3">FIRMA DE LA O EL SERVIDOR COMISIONADO</th>
+                <th colspan="2">NOTA</th>
             </tr>
             <tr>
                 <td colspan="3" class="bottom-align">
-                    <br>
-                    <br>
-                    <br>
-                    <br>
-                    {{ nombre_completo | default:"&nbsp;" }}<br>CC: {{ cedula | default:"&nbsp;" }}<br>PUESTO: {{ cargo | default:"&nbsp;" }}
+                    <br><br><br><br>
+                    {{ nombre_completo | default:"&nbsp;" }}<br>
+                    CC: {{ cedula | default:"&nbsp;" }}<br>
+                    PUESTO: {{ cargo | default:"&nbsp;" }}
                 </td>
-                <td colspan="3">
+                <td colspan="2">
                     El presente informe deberá presentarse dentro del término de 4 días del cumplimiento de servicios
                     institucionales, caso contrario la liquidación se demorará e incluso de no presentarlo tendría que restituir los valores
                     percibidos. Cuando el cumplimiento de servicios institucionales sea superior al número de días autorizados, se
@@ -222,27 +227,21 @@
                 </td>
             </tr>
             <tr class="section-title">
-                <td colspan="4">FIRMAS DE APROBACIÓN</td>
+                <td colspan="5">FIRMAS DE APROBACIÓN</td>
             </tr>
             <tr>
                 <th colspan="3">FIRMA DE LA O EL RESPONSABLE DE LA UNIDAD DEL SERVIDOR COMISIONADO</th>
-                <th colspan="3">FIRMA DE LA O EL JEFE DE LA O EL RESPONSABLE DE LA UNIDAD COMISIONADO</th>
+                <th colspan="2">FIRMA DE LA O EL JEFE DE LA O EL RESPONSABLE DE LA UNIDAD COMISIONADO</th>
             </tr>
             <tr>
                 <td colspan="3" class="bottom-align">
-                    <br>
-                    <br>
-                    <br>
-                    <br>
+                    <br><br><br><br>
                     {{ nombre_jefe_unidad }}<br>
                     CI: {{ cedula_jefe_unidad }}<br>
                     RESPONSABLE DE PLANIFICACIÓN
                 </td>
                 <td colspan="2" class="bottom-align">
-                    <br>
-                    <br>
-                    <br>
-                    <br>
+                    <br><br><br><br>
                     {{ nombre_jefe_estacion }}<br>
                     CI: {{ cedula_jefe_estacion }}<br>
                     DIRECTOR DE {{ nombre_estacion }}
@@ -257,7 +256,4 @@
         {% endif %}
     </div>
 </body>
-
 </html>
-
-
