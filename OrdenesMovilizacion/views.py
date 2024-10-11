@@ -16,9 +16,60 @@ import logging
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from io import BytesIO
-from weasyprint import HTML, CSS
+from weasyprint import HTML
 
 logger = logging.getLogger(__name__)
+
+from datetime import datetime
+from django.db.models import Q
+
+def verificar_conflicto(id_usuario, id_conductor, id_vehiculo, fecha_viaje, hora_ida, hora_regreso, id_orden_excluir=None):
+    # Convertir la fecha si está en formato de cadena
+    if isinstance(fecha_viaje, str):
+        fecha_viaje = datetime.strptime(fecha_viaje, '%Y-%m-%d').date()
+
+    mensajes_conflicto = []
+
+    # Excluir la orden actual si se está editando
+    conflictos = OrdenesMovilizacion.objects.filter(
+        fecha_viaje=fecha_viaje,
+        id_empleado__id_persona=id_usuario
+    ).exclude(id_orden_movilizacion=id_orden_excluir)
+
+    # Verificar conflictos con el usuario
+    for orden in conflictos:
+        if not (hora_regreso <= orden.hora_ida or hora_ida >= orden.hora_regreso):
+            mensajes_conflicto.append("El usuario ya tiene una movilización en este horario.")
+            break  # Salir del bucle si hay un conflicto
+
+    # Verificar conflictos con el conductor
+    conflictos_conductor = OrdenesMovilizacion.objects.filter(
+        fecha_viaje=fecha_viaje,
+        id_conductor=id_conductor
+    ).exclude(id_orden_movilizacion=id_orden_excluir)
+
+    for orden in conflictos_conductor:
+        if not (hora_regreso <= orden.hora_ida or hora_ida >= orden.hora_regreso):
+            mensajes_conflicto.append("El conductor ya está asignado a otra movilización en este horario.")
+            break  # Salir del bucle si hay un conflicto
+
+    # Verificar conflictos con el vehículo
+    conflictos_vehiculo = OrdenesMovilizacion.objects.filter(
+        fecha_viaje=fecha_viaje,
+        id_vehiculo=id_vehiculo
+    ).exclude(id_orden_movilizacion=id_orden_excluir)
+
+    for orden in conflictos_vehiculo:
+        if not (hora_regreso <= orden.hora_ida or hora_ida >= orden.hora_regreso):
+            mensajes_conflicto.append("El vehículo ya está ocupado en otra movilización en este horario.")
+            break  # Salir del bucle si hay un conflicto
+
+    # Si hay conflictos, devolver True y los mensajes de conflicto
+    if mensajes_conflicto:
+        return True, mensajes_conflicto
+
+    # Si no hay conflictos, devolver False
+    return False, []
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearOrdenMovilizacionView(View):
@@ -59,6 +110,21 @@ class CrearOrdenMovilizacionView(View):
             # Convertir strings de hora a objetos datetime.time
             hora_ida = datetime.strptime(hora_ida_str, '%H:%M').time()
             hora_regreso = datetime.strptime(hora_regreso_str, '%H:%M').time()
+
+            # Verificar conflictos antes de crear la orden
+            conflicto, mensajes_conflicto = verificar_conflicto(
+                id_usuario=id_usuario,
+                id_conductor=id_conductor_id,
+                id_vehiculo=id_vehiculo_id,
+                fecha_viaje=fecha_viaje,
+                hora_ida=hora_ida,
+                hora_regreso=hora_regreso
+            )
+
+            if conflicto:
+                logger.error(f'Conflicto encontrado: {mensajes_conflicto}')
+                return JsonResponse({'error': 'Conflicto de horario', 'detalles': mensajes_conflicto}, status=400)
+
 
             # Validación de horas y duraciones con el modelo HorarioOrdenMovilizacion
             horario = HorarioOrdenMovilizacion.objects.first()  # Obtener los límites de horario
@@ -225,6 +291,19 @@ class EditarOrdenMovilizacionView(View):
 
             orden.id_conductor = id_conductor
             orden.id_vehiculo = id_vehiculo
+
+            # Verificar conflictos antes de crear la orden
+            conflicto, mensajes_conflicto = verificar_conflicto(
+                id_usuario=id_usuario,
+                id_conductor=id_conductor_id,
+                id_vehiculo=id_vehiculo_id,
+                fecha_viaje=orden.fecha_viaje,
+                hora_ida=hora_ida,
+                hora_regreso=hora_regreso
+            )
+
+            if conflicto:
+                return JsonResponse({'error': 'Conflicto de horario', 'detalles': mensajes_conflicto}, status=400)
 
             orden.save()
 
@@ -725,6 +804,9 @@ class EditarMotivoOrdenMovilizacionView(View):
             nuevo_estado = request.POST.get('estado')
             nuevo_motivo = request.POST.get('motivo')
             nuevo_secuencial = request.POST.get('secuencial')
+
+            if OrdenesMovilizacion.objects.filter(secuencial_orden_movilizacion=nuevo_secuencial).exists():
+                return JsonResponse({'error': 'El secuencial ya está asignado a otra orden'}, status=400)
 
             if nuevo_estado:
                 if nuevo_estado == 'Aprobado':
