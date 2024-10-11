@@ -516,17 +516,30 @@ class CrearCuentaBancariaView(View):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListarSolicitudesPendientesAdminView(View):
-    def get(self, request, *args, **kwargs):
+    def get(self, request, id_usuario, *args, **kwargs):
         try:
-            # Obtener todas las solicitudes con estado pendiente
-            solicitudes = Solicitudes.objects.filter(estado_solicitud='pendiente')
+            # Obtener la persona asociada al administrador en sesión
+            administrador = Usuarios.objects.get(id_usuario=id_usuario)
+            persona_admin = administrador.id_persona
+
+            # Obtener el empleado asociado a esa persona
+            empleado_admin = Empleados.objects.get(id_persona=persona_admin)
+
+            # Obtener la unidad del administrador a través de su cargo
+            unidad_admin = empleado_admin.id_cargo.id_unidad
+
+            # Filtrar las solicitudes pendientes que correspondan a empleados de la misma unidad
+            solicitudes = Solicitudes.objects.filter(
+                estado_solicitud='pendiente',
+                id_empleado__id_cargo__id_unidad=unidad_admin
+            )
 
             # Preparar la respuesta con los datos requeridos
             data = []
             for solicitud in solicitudes:
                 codigo_solicitud = solicitud.generar_codigo_solicitud()
                 data.append({
-                    'id':solicitud.id_solicitud,
+                    'id': solicitud.id_solicitud,
                     'Codigo de Solicitud': codigo_solicitud,
                     'Fecha Solicitud': solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else '',
                     'Motivo': solicitud.motivo_movilizacion if solicitud.motivo_movilizacion else '',
@@ -540,17 +553,30 @@ class ListarSolicitudesPendientesAdminView(View):
         
 @method_decorator(csrf_exempt, name='dispatch')
 class ListarSolicitudesCanceladasAdminView(View):
-    def get(self, request, *args, **kwargs):
+    def get(self, request, id_usuario, *args, **kwargs):
         try:
-            # Obtener todas las solicitudes con estado pendiente
-            solicitudes = Solicitudes.objects.filter(estado_solicitud='cancelado')
+            # Obtener la persona asociada al administrador en sesión
+            administrador = Usuarios.objects.get(id_usuario=id_usuario)
+            persona_admin = administrador.id_persona
+
+            # Obtener el empleado asociado a esa persona
+            empleado_admin = Empleados.objects.get(id_persona=persona_admin)
+
+            # Obtener la unidad del administrador a través de su cargo
+            unidad_admin = empleado_admin.id_cargo.id_unidad
+
+            # Filtrar las solicitudes canceladas que correspondan a empleados de la misma unidad
+            solicitudes = Solicitudes.objects.filter(
+                estado_solicitud='cancelado',
+                id_empleado__id_cargo__id_unidad=unidad_admin
+            )
 
             # Preparar la respuesta con los datos requeridos
             data = []
             for solicitud in solicitudes:
                 codigo_solicitud = solicitud.generar_codigo_solicitud()
                 data.append({
-                    'id':solicitud.id_solicitud,
+                    'id': solicitud.id_solicitud,
                     'Codigo de Solicitud': codigo_solicitud,
                     'Fecha Solicitud': solicitud.fecha_solicitud.strftime('%Y-%m-%d') if solicitud.fecha_solicitud else '',
                     'Motivo': solicitud.motivo_movilizacion if solicitud.motivo_movilizacion else '',
@@ -565,10 +591,23 @@ class ListarSolicitudesCanceladasAdminView(View):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListarSolicitudesAceptadasAdminView(View):
-    def get(self, request, *args, **kwargs):
+    def get(self, request, id_usuario, *args, **kwargs):
         try:
-            # Obtener todas las solicitudes con estado aceptado
-            solicitudes = Solicitudes.objects.filter(estado_solicitud='aceptado')
+            # Obtener la persona asociada al administrador en sesión
+            administrador = Usuarios.objects.get(id_usuario=id_usuario)
+            persona_admin = administrador.id_persona
+
+            # Obtener el empleado asociado a esa persona
+            empleado_admin = Empleados.objects.get(id_persona=persona_admin)
+
+            # Obtener la unidad del administrador a través de su cargo
+            unidad_admin = empleado_admin.id_cargo.id_unidad
+
+            # Filtrar las solicitudes aceptadas que correspondan a empleados de la misma unidad
+            solicitudes = Solicitudes.objects.filter(
+                estado_solicitud='aceptado',
+                id_empleado__id_cargo__id_unidad=unidad_admin
+            )
 
             # Preparar la respuesta con los datos requeridos
             data = []
