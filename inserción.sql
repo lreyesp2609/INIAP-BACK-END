@@ -14,8 +14,8 @@ VALUES
 INSERT INTO Unidades (nombre_unidad, siglas_unidad, id_estacion)
 VALUES
   (
-    'UNIDAD DE INFORMATICA',  -- Nombre de la unidad
-    'UI',                     -- Siglas de la unidad
+    'PLANIFICACIÓN',  -- Nombre de la unidad
+    'P',                     -- Siglas de la unidad
     (SELECT id_estacion FROM Estaciones WHERE nombre_estacion = 'ESTACIÓN EXPERIMENTAL TROPICAL PICHILINGUE')  -- id_estacion
   );
 
@@ -23,8 +23,8 @@ VALUES
 INSERT INTO Cargos (id_unidad, cargo)
 VALUES
   (
-    (SELECT id_unidad FROM Unidades WHERE nombre_unidad = 'UNIDAD DE INFORMATICA'),  -- id_unidad
-    'ASISTENTE TIC 1 DE ESTACION EXPERIMENTAL'                                      -- Cargo
+    (SELECT id_unidad FROM Unidades WHERE nombre_unidad = 'PLANIFICACIÓN'),  -- id_unidad
+    'ASISTENTE DE INFORMATICA'                                      -- Cargo
   );
 
 -- Inserta usuario para admin
