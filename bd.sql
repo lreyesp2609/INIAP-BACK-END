@@ -311,6 +311,3 @@ CREATE TABLE rutas_movilizacion (
     ruta_descripcion VARCHAR(250) NOT NULL,
     ruta_estado SMALLINT NOT NULL DEFAULT 1
 ); 
-
-
-ALTER TABLE empleados ADD COLUMN es_jefe boolean;

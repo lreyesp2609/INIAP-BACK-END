@@ -343,8 +343,8 @@ BEGIN
     -- Obtener el id_persona recién insertado
     SELECT id_persona INTO persona_id FROM Personas WHERE numero_cedula = '0123456789';
 
-    -- Obtener el id_cargo de 'ASISTENTE TIC 1 DE ESTACION EXPERIMENTAL'
-    SELECT id_cargo INTO cargo_id FROM Cargos WHERE cargo = 'ASISTENTE TIC 1 DE ESTACION EXPERIMENTAL';
+    -- Obtener el id_cargo de 'ASISTENTE DE INFORMATICA'
+    SELECT id_cargo INTO cargo_id FROM Cargos WHERE cargo = 'ASISTENTE DE INFORMATICA';
 
     -- Insertar usuario Empleado
     INSERT INTO Usuarios (id_rol, id_persona, usuario, contrasenia)
