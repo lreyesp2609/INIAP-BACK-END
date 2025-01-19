@@ -352,3 +352,53 @@ class ListarAlertasActivasView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
+class ListarDetalleAlertasView(View):
+    def get(self, request, id_usuario, id_vehiculo, *args, **kwargs):
+        try:
+            # Validar el token de autenticación
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            # Decodificar el token
+            try:
+                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            except jwt.ExpiredSignatureError:
+                return JsonResponse({'error': 'Token expirado'}, status=401)
+            except jwt.InvalidTokenError:
+                return JsonResponse({'error': 'Token inválido'}, status=401)
+
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                return JsonResponse({'error': 'ID de usuario no encontrado en el token'}, status=403)
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
+            # Validar que el vehículo existe
+            try:
+                vehiculo = Vehiculo.objects.get(id_vehiculo=id_vehiculo)
+            except ObjectDoesNotExist:
+                return JsonResponse({'error': 'Vehículo no encontrado'}, status=404)
+
+            # Obtener las alertas de mantenimiento para este vehículo
+            alertas = AlertasMantenimiento.objects.filter(id_vehiculo=vehiculo)
+
+            # Si no hay alertas de mantenimiento, responder con un mensaje
+            if not alertas.exists():
+                return JsonResponse({'mensaje': 'No se encontraron alertas de mantenimiento para este vehículo'}, status=404)
+
+            # Construir la respuesta con los detalles de las alertas
+            alertas_listado = []
+            for alerta in alertas:
+                alertas_listado.append({
+                    'kilometraje_activacion': alerta.kilometraje_activacion,
+                    'tipo_mantenimiento': alerta.tipo_mantenimiento,
+                })
+
+            # Devolver las alertas con detalles en formato JSON
+            return JsonResponse({'alertas': alertas_listado}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
