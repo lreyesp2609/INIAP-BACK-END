@@ -43,7 +43,8 @@ INSTALLED_APPS = [
     'Ciudades',
     'Encabezados',
     'Bancos',
-    'Jefes'
+    'Jefes',
+    'Mantenimientos'
 ]
 
 MIDDLEWARE = [
