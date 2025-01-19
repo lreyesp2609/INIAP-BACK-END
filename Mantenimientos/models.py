@@ -29,3 +29,5 @@ class AlertasMantenimiento(models.Model):
     class Meta:
         managed = False  # Cambiar a True si deseas que Django gestione la tabla
         db_table = 'alertas_mantenimiento'
+
+

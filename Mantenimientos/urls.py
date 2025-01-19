@@ -7,3 +7,5 @@ urlpatterns = [
     path('vehiculos_kilometraje/<int:id_usuario>/<int:id_vehiculo>/', TodosKilometrajesView.as_view(), name='ultimo_kilometraje'),
 
 ]
+
+
