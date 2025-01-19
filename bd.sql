@@ -311,3 +311,23 @@ CREATE TABLE rutas_movilizacion (
     ruta_descripcion VARCHAR(250) NOT NULL,
     ruta_estado SMALLINT NOT NULL DEFAULT 1
 ); 
+
+-- Tabla para Kilometraje
+CREATE TABLE kilometraje (
+    id_kilometraje SERIAL PRIMARY KEY,
+    id_vehiculo INT NOT NULL,
+    fecha_registro DATE NOT NULL,
+    kilometraje INT NOT NULL,
+    evento VARCHAR(255),
+    CONSTRAINT fk_vehiculo_kilometraje FOREIGN KEY (id_vehiculo) REFERENCES vehiculo (id_vehiculo) ON DELETE NO ACTION
+);
+
+-- Tabla para Alertas de Mantenimiento
+CREATE TABLE alertas_mantenimiento (
+    id_alerta SERIAL PRIMARY KEY,
+    id_vehiculo INT NOT NULL,
+    kilometraje_activacion INT NOT NULL,
+    tipo_mantenimiento VARCHAR(255) NOT NULL,
+    estado_alerta BOOLEAN NOT NULL,
+    CONSTRAINT fk_vehiculo_alertas FOREIGN KEY (id_vehiculo) REFERENCES vehiculo (id_vehiculo) ON DELETE NO ACTION
+);
