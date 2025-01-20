@@ -134,12 +134,11 @@ class GenerarReporteInformeViajesView(View):
             if int(token_id_usuario) != id_usuario:
                 return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
 
-            # Filtrar por fechas, empleado y otros parámetros
+            # Obtener los parámetros de la solicitud
             fecha_inicio = request.POST.get('fecha_inicio')
             fecha_fin = request.POST.get('fecha_fin')
-            empleado = request.POST.get('empleado')
-            destino = request.POST.get('destino')
-            tipo_transporte = request.POST.get('tipo_transporte')
+            empleados_seleccionados = request.POST.getlist('empleados[]')  # Lista de empleados
+            lugar_servicio = request.POST.get('lugar')  # Lugar (Ciudad-Provincia)
 
             # Validación de fechas
             if fecha_inicio and fecha_fin:
@@ -154,18 +153,28 @@ class GenerarReporteInformeViajesView(View):
             filtros = {}
             if fecha_inicio and fecha_fin:
                 filtros['fecha_salida_informe__range'] = [fecha_inicio, fecha_fin]
-            if empleado:
-                filtros['id_solicitud__id_empleado'] = empleado
-            if destino:
-                filtros['id_solicitud__lugar_servicio'] = destino
-            if tipo_transporte:
-                filtros['transporteinformes__tipo_transporte_info'] = tipo_transporte
+            
+            # Filtro por empleados seleccionados
+            if empleados_seleccionados:
+                filtros['id_solicitud__id_empleado__in'] = empleados_seleccionados
 
+            # Filtro por lugar_servicio, que se pasa como Ciudad-Provincia
+            if lugar_servicio:
+                filtros['id_solicitud__lugar_servicio__icontains'] = lugar_servicio
+
+            # Filtrar los informes según los parámetros proporcionados
             informes = Informes.objects.filter(**filtros)
             lista_informes = []
             for informe in informes:
                 solicitud = informe.id_solicitud
                 empleado = solicitud.id_empleado.id_persona
+
+                # Preparar los datos para el informe, incluyendo todos los elementos solicitados
+                lugar_servicio_split = solicitud.lugar_servicio.split('-')
+                origen = lugar_servicio_split[0].strip()
+                destino = lugar_servicio_split[1].strip() if len(lugar_servicio_split) > 1 else origen
+
+                acompañantes = [ac.strip() for ac in solicitud.listado_empleado.split(',')] if solicitud.listado_empleado else []
 
                 lista_informes.append({
                     'id_informe': informe.id_informes,
@@ -175,7 +184,8 @@ class GenerarReporteInformeViajesView(View):
                     'fecha_salida': informe.fecha_salida_informe.strftime('%Y-%m-%d') if informe.fecha_salida_informe else '',
                     'fecha_llegada': informe.fecha_llegada_informe.strftime('%Y-%m-%d') if informe.fecha_llegada_informe else '',
                     'lugar_servicio': solicitud.lugar_servicio,
-                    'tipo_transporte': informe.transporteinformes.tipo_transporte_info if informe.transporteinformes else '',
+                    'acompañantes': acompañantes,
+                    'motivo': solicitud.motivo_movilizacion,
                 })
 
             # Generar el PDF con la lista de informes de viaje
@@ -343,12 +353,11 @@ def generar_pdf_informe_viaje(informes):
     try:
         template_path = 'reporte_informe_viajes.html'  # Nombre del template
         current_date = datetime.now().strftime('%d-%m-%Y')
-        
         context = {
             'informes': informes,
             'fecha_actual': current_date,
         }
-
+        # Renderizar el HTML
         html_content = render_to_string(template_path, context)
         pdf_file = BytesIO()
         HTML(string=html_content).write_pdf(pdf_file)
@@ -359,6 +368,7 @@ def generar_pdf_informe_viaje(informes):
         return response
 
     except Exception as e:
+        # Devolver un mensaje de error con detalle
         return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)
 
 def generar_pdf_facturas(facturas):

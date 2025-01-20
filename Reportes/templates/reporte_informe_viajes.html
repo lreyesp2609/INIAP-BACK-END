@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -49,13 +50,19 @@
             border-collapse: collapse;
             margin-bottom: 1rem;
             color: #212529;
+            table-layout: fixed;
+            /* Mejor control del tamaño de las celdas */
         }
 
-        .table th, .table td {
-            padding: 5px;
+        .table th,
+        .table td {
+            padding: 8px;
+            /* Aumentado para mayor legibilidad */
             border: 1px solid #dee2e6;
             text-align: left;
             font-size: 10px;
+            word-wrap: break-word;
+            /* Asegura que el contenido largo se divida correctamente */
         }
 
         .table thead th {
@@ -71,11 +78,27 @@
         .table-hover tbody tr:hover {
             background-color: rgba(0, 0, 0, 0.075);
         }
+
+        ul {
+            margin: 0;
+            padding-left: 15px;
+        }
+
+        li {
+            font-size: 12px;
+        }
+
+        .footer-note {
+            margin-top: 30px;
+            font-size: 10px;
+            text-align: center;
+        }
     </style>
 </head>
+
 <body>
     <header>
-        Mocache, {{ current_date }} 
+        Mocache, {{ fecha_actual }}
     </header>
 
     <div class="container">
@@ -91,44 +114,43 @@
                     <tr>
                         <th>Secuencial del Informe</th>
                         <th>Empleado</th>
-                        <th>Acompañantes</th>  <!-- Nueva columna para acompañantes -->
+                        <th>Acompañantes</th>
                         <th>Fecha del Informe</th>
-                        <th>Ruta</th>
                         <th>Motivo</th>
+                        <th>Lugar Servicio</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for informe in informes %}
-                        <tr>
-                            <td>{{ secuencial_informe }}</td>
-                            <td>{{ empleado }}</td>
-                            <td>
-                                <ul>
-                                    {% for acompañante in acompañantes %}
-                                        <li>{{ acompañante }}</li>
-                                    {% empty %}
-                                        <li>No hay acompañantes</li>
-                                    {% endfor %}
-                                </ul>
-                            </td>
-                            <td>{{ fecha }}</td>
-                            <td>
-                                <ul>
-                                    {% for ruta in rutas %}
-                                        <li>{{ ruta }}</li>
-                                    {% endfor %}
-                                </ul>
-                            </td>
-                            <td>{{ motivo }}</td>
-                        </tr>
+                    <tr>
+                        <td>{{ informe.codigo_solicitud }}</td>
+                        <td>{{ informe.empleado_nombres }} {{ informe.empleado_apellidos }}</td>
+                        <td>
+                            {% if informe.acompañantes %}
+                                {{ informe.acompañantes|join:", " }}
+                            {% else %}
+                                No hay acompañantes
+                            {% endif %}
+                        </td>
+                        
+                        <td>{{ informe.fecha_salida }}</td>  
+                        <td>{{ informe.motivo }}</td>
+                        <td>{{ informe.lugar_servicio }}</td> <!-- Mostrar origen -->
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
 
         <p class="description">
-            Para cualquier consulta adicional o detalles específicos, por favor contacte con el departamento correspondiente.
+            Para cualquier consulta adicional o detalles específicos, por favor contacte con el departamento
+            correspondiente.
         </p>
+
+        <div class="footer-note">
+            Este reporte ha sido generado de acuerdo con los registros disponibles.
+        </div>
     </div>
 </body>
+
 </html>
