@@ -13,7 +13,6 @@ from Informes.models import *
 from django.conf import settings
 from datetime import datetime
 from weasyprint import HTML
-import locale
 import pytz
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -103,7 +102,7 @@ class GenerarReporteOrdenesView(View):
 
             if ordenes.exists():
                 return generar_pdf_ordenes(lista_ordenes, descripcion, mostrar_estado, mostrar_funcionario, mostrar_conductor, mostrar_placa)
-            return generar_pdf_vacio("Ordenes de Movilización")
+            return generar_pdf_vacio("Ordenes de Movilización", descripcion)
 
         except jwt.ExpiredSignatureError:
             return JsonResponse({'error': 'Token expirado'}, status=401)
@@ -164,9 +163,11 @@ class GenerarReporteInformeViajesView(View):
             # Filtrar los informes según los parámetros proporcionados
             informes = Informes.objects.filter(**filtros)
 
+            descripcion_viajes = generar_descripcion_informe_viajes(filtros, informes)
+
             # Si no hay informes que coincidan, devolvemos un PDF vacío
             if not informes.exists():
-                return generar_pdf_vacio("Informe de Viajes")
+                return generar_pdf_vacio("Informe de Viajes", descripcion_viajes)
 
             lista_informes = []
             for informe in informes:
@@ -187,7 +188,7 @@ class GenerarReporteInformeViajesView(View):
                 })
 
             # Generar el PDF con la lista de informes de viaje
-            return generar_pdf_informe_viaje(lista_informes)
+            return generar_pdf_informe_viaje(lista_informes, descripcion_viajes)
 
         except jwt.ExpiredSignatureError:
             return JsonResponse({'error': 'Token expirado'}, status=401)
@@ -253,11 +254,14 @@ class GenerarReporteInformeFacturasView(View):
                 'id_informe__id_solicitud__id_empleado__id_persona'
             )
 
+            descripcion_facturas = generar_descripcion_informe_facturas(filtros, facturas)
+
+
             # Generar PDF
             if facturas.exists():
-                return generar_pdf_facturas(facturas)
+                return generar_pdf_facturas(facturas, descripcion_facturas)
             else:
-                return generar_pdf_vacio("Reporte de Facturas")
+                return generar_pdf_vacio("Reporte de Facturas", descripcion_facturas)
 
         except jwt.ExpiredSignatureError:
             return JsonResponse({'error': 'El token ha expirado'}, status=401)
@@ -271,37 +275,53 @@ def generar_descripcion(filtros, ordenes):
     descripcion = "Resumen de solicitudes de movilización: "
 
     if total_ordenes == 0:
-        return "No se encontraron solicitudes que cumplan con los filtros proporcionados."
+        descripcion += "No se encontraron solicitudes que cumplan con los filtros proporcionados, pero se aplicaron los siguientes filtros: "
 
     # Fechas
     if 'fecha_viaje__range' in filtros:
         fecha_inicio, fecha_fin = filtros['fecha_viaje__range']
         descripcion += f"entre las fechas <strong>{fecha_inicio}</strong> y <strong>{fecha_fin}</strong>, "
 
-    # Funcionario
-    if 'id_empleado' in filtros:
-        empleado_obj = ordenes.first().id_empleado
-        if empleado_obj:
-            empleado_persona = empleado_obj.id_persona
-            descripcion += f"para el funcionario <strong>{getattr(empleado_persona, 'apellidos', 'N/A')} {getattr(empleado_persona, 'nombres', 'N/A')}</strong>, "
+    # Empleados
+    if 'id_empleado__in' in filtros:
+        empleados_ids = filtros['id_empleado__in']
+        empleados = Personas.objects.filter(id_persona__in=empleados_ids).values_list(
+            'nombres', 'apellidos'
+        ).distinct()
+        empleados_nombres = ', '.join([f"{apellido} {nombre}" for nombre, apellido in empleados])
+        descripcion += f"para los funcionarios <strong>{empleados_nombres}</strong>, "
 
-    # Conductor
-    if 'id_conductor_id' in filtros:
-        conductor_obj = ordenes.first().id_conductor
-        if conductor_obj:
-            conductor_persona = conductor_obj.id_persona
-            descripcion += f"con el conductor <strong>{getattr(conductor_persona, 'apellidos', 'N/A')} {getattr(conductor_persona, 'nombres', 'N/A')}</strong>, "
+    # Conductor(es)
+    if 'id_conductor_id__in' in filtros:
+        conductores_ids = filtros['id_conductor_id__in']
+        conductores = Personas.objects.filter(id_persona__in=conductores_ids).values_list(
+            'nombres', 'apellidos'
+        ).distinct()
+        conductores_nombres = ', '.join([f"{apellido} {nombre}" for nombre, apellido in conductores])
+        if conductores_nombres:
+            descripcion += f"con los conductores <strong>{conductores_nombres}</strong>, "
+        else:
+            # Si no hay registros, listamos los conductores seleccionados en los filtros por nombre
+            conductores_nombres_filtros = ', '.join([f"Conductor {str(conductor)}" for conductor in conductores_ids])  # Convertimos a str
+            descripcion += f"con los conductores seleccionados: <strong>{conductores_nombres_filtros}</strong>, "
 
-    # Vehículo
-    if 'id_vehiculo' in filtros:
-        vehiculo_obj = ordenes.first().id_vehiculo
-        if vehiculo_obj:
-            descripcion += f"utilizando el vehículo de placa <strong>{getattr(vehiculo_obj, 'placa', 'N/A')}</strong>, "
+    # Vehículo(s)
+    if 'id_vehiculo__in' in filtros:
+        vehiculos_ids = filtros['id_vehiculo__in']
+        vehiculos = Vehiculo.objects.filter(id_vehiculo__in=vehiculos_ids).values_list('placa', flat=True).distinct()
+        placas = ', '.join(vehiculos)
+        if placas:
+            descripcion += f"utilizando los vehículos de placas <strong>{placas}</strong>, "
+        else:
+            # Si no hay registros, listamos las placas seleccionadas en los filtros
+            vehiculos_placas_filtros = ', '.join([f"Placa {str(vehiculo)}" for vehiculo in vehiculos_ids])  # Convertimos a str
+            descripcion += f"utilizando los vehículos con placas seleccionadas: <strong>{vehiculos_placas_filtros}</strong>, "
 
-    # Ruta
-    if 'lugar_origen_destino_movilizacion' in filtros:
-        ruta = filtros['lugar_origen_destino_movilizacion']
-        descripcion += f"para la ruta <strong>{ruta}</strong>, "
+    # Ruta(s)
+    if 'lugar_origen_destino_movilizacion__in' in filtros:
+        rutas = filtros['lugar_origen_destino_movilizacion__in']
+        rutas_str = ', '.join(rutas)
+        descripcion += f"para las rutas <strong>{rutas_str}</strong>, "
 
     # Conteo de aprobados y rechazados
     aprobados = ordenes.filter(estado_movilizacion='Aprobado').count()
@@ -315,6 +335,82 @@ def generar_descripcion(filtros, ordenes):
         descripcion += f"se han registrado un total de <strong>{rechazados}</strong> solicitudes rechazadas."
     else:
         descripcion += f"se han registrado un total de <strong>{total_ordenes}</strong> solicitudes."
+
+    return descripcion
+
+def generar_descripcion_informe_viajes(filtros, informes):
+    total_informes = informes.count()
+    descripcion = "Resumen de informes de viaje: "
+
+    if total_informes == 0:
+        descripcion += "No se encontraron informes que cumplan con los filtros proporcionados, pero se aplicaron los siguientes filtros: "
+
+    # Fechas
+    if 'fecha_salida_informe__range' in filtros:
+        fecha_inicio, fecha_fin = filtros['fecha_salida_informe__range']
+        descripcion += f"entre las fechas <strong>{fecha_inicio}</strong> y <strong>{fecha_fin}</strong>, "
+
+    # Empleado(s)
+    if 'id_solicitud_id__id_empleado__in' in filtros:
+        empleados_ids = filtros['id_solicitud_id__id_empleado__in']
+        empleados = Personas.objects.filter(id_persona__in=empleados_ids).values_list(
+            'nombres', 'apellidos'
+        ).distinct()
+        empleados_nombres = ', '.join([f"{apellido} {nombre}" for nombre, apellido in empleados])
+        descripcion += f"para los funcionarios <strong>{empleados_nombres}</strong>, "
+
+    # Lugar de servicio
+    if 'id_solicitud__lugar_servicio__icontains' in filtros:
+        lugar_servicio = filtros['id_solicitud__lugar_servicio__icontains']
+        descripcion += f"en el lugar de servicio <strong>{lugar_servicio}</strong>, "
+
+    # Asegurarse de que no se deje la coma al final
+    if descripcion.endswith(", "):
+        descripcion = descripcion[:-2]
+    
+    descripcion += f". Se han registrado un total de <strong>{total_informes}</strong> informes de viaje."
+
+    return descripcion
+
+def generar_descripcion_informe_facturas(filtros, facturas):
+    total_facturas = facturas.count()
+    descripcion = "Resumen de facturas: "
+
+    if total_facturas == 0:
+        descripcion += "No se encontraron facturas que cumplan con los filtros proporcionados, pero se aplicaron los siguientes filtros: "
+
+    # Fechas
+    if 'fecha_emision__range' in filtros:
+        fecha_inicio, fecha_fin = filtros['fecha_emision__range']
+        descripcion += f"entre las fechas <strong>{fecha_inicio}</strong> y <strong>{fecha_fin}</strong>, "
+
+    # Empleado(s)
+    if 'id_informe_id__id_solicitud_id__id_empleado__in' in filtros:
+        empleados_ids = filtros['id_informe_id__id_solicitud_id__id_empleado__in']
+        empleados = Personas.objects.filter(id_persona__in=empleados_ids).values_list(
+            'nombres', 'apellidos'
+        ).distinct()
+        empleados_nombres = ', '.join([f"{apellido} {nombre}" for nombre, apellido in empleados])
+        descripcion += f"para los empleados <strong>{empleados_nombres}</strong>, "
+
+    # Montos
+    if 'valor__gte' in filtros and 'valor__lte' in filtros:
+        monto_min = filtros['valor__gte']
+        monto_max = filtros['valor__lte']
+        descripcion += f"con montos entre <strong>{monto_min}</strong> y <strong>{monto_max}</strong>, "
+
+    # Vehículo(s) - Si está relacionado con las facturas (dependiendo de tu modelo)
+    if 'id_vehiculo__in' in filtros:
+        vehiculos_ids = filtros['id_vehiculo__in']
+        vehiculos = facturas.filter(id_vehiculo__in=vehiculos_ids).values_list('id_vehiculo__placa', flat=True).distinct()
+        placas = ', '.join(vehiculos)
+        descripcion += f"utilizando los vehículos de placas <strong>{placas}</strong>, "
+
+    # Asegurarse de que no se deje la coma al final
+    if descripcion.endswith(", "):
+        descripcion = descripcion[:-2]
+
+    descripcion += f". Se han registrado un total de <strong>{total_facturas}</strong> facturas."
 
     return descripcion
 
@@ -343,12 +439,13 @@ def generar_pdf_ordenes(ordenes, descripcion, mostrar_estado, mostrar_funcionari
     except Exception as e:
         return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)
     
-def generar_pdf_informe_viaje(informes):
+def generar_pdf_informe_viaje(informes, descripcion):
     try:
         template_path = 'reporte_informe_viajes.html'  # Nombre del template
         current_date = datetime.now().strftime('%d-%m-%Y')
         context = {
             'informes': informes,
+            'descripcion': descripcion,
             'fecha_actual': current_date,
         }
         # Renderizar el HTML
@@ -365,7 +462,7 @@ def generar_pdf_informe_viaje(informes):
         # Devolver un mensaje de error con detalle
         return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)
 
-def generar_pdf_facturas(facturas):
+def generar_pdf_facturas(facturas, descripcion):
     try:
         # Configuración de idioma y zona horaria
         current_date = datetime.now(pytz.timezone('America/Guayaquil')).strftime('%d de %B de %Y')
@@ -398,6 +495,7 @@ def generar_pdf_facturas(facturas):
         # Preparar contexto
         context = {
             'current_date': current_date,
+            'descripcion': descripcion,
             'facturas_data': facturas_data,
             'total_facturas': total_facturas
         }
@@ -418,10 +516,14 @@ def generar_pdf_facturas(facturas):
     except Exception as e:
         return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)
 
-def generar_pdf_vacio(tipo_reporte):
+def generar_pdf_vacio(tipo_reporte, descripcion):
     try:
         # Pasar el tipo de reporte a la plantilla
-        context = {'tipo_reporte': tipo_reporte, 'current_date': datetime.now().strftime('%Y-%m-%d')}
+        context = {
+            'tipo_reporte': tipo_reporte, 
+            'current_date': datetime.now().strftime('%Y-%m-%d'),
+            'descripcion': descripcion
+            }
         html_string = render_to_string('reporte_vacio.html', context)
 
         pdf_file = BytesIO()
