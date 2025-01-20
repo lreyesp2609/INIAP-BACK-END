@@ -137,7 +137,7 @@ class GenerarReporteInformeViajesView(View):
             # Obtener los parámetros de la solicitud
             fecha_inicio = request.POST.get('fecha_inicio')
             fecha_fin = request.POST.get('fecha_fin')
-            empleados_seleccionados = request.POST.getlist('empleados[]')  # Lista de empleados
+            empleados = request.POST.getlist('empleados')  
             lugar_servicio = request.POST.get('lugar')  # Lugar (Ciudad-Provincia)
 
             # Validación de fechas
@@ -155,25 +155,23 @@ class GenerarReporteInformeViajesView(View):
                 filtros['fecha_salida_informe__range'] = [fecha_inicio, fecha_fin]
             
             # Filtro por empleados seleccionados
-            if empleados_seleccionados:
-                filtros['id_solicitud__id_empleado__in'] = empleados_seleccionados
-
+            if empleados:
+                filtros['id_solicitud_id__id_empleado__in'] = empleados
             # Filtro por lugar_servicio, que se pasa como Ciudad-Provincia
             if lugar_servicio:
-                filtros['id_solicitud__lugar_servicio__icontains'] = lugar_servicio
+                filtros['id_solicitud__lugar_servicio__icontains'] = lugar_servicio  # Filtro por coincidencia parcial
 
             # Filtrar los informes según los parámetros proporcionados
             informes = Informes.objects.filter(**filtros)
+
+            # Si no hay informes que coincidan, devolvemos un PDF vacío
+            if not informes.exists():
+                return generar_pdf_vacio("Informe de Viajes")
+
             lista_informes = []
             for informe in informes:
                 solicitud = informe.id_solicitud
                 empleado = solicitud.id_empleado.id_persona
-
-                # Preparar los datos para el informe, incluyendo todos los elementos solicitados
-                lugar_servicio_split = solicitud.lugar_servicio.split('-')
-                origen = lugar_servicio_split[0].strip()
-                destino = lugar_servicio_split[1].strip() if len(lugar_servicio_split) > 1 else origen
-
                 acompañantes = [ac.strip() for ac in solicitud.listado_empleado.split(',')] if solicitud.listado_empleado else []
 
                 lista_informes.append({
@@ -222,7 +220,7 @@ class GenerarReporteInformeFacturasView(View):
                 return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
 
             # Obtener filtros
-            empleados = request.POST.getlist('empleados')
+            empleados = request.POST.getlist('empleados')  
             monto_min = request.POST.get('monto_min', None)
             monto_max = request.POST.get('monto_max', None)
             fecha_inicio = request.POST.get('fecha_inicio', None)
@@ -244,11 +242,7 @@ class GenerarReporteInformeFacturasView(View):
                 filtros['fecha_emision__range'] = [fecha_inicio, fecha_fin]
 
             if empleados:
-                empleados_ids = Empleados.objects.filter(
-                    id_persona__nombres__in=empleados
-                ).values_list('id_empleado', flat=True)
-                filtros['id_informe__id_solicitud__id_empleado__id_empleado__in'] = empleados_ids
-
+                filtros['id_informe_id__id_solicitud_id__id_empleado__in'] = empleados
             if monto_min:
                 filtros['valor__gte'] = float(monto_min)
             if monto_max:
