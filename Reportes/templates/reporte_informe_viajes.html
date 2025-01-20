@@ -27,13 +27,15 @@
 
         h1 {
             text-align: center;
-            margin-bottom: 20px;
             font-size: 18px;
+            margin: 20px 0;
+            font-weight: bold;
         }
 
         .container {
             width: 100%;
             margin: 0 auto;
+            padding: 0 20px;
         }
 
         p {
@@ -46,27 +48,25 @@
         }
 
         .table-responsive {
+            width: 100%;
             overflow-x: auto;
+            margin-top: 20px;
         }
 
         .table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 1rem;
-            color: #212529;
             table-layout: fixed;
-            /* Mejor control del tamaño de las celdas */
         }
 
         .table th,
         .table td {
-            padding: 8px;
-            /* Aumentado para mayor legibilidad */
+            padding: 10px;
             border: 1px solid #dee2e6;
             text-align: left;
             font-size: 10px;
             word-wrap: break-word;
-            /* Asegura que el contenido largo se divida correctamente */
         }
 
         .table thead th {
@@ -93,9 +93,14 @@
         }
 
         .footer-note {
-            margin-top: 30px;
+            margin-top: 40px;
             font-size: 10px;
             text-align: center;
+            color: #555;
+        }
+
+        .footer-note p {
+            margin: 0;
         }
     </style>
 </head>
@@ -111,9 +116,10 @@
         <p class="description">
             Este informe proporciona un detalle completo sobre los informes de viaje registrados.
         </p>
+
         <p class="description">
             {{ descripcion|safe }}
-        </p>   
+        </p>
 
         <div class="table-responsive">
             <table class="table table-bordered table-striped table-hover">
@@ -139,10 +145,9 @@
                                 No hay acompañantes
                             {% endif %}
                         </td>
-                        
                         <td>{{ informe.fecha_salida }}</td>  
                         <td>{{ informe.motivo }}</td>
-                        <td>{{ informe.lugar_servicio }}</td> <!-- Mostrar origen -->
+                        <td>{{ informe.lugar_servicio }}</td> <!-- Mostrar lugar de servicio -->
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -150,12 +155,11 @@
         </div>
 
         <p class="description">
-            Para cualquier consulta adicional o detalles específicos, por favor contacte con el departamento
-            correspondiente.
+            Para cualquier consulta adicional o detalles específicos, por favor contacte con el departamento correspondiente.
         </p>
 
         <div class="footer-note">
-            Este reporte ha sido generado de acuerdo con los registros disponibles.
+            <p>Este reporte ha sido generado de acuerdo con los registros disponibles.</p>
         </div>
     </div>
 </body>

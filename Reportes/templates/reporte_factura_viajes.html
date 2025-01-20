@@ -27,13 +27,15 @@
 
         h1 {
             text-align: center;
-            margin-bottom: 20px;
             font-size: 18px;
+            margin-bottom: 20px;
+            font-weight: bold;
         }
 
         .container {
             width: 100%;
             margin: 0 auto;
+            padding: 0 20px;
         }
 
         p {
@@ -46,22 +48,25 @@
         }
 
         .table-responsive {
+            width: 100%;
             overflow-x: auto;
+            margin-top: 20px;
         }
 
         .table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 1rem;
-            color: #212529;
+            table-layout: fixed;
         }
 
         .table th,
         .table td {
-            padding: 5px;
+            padding: 8px;
             border: 1px solid #dee2e6;
             text-align: left;
             font-size: 10px;
+            word-wrap: break-word;
         }
 
         .table thead th {
@@ -76,6 +81,16 @@
 
         .table-hover tbody tr:hover {
             background-color: rgba(0, 0, 0, 0.075);
+        }
+
+        .tfoot {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+
+        .tfoot td {
+            padding-top: 10px;
+            padding-bottom: 10px;
         }
     </style>
 </head>
@@ -94,7 +109,7 @@
 
         <p class="description">
             {{ descripcion|safe }}
-        </p>   
+        </p>
 
         <div class="table-responsive">
             <table class="table table-bordered table-striped table-hover">
@@ -126,13 +141,13 @@
                         </td>
                         <td>{{ data.fecha_informe|date:"d/m/Y" }}</td>
                         <td>{{ data.factura.detalle_documento }}</td>
-                        <td>${{ data.factura.valor }}</td>
+                        <td>${{ data.factura.valor|floatformat:2 }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
-                <tfoot>
+                <tfoot class="tfoot">
                     <tr>
-                        <td colspan="8" style="text-align: right;"><strong>Total:</strong></td>
+                        <td colspan="7" style="text-align: right;">Total:</td>
                         <td><strong>${{ total_facturas|floatformat:2 }}</strong></td>
                     </tr>
                 </tfoot>
@@ -140,9 +155,12 @@
         </div>
 
         <p class="description">
-            Para cualquier consulta adicional o detalles específicos, por favor contacte con el departamento
-            correspondiente.
+            Para cualquier consulta adicional o detalles específicos, por favor contacte con el departamento correspondiente.
         </p>
+
+        <div class="footer-note">
+            <p>Este reporte ha sido generado de acuerdo con los registros disponibles.</p>
+        </div>
     </div>
 </body>
 

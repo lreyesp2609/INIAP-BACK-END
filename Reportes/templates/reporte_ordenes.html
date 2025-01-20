@@ -1,80 +1,100 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reporte de Órdenes de Movilización</title>
     <style>
         @page {
             size: A4;
             margin: 1in;
         }
-    
+
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            font-size: 12px;
+            line-height: 1.5;
         }
-    
+
         h1 {
             text-align: center;
+            font-size: 18px;
             margin-bottom: 20px;
+            font-weight: bold;
         }
-    
+
         p {
             margin: 0 0 10px;
         }
-    
+
         .container {
-            max-width: 100%;
+            width: 100%;
             margin: 0 auto;
             padding: 0 20px;
         }
-    
+
         .description {
             margin-bottom: 20px;
         }
-    
+
         .table-responsive {
+            width: 100%;
             overflow-x: auto;
+            margin-top: 20px;
         }
-    
+
         .table {
             width: 100%;
+            border-collapse: collapse;
             margin-bottom: 1rem;
             color: #212529;
-            vertical-align: top;
-            border-color: #dee2e6;
         }
-    
+
         .table th,
         .table td {
-            padding: .5rem .5rem;
-            background-color: #fff;
-            border-bottom-width: 1px;
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            text-align: left;
+            font-size: 10px;
+            vertical-align: top;
+            word-wrap: break-word;
         }
-    
-        .table thead {
-            vertical-align: bottom;
+
+        .table thead th {
+            background-color: #f8f9fa;
+            color: #495057;
+            font-weight: bold;
         }
-    
+
         .table-striped tbody tr:nth-of-type(odd) {
             background-color: rgba(0, 0, 0, 0.05);
         }
-    
+
         .table-hover tbody tr:hover {
             background-color: rgba(0, 0, 0, 0.075);
         }
-    
-        .table-bordered th,
-        .table-bordered td {
-            border: 1px solid #dee2e6;
-        }
-    
-        .thead-light th {
+
+        .tfoot {
             background-color: #f8f9fa;
-            color: #495057;
+            font-weight: bold;
+        }
+
+        .tfoot td {
+            padding-top: 10px;
+            padding-bottom: 10px;
+            text-align: right;
+        }
+
+        .footer-note {
+            margin-top: 30px;
+            font-size: 10px;
+            text-align: center;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>Reporte de Órdenes de Movilización</h1>
@@ -85,11 +105,11 @@
 
         <p class="description">
             {{ descripcion|safe }}
-        </p>        
+        </p>   
 
         <div class="table-responsive">
             <table class="table table-bordered table-striped table-hover">
-                <thead class="thead-light">
+                <thead>
                     <tr>
                         <th>Sec.</th>
                         {% if mostrar_estado %}
@@ -123,7 +143,7 @@
                             <td>{{ orden.estado_movilizacion }}</td>
                         {% endif %}
                         {% if mostrar_funcionario %}
-                            <td>{{ orden.empleado_apellidos }} <br> {{ orden.empleado_nombres }} </td>
+                            <td>{{ orden.empleado_apellidos }} <br> {{ orden.empleado_nombres }}</td>
                         {% endif %}
                         <td>{{ orden.motivo_movilizacion }}</td>
                         <td>{{ orden.lugar_origen_destino_movilizacion }}</td>
@@ -131,7 +151,7 @@
                         <td>{{ orden.hora_ida }}</td>
                         <td>{{ orden.duracion_movilizacion }}</td>
                         {% if mostrar_conductor %}
-                            <td>{{ orden.conductor_apellidos }} <br> {{ orden.conductor_nombres }} </td>
+                            <td>{{ orden.conductor_apellidos }} <br> {{ orden.conductor_nombres }}</td>
                         {% endif %}
                         <td>{{ orden.vehiculo_placa }}</td>
                     </tr>
@@ -143,6 +163,10 @@
         <p class="description">
             Para cualquier consulta adicional o detalles específicos, por favor contacte con el departamento correspondiente.
         </p>
+
+        <div class="footer-note">
+            <p>Este reporte ha sido generado de acuerdo con los registros disponibles.</p>
+        </div>>
     </div>
 </body>
 </html>
