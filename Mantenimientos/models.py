@@ -3,16 +3,22 @@ from django.db import models
 class Kilometraje(models.Model):
     id_kilometraje = models.AutoField(primary_key=True)
     id_vehiculo = models.ForeignKey(
-        'Vehiculos.Vehiculo',  # Relación con la tabla Vehiculo
+        'Vehiculos.Vehiculo',
         on_delete=models.DO_NOTHING,
         db_column='id_vehiculo'
+    )
+    empleado = models.ForeignKey(  # Nuevo campo añadido
+        'Empleados.Empleados',  # Asegúrate de que la app se llama correctamente
+        on_delete=models.DO_NOTHING,
+        db_column='id_empleado',
+        verbose_name='Empleado registrador'
     )
     fecha_registro = models.DateField()
     kilometraje = models.IntegerField()
     evento = models.CharField(max_length=255)
 
     class Meta:
-        managed = False  # Cambiar a True si deseas que Django gestione la tabla
+        managed = False  # Si es False, deberás aplicar manualmente los cambios en DB
         db_table = 'kilometraje'
 
 class AlertasMantenimiento(models.Model):
@@ -29,5 +35,3 @@ class AlertasMantenimiento(models.Model):
     class Meta:
         managed = False  # Cambiar a True si deseas que Django gestione la tabla
         db_table = 'alertas_mantenimiento'
-
-

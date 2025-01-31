@@ -9,7 +9,7 @@ from Vehiculos.models import *
 import jwt
 from django.conf import settings
 import re
-
+from Empleados.models import *
 @method_decorator(csrf_exempt, name='dispatch')
 class RegistrarKilometrajeView(View):
     @transaction.atomic
@@ -33,6 +33,12 @@ class RegistrarKilometrajeView(View):
 
             if int(token_id_usuario) != id_usuario:
                 return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+
+            # Obtener empleado relacionado al usuario
+            try:
+                empleado = Empleados.objects.get(id_persona=token_id_usuario)  # Ajusta según tu estructura real
+            except Empleados.DoesNotExist:
+                return JsonResponse({'error': 'Empleado no encontrado'}, status=404)
 
             # Validar que el vehículo existe
             try:
@@ -60,15 +66,13 @@ class RegistrarKilometrajeView(View):
                 return JsonResponse({'errores': errores}, status=400)
 
             # Crear el registro de kilometraje
-            kilometraje_obj = Kilometraje.objects.create(
+            Kilometraje.objects.create(
                 id_vehiculo=vehiculo,
+                empleado=empleado,  # Añadido el empleado
                 fecha_registro=fecha_registro,
                 kilometraje=int(kilometraje),
                 evento=evento
             )
-
-            # Llamar a la comparación de kilometraje
-            CompararKilometrajeView().post(request, id_vehiculo=id_vehiculo)
 
             return JsonResponse({'mensaje': 'Kilometraje registrado exitosamente'}, status=201)
 
@@ -158,29 +162,34 @@ class TodosKilometrajesView(View):
                 return JsonResponse({'error': 'Vehículo no encontrado'}, status=404)
 
             # Obtener todos los kilometrajes registrados para el vehículo
-            kilometrajes = Kilometraje.objects.filter(id_vehiculo=vehiculo).order_by('fecha_registro')
+            kilometrajes = Kilometraje.objects.filter(
+                id_vehiculo=vehiculo
+            ).select_related(
+                'empleado__id_persona'  # Incluir la relación con Personas
+            ).order_by('fecha_registro')
 
             if not kilometrajes:
-                # Si no hay registros de kilometraje
                 return JsonResponse({
                     'error': 'No se ha registrado kilometraje para este vehículo',
                     'placa': vehiculo.placa,
                     'marca': vehiculo.marca,
                 }, status=404)
 
-            # Construir la respuesta con todos los kilometrajes
             kilometrajes_data = []
             for kilometraje in kilometrajes:
+                # Acceder a los datos de persona a través de empleado
+                persona = kilometraje.empleado.id_persona
+                
                 kilometrajes_data.append({
                     'id_vehiculo': vehiculo.id_vehiculo,
                     'placa': vehiculo.placa,
                     'marca': vehiculo.marca,
                     'kilometraje': kilometraje.kilometraje,
                     'fecha_registro': kilometraje.fecha_registro,
-                    'evento': kilometraje.evento
+                    'evento': kilometraje.evento,
+                    'registrado_por': f"{persona.nombres} {persona.apellidos}"  # Nuevo campo
                 })
 
-            # Retornar todos los kilometrajes
             return JsonResponse(kilometrajes_data, safe=False, status=200)
 
         except Exception as e:

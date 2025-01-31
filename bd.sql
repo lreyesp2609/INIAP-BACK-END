@@ -7,7 +7,7 @@ CREATE TABLE Ciudades (
     id_ciudad SERIAL PRIMARY KEY,
     id_provincia INT NOT NULL,
     Ciudad VARCHAR(100) NOT NULL,
-    FOREIGN KEY (id_provincia) REFERENCES Provincias(id_provincia)
+    FOREIGN KEY (id_provincia) REFERENCES Provincias (id_provincia)
 );
 
 CREATE TABLE Rol (
@@ -41,8 +41,8 @@ CREATE TABLE Usuarios (
     id_persona INT NOT NULL,
     usuario VARCHAR(50) NOT NULL,
     contrasenia VARCHAR(255) NOT NULL,
-    FOREIGN KEY (id_rol) REFERENCES Rol(id_rol),
-    FOREIGN KEY (id_persona) REFERENCES Personas(id_persona)
+    FOREIGN KEY (id_rol) REFERENCES Rol (id_rol),
+    FOREIGN KEY (id_persona) REFERENCES Personas (id_persona)
 );
 
 CREATE TABLE Estaciones (
@@ -59,17 +59,15 @@ CREATE TABLE Unidades (
     nombre_unidad VARCHAR(100) NOT NULL,
     siglas_unidad VARCHAR(20),
     id_estacion INT NOT NULL,
-    FOREIGN KEY (id_estacion) REFERENCES Estaciones(id_estacion)
+    FOREIGN KEY (id_estacion) REFERENCES Estaciones (id_estacion)
 );
-
 
 CREATE TABLE Cargos (
     id_cargo SERIAL PRIMARY KEY,
     id_unidad INT NOT NULL,
     cargo VARCHAR(100) NOT NULL,
-    FOREIGN KEY (id_unidad) REFERENCES Unidades(id_unidad)
+    FOREIGN KEY (id_unidad) REFERENCES Unidades (id_unidad)
 );
-
 
 CREATE TABLE Empleados (
     id_empleado SERIAL PRIMARY KEY,
@@ -80,10 +78,9 @@ CREATE TABLE Empleados (
     habilitado SMALLINT DEFAULT 1,
     es_jefe BOOLEAN DEFAULT FALSE,
     es_director BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY (id_persona) REFERENCES Personas(id_persona),
-    FOREIGN KEY (id_cargo) REFERENCES Cargos(id_cargo)
+    FOREIGN KEY (id_persona) REFERENCES Personas (id_persona),
+    FOREIGN KEY (id_cargo) REFERENCES Cargos (id_cargo)
 );
-
 
 CREATE TABLE Tipo_Licencias (
     id_tipo_licencia SERIAL PRIMARY KEY,
@@ -96,14 +93,12 @@ CREATE TABLE Bancos (
     nombre_banco VARCHAR(100) NOT NULL
 );
 
-
-
 CREATE TABLE Empleados_Tipo_Licencias (
     id_empleado INT NOT NULL,
     id_tipo_licencia INT NOT NULL,
     PRIMARY KEY (id_empleado, id_tipo_licencia),
-    FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado),
-    FOREIGN KEY (id_tipo_licencia) REFERENCES Tipo_Licencias(id_tipo_licencia)
+    FOREIGN KEY (id_empleado) REFERENCES Empleados (id_empleado),
+    FOREIGN KEY (id_tipo_licencia) REFERENCES Tipo_Licencias (id_tipo_licencia)
 );
 
 CREATE TABLE Solicitudes (
@@ -120,16 +115,15 @@ CREATE TABLE Solicitudes (
     listado_empleado TEXT,
     estado_solicitud VARCHAR(50),
     id_empleado INT NOT NULL,
-    FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado)
+    FOREIGN KEY (id_empleado) REFERENCES Empleados (id_empleado)
 );
 
 CREATE TABLE Motivo_Cancelado (
     id_motivo_cancelado SERIAL PRIMARY KEY,
     id_solicitud INT NOT NULL,
     motivo_cancelado TEXT NOT NULL,
-    FOREIGN KEY (id_solicitud) REFERENCES Solicitudes(id_solicitud)
+    FOREIGN KEY (id_solicitud) REFERENCES Solicitudes (id_solicitud)
 );
-
 
 CREATE TABLE Cuentas_Bancarias (
     id_cuenta_bancaria SERIAL PRIMARY KEY,
@@ -139,11 +133,10 @@ CREATE TABLE Cuentas_Bancarias (
     tipo_cuenta VARCHAR(50),
     numero_cuenta VARCHAR(50),
     habilitado SMALLINT DEFAULT 1,
-    FOREIGN KEY (id_banco) REFERENCES Bancos(id_banco),
-    FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado),
-    FOREIGN KEY (id_solicitud) REFERENCES Solicitudes(id_solicitud)
+    FOREIGN KEY (id_banco) REFERENCES Bancos (id_banco),
+    FOREIGN KEY (id_empleado) REFERENCES Empleados (id_empleado),
+    FOREIGN KEY (id_solicitud) REFERENCES Solicitudes (id_solicitud)
 );
-
 
 CREATE TABLE Transporte_Solicitudes (
     id_transporte_soli SERIAL PRIMARY KEY,
@@ -155,7 +148,7 @@ CREATE TABLE Transporte_Solicitudes (
     hora_salida_soli TIME,
     fecha_llegada_soli DATE,
     hora_llegada_soli TIME,
-    FOREIGN KEY (id_solicitud) REFERENCES Solicitudes(id_solicitud)
+    FOREIGN KEY (id_solicitud) REFERENCES Solicitudes (id_solicitud)
 );
 
 CREATE TABLE Encabezados (
@@ -176,17 +169,16 @@ CREATE TABLE Informes (
     observacion TEXT,
     id_encabezado INT,
     estado INTEGER CHECK (estado IN (0, 1)),
-    FOREIGN KEY (id_solicitud) REFERENCES Solicitudes(id_solicitud),
-    FOREIGN KEY (id_encabezado) REFERENCES Encabezados(id_encabezado)
+    FOREIGN KEY (id_solicitud) REFERENCES Solicitudes (id_solicitud),
+    FOREIGN KEY (id_encabezado) REFERENCES Encabezados (id_encabezado)
 );
-
 
 CREATE TABLE Actividades_Informes (
     id_informe INT NOT NULL,
     dia DATE,
     actividad VARCHAR(255),
     PRIMARY KEY (id_informe),
-    FOREIGN KEY (id_informe) REFERENCES Informes(id_informes)
+    FOREIGN KEY (id_informe) REFERENCES Informes (id_informes)
 );
 
 CREATE TABLE Facturas_Informes (
@@ -197,28 +189,28 @@ CREATE TABLE Facturas_Informes (
     fecha_emision DATE,
     detalle_documento VARCHAR(255),
     valor DECIMAL(10, 2),
-    FOREIGN KEY (id_informe) REFERENCES Informes(id_informes)
+    FOREIGN KEY (id_informe) REFERENCES Informes (id_informes)
 );
 
 CREATE TABLE Total_Factura (
     id_total SERIAL PRIMARY KEY,
     id_factura INT NOT NULL,
     total DECIMAL(10, 2) NOT NULL,
-    FOREIGN KEY (id_factura) REFERENCES Facturas_Informes(id_factura)
+    FOREIGN KEY (id_factura) REFERENCES Facturas_Informes (id_factura)
 );
 
 CREATE TABLE Estado_Factura (
-    id_estadofactura SERIAL PRIMARY KEY,  -- Campo 'id_estadofactura' como clave primaria
+    id_estadofactura SERIAL PRIMARY KEY, -- Campo 'id_estadofactura' como clave primaria
     id_factura INT NOT NULL,
-    estado INTEGER CHECK (estado IN (0, 1)),  -- Estado de la factura
-    FOREIGN KEY (id_factura) REFERENCES Facturas_Informes(id_factura)
+    estado INTEGER CHECK (estado IN (0, 1)), -- Estado de la factura
+    FOREIGN KEY (id_factura) REFERENCES Facturas_Informes (id_factura)
 );
 
 CREATE TABLE Productos_Alcanzados_Informes (
     id_producto_alcanzado SERIAL PRIMARY KEY,
     id_informe INT NOT NULL,
     descripcion TEXT,
-    FOREIGN KEY (id_informe) REFERENCES Informes(id_informes)
+    FOREIGN KEY (id_informe) REFERENCES Informes (id_informes)
 );
 
 CREATE TABLE Transporte_Informe (
@@ -231,7 +223,7 @@ CREATE TABLE Transporte_Informe (
     hora_salida_info TIME,
     fecha_llegada_info DATE,
     hora_llegada_info TIME,
-    FOREIGN KEY (id_informe) REFERENCES Informes(id_informes)
+    FOREIGN KEY (id_informe) REFERENCES Informes (id_informes)
 );
 
 CREATE TABLE Categorias_Bienes (
@@ -244,7 +236,7 @@ CREATE TABLE Subcategorias_Bienes (
     id_categorias_bien INT NOT NULL,
     descripcion VARCHAR(255) NOT NULL,
     identificador VARCHAR(50),
-    FOREIGN KEY (id_categorias_bien) REFERENCES Categorias_Bienes(id_categorias_bien)
+    FOREIGN KEY (id_categorias_bien) REFERENCES Categorias_Bienes (id_categorias_bien)
 );
 
 CREATE TABLE Vehiculo (
@@ -261,9 +253,8 @@ CREATE TABLE Vehiculo (
     numero_chasis VARCHAR(100),
     numero_matricula VARCHAR(50),
     habilitado SMALLINT DEFAULT 1,
-    FOREIGN KEY (id_subcategoria_bien) REFERENCES Subcategorias_Bienes(id_subcategoria_bien)
+    FOREIGN KEY (id_subcategoria_bien) REFERENCES Subcategorias_Bienes (id_subcategoria_bien)
 );
-
 
 CREATE TABLE ordenes_movilizacion (
     id_orden_movilizacion SERIAL PRIMARY KEY,
@@ -280,24 +271,23 @@ CREATE TABLE ordenes_movilizacion (
     estado_movilizacion VARCHAR(50) NOT NULL DEFAULT 'En Espera',
     id_empleado INT NOT NULL,
     habilitado SMALLINT NOT NULL DEFAULT 1,
-    FOREIGN KEY (id_conductor) REFERENCES empleados(id_empleado),
-    FOREIGN KEY (id_vehiculo) REFERENCES vehiculo(id_vehiculo),
-    FOREIGN KEY (id_empleado) REFERENCES empleados(id_empleado)
+    FOREIGN KEY (id_conductor) REFERENCES empleados (id_empleado),
+    FOREIGN KEY (id_vehiculo) REFERENCES vehiculo (id_vehiculo),
+    FOREIGN KEY (id_empleado) REFERENCES empleados (id_empleado)
 );
 
 CREATE TABLE motivo_orden_movilizacion (
     id_motivo_orden SERIAL PRIMARY KEY,
     id_empleado INT NOT NULL,
     id_orden_movilizacion INT NOT NULL,
-    motivo VARCHAR(250) NOT NULL, 
+    motivo VARCHAR(250) NOT NULL,
     fecha TIMESTAMP NOT NULL,
-
-    FOREIGN KEY (id_empleado) REFERENCES empleados(id_empleado),
-    FOREIGN KEY (id_orden_movilizacion) REFERENCES ordenes_movilizacion(id_orden_movilizacion)
+    FOREIGN KEY (id_empleado) REFERENCES empleados (id_empleado),
+    FOREIGN KEY (id_orden_movilizacion) REFERENCES ordenes_movilizacion (id_orden_movilizacion)
 );
 
 CREATE TABLE horario_orden_movilizacion (
-	id_horario_movilizacion SERIAL PRIMARY KEY,
+    id_horario_movilizacion SERIAL PRIMARY KEY,
     hora_ida_minima TIME NOT NULL,
     hora_llegada_maxima TIME NOT NULL,
     duracion_minima INT NOT NULL,
@@ -310,16 +300,18 @@ CREATE TABLE rutas_movilizacion (
     ruta_destino VARCHAR(250) NOT NULL,
     ruta_descripcion VARCHAR(250) NOT NULL,
     ruta_estado SMALLINT NOT NULL DEFAULT 1
-); 
+);
 
 -- Tabla para Kilometraje
 CREATE TABLE kilometraje (
     id_kilometraje SERIAL PRIMARY KEY,
     id_vehiculo INT NOT NULL,
+    id_empleado INT NOT NULL, -- Nueva columna
     fecha_registro DATE NOT NULL,
     kilometraje INT NOT NULL,
     evento VARCHAR(255),
-    CONSTRAINT fk_vehiculo_kilometraje FOREIGN KEY (id_vehiculo) REFERENCES vehiculo (id_vehiculo) ON DELETE NO ACTION
+    CONSTRAINT fk_vehiculo_kilometraje FOREIGN KEY (id_vehiculo) REFERENCES vehiculo (id_vehiculo),
+    CONSTRAINT fk_empleado_kilometraje FOREIGN KEY (id_empleado) REFERENCES Empleados (id_empleado)
 );
 
 -- Tabla para Alertas de Mantenimiento
