@@ -9,6 +9,7 @@ urlpatterns = [
     path('comparar_kilometraje/<int:id_vehiculo>/', CompararKilometrajeView.as_view(), name='comparar_kilometraje'),
     path('alertas/', ListarAlertasActivasView.as_view(), name='listar_alertas'),
     path('listar_detalle_alertas/<int:id_usuario>/<int:id_vehiculo>/', ListarDetalleAlertasView.as_view(), name='listar_detalle_alertas'),
+    path('reporte-kilometraje/<int:id_usuario>/', (GenerarReporteKilometrajeView.as_view()), name='generar_reporte_kilometraje'),
 ]
 
 

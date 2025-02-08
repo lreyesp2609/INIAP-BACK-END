@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reporte de Kilometraje</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1in;
+        }
+    
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+    
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    
+        p {
+            margin: 0 0 10px;
+        }
+    
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+    
+        .description {
+            margin-bottom: 20px;
+        }
+    
+        .table-responsive {
+            overflow-x: auto;
+        }
+    
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+    
+        .table th, .table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+    
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+    
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+    
+        .total-row {
+            font-weight: bold;
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Reporte de Registros de Kilometraje</h1>
+
+        <p class="description">
+            {{ descripcion|safe }}
+        </p>
+
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        {% if mostrar_vehiculo %}
+                        <th>Vehículo</th>
+                        {% endif %}
+                        {% if mostrar_empleado %}
+                        <th>Registrado por</th>
+                        {% endif %}
+                        <th>Kilometraje</th>
+                        <th>Evento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for registro in registros %}
+                    <tr>
+                        <td>{{ registro.fecha_registro }}</td>
+                        {% if mostrar_vehiculo %}
+                        <td>{{ registro.vehiculo_placa }} ({{ registro.vehiculo_marca }})</td>
+                        {% endif %}
+                        {% if mostrar_empleado %}
+                        <td>{{ registro.empleado_nombres }}</td>
+                        {% endif %}
+                        <td>{{ registro.kilometraje }} km</td>
+                        <td>{{ registro.evento }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="total-row">
+                        <td colspan="{% if mostrar_vehiculo and mostrar_empleado %}3{% else %}2{% endif %}">TOTAL</td>
+                        <td>{{ total_kilometros }} km</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p class="description">
+            Reporte generado el {{ fecha_actual|date:"Y-m-d H:i" }}. Para más información contacte al departamento de transporte.
+        </p>
+    </div>
+</body>
+</html>

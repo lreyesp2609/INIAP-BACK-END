@@ -411,3 +411,159 @@ class ListarDetalleAlertasView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+        
+
+
+
+from django.shortcuts import render
+from django.views import View
+from django.http import JsonResponse, HttpResponse
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.template.loader import render_to_string
+from rest_framework.exceptions import AuthenticationFailed
+from io import BytesIO
+import jwt
+from django.conf import settings
+from weasyprint import HTML
+from .models import Kilometraje  # Asegúrate de importar tu modelo
+from datetime import datetime
+
+@method_decorator(csrf_exempt, name='dispatch')
+class GenerarReporteKilometrajeView(View):
+    def post(self, request, id_usuario):
+        try:
+            # Autenticación con JWT (igual al ejemplo)
+            token = request.headers.get('Authorization')
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            token_id_usuario = payload.get('id_usuario')
+            if not token_id_usuario:
+                raise AuthenticationFailed('ID de usuario no encontrado en el token')
+
+            if int(token_id_usuario) != id_usuario:
+                return JsonResponse({'error': 'ID de usuario del token no coincide con el de la URL'}, status=403)
+            
+            # Obtener parámetros de filtro
+            fecha_inicio = request.POST.get('fecha_inicio')
+            fecha_fin = request.POST.get('fecha_fin')
+            vehiculo = request.POST.get('vehiculo')
+            empleado = request.POST.get('empleado')
+            evento = request.POST.get('evento')
+
+            # Validación de fechas
+            if fecha_inicio and fecha_fin:
+                try:
+                    fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+                    fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d')
+                    if fecha_inicio_dt > fecha_fin_dt:
+                        return JsonResponse({'error': 'La fecha de inicio no puede ser mayor que la fecha de fin'}, status=400)
+                except ValueError:
+                    return JsonResponse({'error': 'Formato de fecha inválido'}, status=400)
+
+            # Construir filtros
+            filtros = {}
+            if fecha_inicio and fecha_fin:
+                filtros['fecha_registro__range'] = [fecha_inicio, fecha_fin]
+            if vehiculo:
+                filtros['id_vehiculo'] = vehiculo
+            if empleado:
+                filtros['empleado'] = empleado
+            if evento:
+                filtros['evento__icontains'] = evento
+
+            registros = Kilometraje.objects.filter(**filtros).select_related('id_vehiculo', 'empleado')
+            
+            # Preparar datos para el reporte
+            lista_registros = []
+            total_kilometros = 0
+            
+            for registro in registros:
+                vehiculo = registro.id_vehiculo
+                empleado_reg = registro.empleado.id_persona
+                
+                lista_registros.append({
+                    'fecha_registro': registro.fecha_registro.strftime('%Y-%m-%d'),
+                    'vehiculo_placa': vehiculo.placa,
+                    'vehiculo_marca': vehiculo.marca,
+                    'empleado_nombres': f"{empleado_reg.nombres} {empleado_reg.apellidos}",
+                    'kilometraje': registro.kilometraje,
+                    'evento': registro.evento,
+                })
+                total_kilometros += registro.kilometraje
+
+            descripcion = self.generar_descripcion(filtros, registros, total_kilometros)
+            
+            # Determinar columnas a mostrar
+            mostrar_vehiculo = 'id_vehiculo' not in filtros
+            mostrar_empleado = 'empleado' not in filtros
+
+            return self.generar_pdf(lista_registros, descripcion, mostrar_vehiculo, mostrar_empleado)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+        except AuthenticationFailed as e:
+            return JsonResponse({'error': str(e)}, status=403)
+        except Exception as e:
+            print(f'Error al generar el reporte: {str(e)}')
+            return JsonResponse({'error': str(e)}, status=500)
+
+    def generar_descripcion(self, filtros, registros, total_kilometros):
+        total_registros = registros.count()
+        descripcion = "Resumen de registros de kilometraje: "
+
+        if total_registros == 0:
+            return "No se encontraron registros que cumplan con los filtros proporcionados."
+
+        # Fechas
+        if 'fecha_registro__range' in filtros:
+            fecha_inicio, fecha_fin = filtros['fecha_registro__range']
+            descripcion += f"entre las fechas <strong>{fecha_inicio}</strong> y <strong>{fecha_fin}</strong>, "
+
+        # Vehículo
+        if 'id_vehiculo' in filtros:
+            vehiculo = registros.first().id_vehiculo
+            descripcion += f"para el vehículo <strong>{vehiculo.placa} ({vehiculo.marca})</strong>, "
+
+        # Empleado
+        if 'empleado' in filtros:
+            empleado = registros.first().empleado.id_persona
+            descripcion += f"registrados por <strong>{empleado.nombres} {empleado.apellidos}</strong>, "
+
+        # Evento
+        if 'evento__icontains' in filtros:
+            descripcion += f"con evento relacionado a <strong>{filtros['evento__icontains']}</strong>, "
+
+        descripcion += f"se han registrado un total de <strong>{total_registros}</strong> eventos de kilometraje, "
+        descripcion += f"sumando un total de <strong>{total_kilometros} km</strong>."
+
+        return descripcion
+
+    def generar_pdf(self, registros, descripcion, mostrar_vehiculo, mostrar_empleado):
+        try:
+            
+            total_kilometros = sum(r['kilometraje'] for r in registros)
+
+            context = {
+                'registros': registros,
+                'descripcion': descripcion,
+                'mostrar_vehiculo': mostrar_vehiculo,
+                'mostrar_empleado': mostrar_empleado,
+                'total_kilometros': total_kilometros,
+                'fecha_actual': datetime.now()
+            }
+
+            html_string = render_to_string('reporte_kilometraje.html', context)
+            pdf_file = BytesIO()
+            HTML(string=html_string).write_pdf(pdf_file)
+
+            response = HttpResponse(pdf_file.getvalue(), content_type='application/pdf')
+            response['Content-Disposition'] = 'inline; filename="reporte_kilometraje.pdf"'
+            return response
+
+        except Exception as e:
+            return HttpResponse(f'Error al generar el PDF: {str(e)}', status=500)
