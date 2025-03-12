@@ -21,6 +21,7 @@ urlpatterns = [
     path('actualizar-solicitud/<int:id_solicitud>/', ActualizarSolicitudView.as_view(), name='actualizar-solicitud'),
     path('cambiar-estado-solicitud-revision/<int:id_solicitud>/', CambiarEstadoSolicitudRevisionView.as_view(), name='cambiar-estado-solicitud-revision'),
     path('cambiar-estado-pendiente/<int:id_solicitud>/', CambiarEstadoSolicitudPendienteView.as_view(), name='cambiar_estado_solicitud_pendiente'),
+    path('cambiar-estado-solicitud-edicion/<int:id_solicitud>/', CambiarEstadoSolicitudEdicionView.as_view(), name='cambiar_estado_solicitud_edicion'),
     path('editar-solicitud/<int:id_solicitud>/', EditarSolicitudView.as_view(), name='editar_solicitud'),
     path('listar-solicitudes-sin-informe/<int:id_usuario>/', ListarSolicitudesAceptadasSinInformeView.as_view(), name='listar_solicitudes_sin_informe'),
     path('datos-informe/<int:id_solicitud>/', ListarDatosInformeView.as_view(), name='listar_informe'),
