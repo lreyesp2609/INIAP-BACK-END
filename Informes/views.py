@@ -1,3 +1,4 @@
+import threading
 from django.conf import settings
 from django.forms import ValidationError
 from django.shortcuts import render
@@ -36,6 +37,7 @@ from .models import Solicitudes, Empleados, Unidades, Usuarios
 from django.utils.dateparse import parse_date, parse_time
 from django.utils import timezone
 from django.db.models import Sum
+from django.shortcuts import get_object_or_404
 
 from django.db import transaction
 
@@ -157,7 +159,7 @@ class ListarSolicitudesView(View):
             empleado = Empleados.objects.get(id_persona=usuario.id_persona)
 
             # Obtener las solicitudes del empleado con estado pendiente
-            solicitudes = Solicitudes.objects.filter(id_empleado=empleado, estado_solicitud='pendiente')
+            solicitudes = Solicitudes.objects.filter(id_empleado=empleado, estado_solicitud__in=['pendiente', 'en revisión','en edición'])
 
             # Preparar la respuesta con los datos requeridos
             data = []
@@ -530,7 +532,7 @@ class ListarSolicitudesPendientesAdminView(View):
 
             # Filtrar las solicitudes pendientes que correspondan a empleados de la misma unidad
             solicitudes = Solicitudes.objects.filter(
-                estado_solicitud='pendiente',
+                estado_solicitud__in=['pendiente', 'en revisión','en edición'],
                 id_empleado__id_cargo__id_unidad=unidad_admin
             )
 
@@ -750,7 +752,52 @@ class ActualizarSolicitudView(View):
             return JsonResponse({'error': 'Datos JSON inválidos'}, status=400)
         except Exception as e:
             return JsonResponse({'error': f'Error al actualizar la solicitud: {str(e)}'}, status=500)
+ 
+@method_decorator(csrf_exempt, name='dispatch')
+class CambiarEstadoSolicitudRevisionView(View):
+    def put(self, request, id_solicitud, *args, **kwargs):
+        try:
+            # No es necesario cargar datos JSON, simplemente cambiar el estado
+            nuevo_estado = 'en revisión'  # Cambiar el estado a "en revisión"
 
+            try:
+                solicitud = Solicitudes.objects.get(id_solicitud=id_solicitud)
+                solicitud.estado_solicitud = nuevo_estado
+                solicitud.save()
+
+                # Crear un hilo para cambiar el estado después de 20 minutos
+                threading.Timer(1200, self.cambiar_estado_pendiente, [solicitud]).start()  # 1200 segundos = 20 minutos
+
+                return JsonResponse({'mensaje': f'Solicitud actualizada a {nuevo_estado} exitosamente'}, status=200)
+
+            except Solicitudes.DoesNotExist:
+                return JsonResponse({'error': 'Solicitud no encontrada'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': f'Error al actualizar la solicitud: {str(e)}'}, status=500)
+
+    def cambiar_estado_pendiente(self, solicitud):
+        solicitud.estado_solicitud = 'pendiente'  # Cambiar el estado de vuelta a "pendiente"
+        solicitud.save()
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class CambiarEstadoSolicitudPendienteView(View):
+    def put(self, request, id_solicitud, *args, **kwargs):
+        try:
+            nuevo_estado = 'pendiente'  # Estado al que se actualizará
+
+            try:
+                solicitud = Solicitudes.objects.get(id_solicitud=id_solicitud)
+                solicitud.estado_solicitud = nuevo_estado
+                solicitud.save()
+
+                return JsonResponse({'mensaje': f'Solicitud actualizada a {nuevo_estado} exitosamente'}, status=200)
+
+            except Solicitudes.DoesNotExist:
+                return JsonResponse({'error': 'Solicitud no encontrada'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': f'Error al actualizar la solicitud: {str(e)}'}, status=500)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class EditarSolicitudView(View):
