@@ -416,13 +416,15 @@ def generar_descripcion_informe_facturas(filtros, facturas):
 
 def generar_pdf_ordenes(ordenes, descripcion, mostrar_estado, mostrar_funcionario, mostrar_conductor, mostrar_placa):
     try:
+        current_date = datetime.now().strftime('%d-%m-%Y')
         context = {
             'ordenes': ordenes,
             'descripcion': descripcion,
             'mostrar_estado': mostrar_estado,
             'mostrar_funcionario': mostrar_funcionario,
             'mostrar_conductor': mostrar_conductor,
-            'mostrar_placa': mostrar_placa
+            'mostrar_placa': mostrar_placa,
+            'current_date': current_date
         }
 
         html_string = render_to_string('reporte_ordenes.html', context)
@@ -464,8 +466,7 @@ def generar_pdf_informe_viaje(informes, descripcion):
 
 def generar_pdf_facturas(facturas, descripcion):
     try:
-        # Configuración de idioma y zona horaria
-        current_date = datetime.now(pytz.timezone('America/Guayaquil')).strftime('%d de %B de %Y')
+        current_date = datetime.now().strftime('%d-%m-%Y')
 
         facturas_data = []
         total_facturas = 0
